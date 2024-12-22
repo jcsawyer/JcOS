@@ -3,6 +3,7 @@ const mbox = @import("mbox.zig");
 const uart = @import("uart.zig");
 const rand = @import("rand.zig");
 const delays = @import("delays.zig");
+const power = @import("power.zig");
 
 comptime {
     asm (
@@ -44,29 +45,17 @@ export fn main() void {
     uart.uart_init();
     rand.init();
 
-    uart.uart_puts("Waiting 1_000_000 CPU cycles (ARM CPU): ");
-    delays.wait_cycles(1_000_000);
-    uart.uart_puts("OK\n");
-
-    uart.uart_puts("Waiting 1_000_000 microseconds (ARM CPU): ");
-    delays.wait_msec(1_000_000);
-    uart.uart_puts("OK\n");
-
-    uart.uart_puts("Waiting 1_000_000 microseconds (System Timer): ");
-    if (delays.get_system_timer() == 0) {
-        uart.uart_puts("System Timer not available\n");
-    } else {
-        delays.wait_msec_st(1_000_000);
-        uart.uart_puts("OK\n");
-    }
-
-    uart.uart_puts("Here goes a random number: ");
-    uart.uart_hex(rand.next(0, 4294967294));
-    uart.uart_puts("\n");
-
+    var char: u8 = undefined;
     // Echo everything back
     while (true) {
-        const received = uart.uart_getc();
-        uart.uart_send(received);
+        uart.uart_puts(" 1 - power off\n 2 - reset\nChoose one: ");
+        char = uart.uart_getc();
+        uart.uart_send(char);
+        uart.uart_puts("\n\n");
+        if (char == '1') {
+            power.off();
+        } else if (char == '2') {
+            power.reset();
+        }
     }
 }
