@@ -14,7 +14,9 @@ pub const MBOX_CH_TOUCH = 6;
 pub const MBOX_CH_COUNT = 7;
 pub const MBOX_CH_PROP = 8;
 
+// tags
 pub const MBOX_TAG_GETSERIAL = 0x10004;
+pub const MBOX_TAG_SETCLKRATE = 0x38002;
 pub const MBOX_TAG_LAST = 0;
 
 const VIDEOCORE_MBOX = gpio.MMIO_BASE + 0xB880;

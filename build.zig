@@ -22,7 +22,7 @@ pub fn build(b: *std.Build) void {
     const bin_step = b.addInstallBinFile(bin.getOutput(), "kernel.img");
     b.default_step.dependOn(&bin_step.step);
 
-    const qemu = b.addSystemCommand(&[_][]const u8{ "qemu-system-aarch64", "-M", "raspi3b", "-display", "none", "-serial", "null", "-serial", "stdio", "-kernel", b.getInstallPath(bin_step.dir, bin_step.dest_rel_path) });
+    const qemu = b.addSystemCommand(&[_][]const u8{ "qemu-system-aarch64", "-M", "raspi3b", "-display", "none", "-serial", "stdio", "-serial", "null", "-kernel", b.getInstallPath(bin_step.dir, bin_step.dest_rel_path) });
     qemu.step.dependOn(&bin_step.step);
     const qemu_step = b.step("qemu", "Run kernel in QEMU.");
     qemu_step.dependOn(&qemu.step);
