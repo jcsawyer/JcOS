@@ -1,4 +1,5 @@
 const std = @import("std");
+const mbox = @import("mbox.zig");
 const uart = @import("uart.zig");
 
 comptime {
@@ -42,6 +43,25 @@ export fn main() void {
 
     // Say hello
     uart.uart_puts("Hello World!\n");
+
+    mbox.mbox[0] = 8 * 4;
+    mbox.mbox[1] = mbox.MBOX_REQUEST;
+    mbox.mbox[2] = mbox.MBOX_TAG_GETSERIAL;
+    mbox.mbox[3] = 8;
+    mbox.mbox[4] = 8;
+    mbox.mbox[5] = 0;
+    mbox.mbox[6] = 0;
+
+    mbox.mbox[7] = mbox.MBOX_TAG_LAST;
+
+    if (mbox.call(mbox.MBOX_CH_PROP) == 0) {
+        uart.uart_puts("Failed to get serial number!\n");
+    } else {
+        uart.uart_puts("Serial number: ");
+        uart.uart_hex(mbox.mbox[6]);
+        uart.uart_hex(mbox.mbox[5]);
+        uart.uart_puts("\n");
+    }
 
     // Echo everything back
     while (true) {
