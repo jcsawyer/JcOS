@@ -11,16 +11,6 @@ var UART0_CR: *volatile u32 = @ptrFromInt(gpio.MMIO_BASE + 0x00201030);
 var UART0_IMSC: *volatile u32 = @ptrFromInt(gpio.MMIO_BASE + 0x00201038);
 var UART0_ICR: *volatile u32 = @ptrFromInt(gpio.MMIO_BASE + 0x00201044);
 
-pub fn mmio_write(reg: usize, data: u32) void {
-    const ptr: *volatile u32 = @ptrFromInt(reg);
-    ptr.* = data;
-}
-
-pub fn mmio_read(reg: usize) u32 {
-    const ptr: *volatile u32 = @ptrFromInt(reg);
-    return ptr.*;
-}
-
 fn delay(cycles: usize) void {
     var r = cycles;
     while (r != 0) : (r -= 1) {
@@ -97,18 +87,19 @@ pub fn uart_puts(s: []const u8) void {
         uart_send(c);
     }
 }
-
 pub fn uart_hex(d: u32) void {
-    var n: u32 = 0;
-    var c: u5 = 28;
-    while (c > 0) {
-        n = (d >> c) & 0xF;
-        if (n > 9) {
-            n += 'A' - 10;
-        } else {
-            n += '0';
-        }
-        uart_send(n);
-        c -= 4;
+    const charset = "0123456789ABCDEF";
+    const bytes = u32_to_bytes(d);
+    for (bytes) |byte| {
+        uart_send(charset[byte >> 4]);
+        uart_send(charset[byte & 0xF]);
     }
+}
+fn u32_to_bytes(n: u32) [4]u8 {
+    return [4]u8{
+        @intCast((n >> 24) & 0xFF), // Most significant byte
+        @intCast((n >> 16) & 0xFF),
+        @intCast((n >> 8) & 0xFF),
+        @intCast(n & 0xFF), // Least significant byte
+    };
 }

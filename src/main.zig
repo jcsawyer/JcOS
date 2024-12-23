@@ -4,6 +4,9 @@ const uart = @import("uart.zig");
 const rand = @import("rand.zig");
 const delays = @import("delays.zig");
 const power = @import("power.zig");
+const FrameBuffer = @import("framebuffer.zig").FrameBuffer;
+const lfb = @import("lfb.zig");
+const Color = @import("framebuffer.zig").Color;
 
 comptime {
     asm (
@@ -45,17 +48,13 @@ export fn main() void {
     uart.uart_init();
     rand.init();
 
-    var char: u8 = undefined;
+    lfb.lfb_init();
+    lfb.lfb_showpicture();
+
     // Echo everything back
     while (true) {
-        uart.uart_puts(" 1 - power off\n 2 - reset\nChoose one: ");
-        char = uart.uart_getc();
-        uart.uart_send(char);
-        uart.uart_puts("\n\n");
-        if (char == '1') {
-            power.off();
-        } else if (char == '2') {
-            power.reset();
-        }
+        uart.uart_send(uart.uart_getc());
     }
 }
+
+var fb: FrameBuffer = undefined;
