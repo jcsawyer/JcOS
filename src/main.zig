@@ -5,7 +5,6 @@ const rand = @import("rand.zig");
 const delays = @import("delays.zig");
 const power = @import("power.zig");
 const FrameBuffer = @import("framebuffer.zig").FrameBuffer;
-const lfb = @import("lfb.zig");
 const Color = @import("framebuffer.zig").Color;
 
 comptime {
@@ -47,9 +46,8 @@ export fn main() void {
     // Set up the serial console
     uart.uart_init();
     rand.init();
-
-    lfb.lfb_init();
-    lfb.lfb_showpicture();
+    fb.init();
+    fb.clear(Color{ .red = 255, .green = 255, .blue = 255, .alpha = 255 });
 
     // Echo everything back
     while (true) {
