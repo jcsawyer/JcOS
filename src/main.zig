@@ -47,7 +47,9 @@ export fn main() void {
     uart.uart_init();
     rand.init();
     fb.init();
-    fb.clear(Color{ .red = 255, .green = 255, .blue = 255, .alpha = 255 });
+    //fb.clear(Color{ .red = 255, .green = 255, .blue = 255, .alpha = 255 });
+
+    fb.print(10, 10, "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_\\ ~!@#$%^&*()_+`1234567890-=[]{}|;':,.<>?{}/");
 
     // Echo everything back
     while (true) {
