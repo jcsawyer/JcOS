@@ -1,6 +1,7 @@
 const delays = @import("delays.zig");
 const mbox = @import("mbox.zig");
 const uart = @import("uart.zig");
+const fonts = @import("fonts.zig");
 
 pub const FrameBuffer = struct {
     depth: u32,
@@ -132,6 +133,7 @@ fn getU32(base: [*]const u8, offset: u32) u32 {
     }
     return word;
 }
+
 pub const Color = struct {
     red: u8,
     green: u8,

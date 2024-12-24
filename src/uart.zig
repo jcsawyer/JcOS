@@ -103,3 +103,24 @@ fn u32_to_bytes(n: u32) [4]u8 {
         @intCast(n & 0xFF), // Least significant byte
     };
 }
+
+pub fn uart_hex64(d: u64) void {
+    const charset = "0123456789ABCDEF";
+    const bytes = u64_to_bytes(d);
+    for (bytes) |byte| {
+        uart_send(charset[byte >> 4]);
+        uart_send(charset[byte & 0xF]);
+    }
+}
+fn u64_to_bytes(n: u64) [8]u8 {
+    return [8]u8{
+        @intCast((n >> 56) & 0xFF), // Most significant byte
+        @intCast((n >> 48) & 0xFF),
+        @intCast((n >> 40) & 0xFF),
+        @intCast((n >> 32) & 0xFF),
+        @intCast((n >> 24) & 0xFF),
+        @intCast((n >> 16) & 0xFF),
+        @intCast((n >> 8) & 0xFF),
+        @intCast(n & 0xFF), // Least significant byte
+    };
+}
