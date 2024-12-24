@@ -96,6 +96,31 @@ pub const FrameBuffer = struct {
             uart.uart_puts("Unable to set screen resolution to 1024x768x32\n");
         }
     }
+
+    pub fn print(fb: *FrameBuffer, x: u32, y: u32, s: []const u8) void {
+        var idx: u32 = 0;
+        var cx: u32 = 0;
+        var cy: u32 = y;
+        while (idx < s.len and s[idx] != 0) : (idx += 1) {
+            const ch = s[idx];
+            const glyph = fonts.get_glyph(&fonts.font_list, ch);
+            if (glyph) |g| {
+                var gx: usize = 0;
+                while (gx < 8) : (gx += 1) {
+                    var gy: usize = 0;
+                    while (gy < 16) : (gy += 1) {
+                        fb.drawPixel(x + @as(u32, @intCast(gx)) + cx, y + @as(u32, @intCast(gy)), Color{ .red = 0, .green = 0, .blue = 0, .alpha = 255 });
+
+                        if ((g.points[gy] >> @as(u3, @intCast(7 - gx))) & 0x01 != 0) {
+                            fb.drawPixel(x + @as(u32, @intCast(gx)) + cx, y + @as(u32, @intCast(gy)), Color{ .red = 255, .green = 255, .blue = 255, .alpha = 255 });
+                        }
+                    }
+                }
+            }
+            cx += 8;
+            cy += 16;
+        }
+    }
 };
 
 fn getU32(base: [*]const u8, offset: u32) u32 {
