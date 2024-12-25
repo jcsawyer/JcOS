@@ -78,12 +78,11 @@ pub fn uart_getc() u8 {
 }
 
 pub fn uart_puts(s: []const u8) void {
-    var i: usize = 0;
-    while (i < s.len) : (i += 1) {
-        const c = s[i];
+    for (s) |c| {
         if (c == '\n') {
             uart_send('\r');
         }
+
         uart_send(c);
     }
 }
