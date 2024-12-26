@@ -1,5 +1,8 @@
 const std = @import("std");
 
+pub const FONT_WIDTH = 8;
+pub const FONT_HEIGHT = 16;
+
 pub const Glyph = struct {
     value: u8,
     points: [16]u8,

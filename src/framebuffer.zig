@@ -8,31 +8,35 @@ pub const FrameBuffer = struct {
     physical_width: u32,
     physical_height: u32,
     pitch: u32,
-    words: [*]volatile u32,
+    words: []volatile u32,
+    size: u32,
     virtual_height: u32,
     virtual_width: u32,
     virtual_offset_x: u32,
     virtual_offset_y: u32,
+    pixel_order: u32,
 
     pub fn clear(fb: *FrameBuffer, color: Color) void {
-        var y: u32 = 0;
-        while (y < fb.virtual_height) : (y += 1) {
-            var x: u32 = 0;
-            while (x < fb.virtual_width) : (x += 1) {
-                fb.drawPixel(x, y, color);
-            }
-        }
+        @memset(fb.words, fb.colorTo32(color));
     }
 
     fn drawPixel(fb: *FrameBuffer, x: u32, y: u32, color: Color) void {
-        fb.drawPixel32(x, y, color.to32());
+        fb.drawPixel32(x, y, color);
     }
 
-    fn drawPixel32(fb: *FrameBuffer, x: u32, y: u32, color: u32) void {
+    fn drawPixel32(fb: *FrameBuffer, x: u32, y: u32, color: Color) void {
         if (x >= fb.virtual_width or y >= fb.virtual_height) {
-            uart.uart_puts("frame buffer does no tfit in width and height\n");
+            uart.uart_puts("frame buffer does not fit in width and height\n");
         }
-        fb.words[y * fb.pitch / 4 + x] = color;
+        fb.words[y * fb.pitch / 4 + x] = fb.colorTo32(color);
+    }
+
+    fn colorTo32(fb: *FrameBuffer, color: Color) u32 {
+        if (fb.pixel_order == 0) {
+            return (255 - @as(u32, @intCast(color.alpha)) << 24) | @as(u32, @intCast(color.blue)) << 16 | @as(u32, @intCast(color.green)) << 8 | @as(u32, @intCast(color.red)) << 0;
+        } else {
+            return (255 - @as(u32, @intCast(color.alpha)) << 24) | @as(u32, @intCast(color.red)) << 16 | @as(u32, @intCast(color.green)) << 8 | @as(u32, @intCast(color.blue)) << 0;
+        }
     }
 
     pub fn init(fb: *FrameBuffer) void {
@@ -88,13 +92,29 @@ pub const FrameBuffer = struct {
             fb.physical_width = mbox.mbox[5]; // get actual physical width
             fb.physical_height = mbox.mbox[6]; // get actual physical height
             fb.pitch = mbox.mbox[33]; // get number of bytes per line
-            //isrgb = mbox.mbox[24]; // get the actual channel order
-            fb.words = @ptrFromInt(@as(usize, mbox.mbox[28]));
-
+            fb.pixel_order = mbox.mbox[24]; // get the actual channel order
             fb.virtual_width = 1024;
             fb.virtual_height = 768;
+            fb.size = mbox.mbox[29]; // get the size of the framebuffer
+
+            const raw_framebuffer: [*]volatile u32 = @ptrFromInt(@as(usize, mbox.mbox[28]));
+            fb.words = raw_framebuffer[0 .. fb.physical_width * fb.physical_height];
         } else {
             uart.uart_puts("Unable to set screen resolution to 1024x768x32\n");
+        }
+    }
+
+    pub fn scrollUp(fb: *FrameBuffer, color: Color) void {
+        var i: u32 = 0;
+        while (i < fb.virtual_height - 1) : (i += 1) {
+            var j: u32 = 0;
+            while (j < fb.virtual_width) : (j += 1) {
+                fb.drawPixel(j, i, color);
+            }
+        }
+        var k: u32 = 0;
+        while (k < fb.virtual_width) : (k += 1) {
+            fb.drawPixel(k, fb.virtual_height - 1, color);
         }
     }
 
@@ -122,6 +142,23 @@ pub const FrameBuffer = struct {
             cy += 16;
         }
     }
+
+    pub fn drawGlyph(fb: *FrameBuffer, ch: u8, x: u32, y: u32, fg: Color, bg: Color) void {
+        const glyph = fonts.get_glyph(&fonts.font_list, ch);
+        if (glyph) |g| {
+            var gx: u32 = 0;
+            while (gx < 8) : (gx += 1) {
+                var gy: u32 = 0;
+                while (gy < 16) : (gy += 1) {
+                    if ((g.points[gy] >> @as(u3, @intCast(7 - gx))) & 0x01 != 0) {
+                        fb.drawPixel(x + gx, y + gy, fg);
+                    } else {
+                        fb.drawPixel(x + gx, y + gy, bg);
+                    }
+                }
+            }
+        }
+    }
 };
 
 fn getU32(base: [*]const u8, offset: u32) u32 {
@@ -140,7 +177,23 @@ pub const Color = struct {
     blue: u8,
     alpha: u8,
 
-    fn to32(color: Color) u32 {
-        return (255 - @as(u32, @intCast(color.alpha)) << 24) | @as(u32, @intCast(color.red)) << 16 | @as(u32, @intCast(color.green)) << 8 | @as(u32, @intCast(color.blue)) << 0;
+    pub fn black() Color {
+        return Color{ .red = 0, .green = 0, .blue = 0, .alpha = 255 };
+    }
+
+    pub fn white() Color {
+        return Color{ .red = 255, .green = 255, .blue = 255, .alpha = 255 };
+    }
+
+    pub fn green() Color {
+        return Color{ .red = 0, .green = 255, .blue = 0, .alpha = 255 };
+    }
+
+    pub fn red() Color {
+        return Color{ .red = 255, .green = 0, .blue = 0, .alpha = 255 };
+    }
+
+    pub fn blue() Color {
+        return Color{ .red = 0, .green = 0, .blue = 255, .alpha = 255 };
     }
 };

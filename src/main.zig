@@ -6,6 +6,7 @@ const delays = @import("delays.zig");
 const power = @import("power.zig");
 const FrameBuffer = @import("framebuffer.zig").FrameBuffer;
 const Color = @import("framebuffer.zig").Color;
+const terminal = @import("terminal.zig");
 
 comptime {
     asm (
@@ -127,13 +128,14 @@ comptime {
 }
 
 export fn main() void {
-    // Set up the serial console
+    terminal.init();
+
     uart.uart_init();
     rand.init();
-    fb.init();
-    //fb.clear(Color{ .red = 255, .green = 255, .blue = 255, .alpha = 255 });
+    terminal.print("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_\\ ~!@#$%^&*()_+`1234567890-=[]{{}}|;':,.<>?{{}}/", .{});
 
-    fb.print(10, 10, "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_\\ ~!@#$%^&*()_+`1234567890-=[]{}|;':,.<>?{}/");
+    //var x: u8 = 255;
+    //x += 1;
 
     // Echo everything back
     while (true) {
@@ -149,8 +151,7 @@ pub fn panic(message: []const u8, stack_trace: ?*std.builtin.StackTrace, ret_add
     uart.uart_puts(message);
     uart.uart_puts("\n");
 
-    fb.print(0, 0, "!KERNEL PANIC!\n");
-    fb.print(0, 16, message);
+    terminal.panic("{s}", .{message});
 
     while (true) {}
 }
@@ -203,17 +204,17 @@ export fn exc_handler(ex_type: u64, esr: u64, elr: u64, spsr: u64, far: u64) voi
 
     // Dump registers
     uart.uart_puts(":\n  ESR_EL1 ");
-    uart.uart_hex64(esr >> 32);
-    uart.uart_hex64(esr);
+    uart.uart_hex(@as(u32, @intCast(esr >> 32)));
+    uart.uart_hex(@as(u32, @intCast(esr)));
     uart.uart_puts(" ELR_EL1 ");
-    uart.uart_hex64(elr >> 32);
-    uart.uart_hex64(elr);
+    uart.uart_hex(@as(u32, @intCast(elr >> 32)));
+    uart.uart_hex(@as(u32, @intCast(elr)));
     uart.uart_puts("\n SPSR_EL1 ");
-    uart.uart_hex64(spsr >> 32);
-    uart.uart_hex64(spsr);
+    uart.uart_hex(@as(u32, @intCast(spsr >> 32)));
+    uart.uart_hex(@as(u32, @intCast(spsr)));
     uart.uart_puts(" FAR_EL1 ");
-    uart.uart_hex64(far >> 32);
-    uart.uart_hex64(far);
+    uart.uart_hex(@as(u32, @intCast(far >> 32)));
+    uart.uart_hex(@as(u32, @intCast(far)));
     uart.uart_puts("\n");
 
     // No return from exception for now
