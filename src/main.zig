@@ -132,7 +132,9 @@ export fn main() void {
 
     uart.uart_init();
     rand.init();
-    terminal.print("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_\\ ~!@#$%^&*()_+`1234567890-=[]{{}}|;':,.<>?{{}}/", .{});
+    terminal.print("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_\\ ~!@#$%^&*()_+`1234567890-=[]{{}}|;':,.<>?{{}}/\n", .{});
+    terminal.print("Hello, world!\n", .{});
+    terminal.print("Hello, {s}", .{"world!"});
 
     //var x: u8 = 255;
     //x += 1;
