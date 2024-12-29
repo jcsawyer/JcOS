@@ -33,9 +33,9 @@ pub const FrameBuffer = struct {
 
     fn colorTo32(fb: *FrameBuffer, color: Color) u32 {
         if (fb.pixel_order == 0) {
-            return (255 - @as(u32, @intCast(color.alpha)) << 24) | @as(u32, @intCast(color.blue)) << 16 | @as(u32, @intCast(color.green)) << 8 | @as(u32, @intCast(color.red)) << 0;
+            return (255 - @as(u32, @intCast(color.a)) << 24) | @as(u32, @intCast(color.b)) << 16 | @as(u32, @intCast(color.g)) << 8 | @as(u32, @intCast(color.r)) << 0;
         } else {
-            return (255 - @as(u32, @intCast(color.alpha)) << 24) | @as(u32, @intCast(color.red)) << 16 | @as(u32, @intCast(color.green)) << 8 | @as(u32, @intCast(color.blue)) << 0;
+            return (255 - @as(u32, @intCast(color.a)) << 24) | @as(u32, @intCast(color.r)) << 16 | @as(u32, @intCast(color.g)) << 8 | @as(u32, @intCast(color.b)) << 0;
         }
     }
 
@@ -118,31 +118,6 @@ pub const FrameBuffer = struct {
         }
     }
 
-    pub fn print(fb: *FrameBuffer, x: u32, y: u32, s: []const u8) void {
-        var idx: u32 = 0;
-        var cx: u32 = 0;
-        var cy: u32 = y;
-        while (idx < s.len and s[idx] != 0) : (idx += 1) {
-            const ch = s[idx];
-            const glyph = fonts.get_glyph(&fonts.font_list, ch);
-            if (glyph) |g| {
-                var gx: usize = 0;
-                while (gx < 8) : (gx += 1) {
-                    var gy: usize = 0;
-                    while (gy < 16) : (gy += 1) {
-                        fb.drawPixel(x + @as(u32, @intCast(gx)) + cx, y + @as(u32, @intCast(gy)), Color{ .red = 0, .green = 0, .blue = 0, .alpha = 255 });
-
-                        if ((g.points[gy] >> @as(u3, @intCast(7 - gx))) & 0x01 != 0) {
-                            fb.drawPixel(x + @as(u32, @intCast(gx)) + cx, y + @as(u32, @intCast(gy)), Color{ .red = 255, .green = 255, .blue = 255, .alpha = 255 });
-                        }
-                    }
-                }
-            }
-            cx += 8;
-            cy += 16;
-        }
-    }
-
     pub fn drawGlyph(fb: *FrameBuffer, ch: u8, x: u32, y: u32, fg: Color, bg: Color) void {
         const glyph = fonts.get_glyph(&fonts.font_list, ch);
         if (glyph) |g| {
@@ -172,28 +147,32 @@ fn getU32(base: [*]const u8, offset: u32) u32 {
 }
 
 pub const Color = struct {
-    red: u8,
-    green: u8,
-    blue: u8,
-    alpha: u8,
+    r: u8,
+    g: u8,
+    b: u8,
+    a: u8,
 
     pub fn black() Color {
-        return Color{ .red = 0, .green = 0, .blue = 0, .alpha = 255 };
+        return Color{ .r = 0, .g = 0, .b = 0, .a = 255 };
     }
 
     pub fn white() Color {
-        return Color{ .red = 255, .green = 255, .blue = 255, .alpha = 255 };
+        return Color{ .r = 255, .g = 255, .b = 255, .a = 255 };
     }
 
     pub fn green() Color {
-        return Color{ .red = 0, .green = 255, .blue = 0, .alpha = 255 };
+        return Color{ .r = 0, .g = 255, .b = 0, .a = 255 };
     }
 
     pub fn red() Color {
-        return Color{ .red = 255, .green = 0, .blue = 0, .alpha = 255 };
+        return Color{ .r = 255, .g = 0, .b = 0, .a = 255 };
     }
 
     pub fn blue() Color {
-        return Color{ .red = 0, .green = 0, .blue = 255, .alpha = 255 };
+        return Color{ .r = 0, .g = 0, .b = 255, .a = 255 };
+    }
+
+    pub fn yellow() Color {
+        return Color{ .r = 255, .g = 255, .b = 0, .a = 255 };
     }
 };

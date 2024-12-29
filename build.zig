@@ -7,19 +7,10 @@ pub fn build(b: *std.Build) void {
         .cpu_arch = .aarch64,
         .cpu_model = .{ .explicit = &std.Target.arm.cpu.cortex_a53 },
     } });
-    const optimize = b.standardOptimizeOption(.{});
 
-    const kernel = b.addExecutable(.{
-        .name = "kernel.elf",
-        .root_source_file = b.path("src/main.zig"),
-        .target = target,
-        .optimize = optimize,
-        .code_model = .tiny,
-        .linkage = .static,
-        .pic = false,
-        .omit_frame_pointer = false,
-    });
+    const kernel = b.addExecutable(.{ .name = "kernel.elf", .root_source_file = b.path("src/main.zig"), .target = target, .linkage = .static, .pic = false, .omit_frame_pointer = false, .optimize = .ReleaseSmall });
     kernel.addIncludePath(b.path("src"));
+    kernel.addAssemblyFile(b.path("src/start.s"));
     kernel.setLinkerScript(b.path("src/linker.ld"));
 
     // Disable features that are problematic in kernel space.
@@ -36,8 +27,8 @@ pub fn build(b: *std.Build) void {
 
     b.installArtifact(kernel);
 
-    const bin = b.addObjCopy(kernel.getEmittedBin(), .{ .format = .bin });
-    const bin_step = b.addInstallBinFile(bin.getOutput(), "kernel.img");
+    const bin = b.addObjCopy(kernel.getEmittedBin(), .{ .format = .elf });
+    const bin_step = b.addInstallBinFile(bin.getOutput(), "kernel8.elf");
     b.default_step.dependOn(&bin_step.step);
 
     const qemu = b.addSystemCommand(&[_][]const u8{ "qemu-system-aarch64", "-M", "raspi3b", "-serial", "stdio", "-serial", "null", "-kernel", b.getInstallPath(bin_step.dir, bin_step.dest_rel_path) });

@@ -8,140 +8,41 @@ const FrameBuffer = @import("framebuffer.zig").FrameBuffer;
 const Color = @import("framebuffer.zig").Color;
 const terminal = @import("terminal.zig");
 
-comptime {
-    asm (
-        \\.section ".text.boot"
-        \\
-        \\.global _start
-        \\
-        \\_start:
-        \\    // read cpu id, stop slave cores
-        \\    mrs     x1, mpidr_el1
-        \\    and     x1, x1, #3
-        \\    cbz     x1, 2f
-        \\    // cpu id > 0, stop
-        \\1:  wfe
-        \\    b       1b
-        \\2:  // cpu id == 0
-        \\
-        \\    // set top of stack just before our code (stack grows to a lower address per AAPCS64)
-        \\    ldr     x1, =_start
-        \\
-        \\    // set up EL1
-        \\    mrs     x0, CurrentEL
-        \\    and     x0, x0, #12 // clear reserved bits
-        \\
-        \\    // running at EL3?
-        \\    cmp     x0, #12
-        \\    bne     5f
-        \\    // should never be executed, just for completeness
-        \\    mov     x2, #0x5b1
-        \\    msr     scr_el3, x2
-        \\    mov     x2, #0x3c9
-        \\    msr     spsr_el3, x2
-        \\    adr     x2, 5f
-        \\    msr     elr_el3, x2
-        \\    eret
-        \\
-        \\    // running at EL2?
-        \\5:  cmp     x0, #4
-        \\    beq     5f
-        \\    msr     sp_el1, x1
-        \\    // enable CNTP for EL1
-        \\    mrs     x0, cnthctl_el2
-        \\    orr     x0, x0, #3
-        \\    msr     cnthctl_el2, x0
-        \\    msr     cntvoff_el2, xzr
-        \\    // enable AArch64 in EL1
-        \\    mov     x0, #(1 << 31)      // AArch64
-        \\    orr     x0, x0, #(1 << 1)   // SWIO hardwired on Pi3
-        \\    msr     hcr_el2, x0
-        \\    mrs     x0, hcr_el2
-        \\    // Setup SCTLR access
-        \\    mov     x2, #0x0800
-        \\    movk    x2, #0x30d0, lsl #16
-        \\    msr     sctlr_el1, x2
-        \\    // set up exception handlers
-        \\    ldr     x2, =_vectors
-        \\    msr     vbar_el1, x2
-        \\    // change execution level to EL1
-        \\    mov     x2, #0x3c4
-        \\    msr     spsr_el2, x2
-        \\    adr     x2, 5f
-        \\    msr     elr_el2, x2
-        \\    eret
-        \\
-        \\5:  mov     sp, x1
-        \\
-        \\    // clear bss
-        \\    ldr     x1, =__bss_start
-        \\    ldr     w2, =__bss_size
-        \\3:  cbz     w2, 4f
-        \\    str     xzr, [x1], #8
-        \\    sub     w2, w2, #1
-        \\    cbnz    w2, 3b
-        \\
-        \\    // jump to C code, should not return
-        \\4:  bl      main
-        \\    // for failsafe, halt this core too
-        \\    b       1b
-        \\
-        \\    // important, code has to be properly aligned
-        \\    .align 11
-        \\_vectors:
-        \\    // synchronous
-        \\    .align  7
-        \\    mov     x0, #0
-        \\    mrs     x1, esr_el1
-        \\    mrs     x2, elr_el1
-        \\    mrs     x3, spsr_el1
-        \\    mrs     x4, far_el1
-        \\    b       exc_handler
-        \\
-        \\    // IRQ
-        \\    .align  7
-        \\    mov     x0, #1
-        \\    mrs     x1, esr_el1
-        \\    mrs     x2, elr_el1
-        \\    mrs     x3, spsr_el1
-        \\    mrs     x4, far_el1
-        \\    b       exc_handler
-        \\
-        \\    // FIQ
-        \\    .align  7
-        \\    mov     x0, #2
-        \\    mrs     x1, esr_el1
-        \\    mrs     x2, elr_el1
-        \\    mrs     x3, spsr_el1
-        \\    mrs     x4, far_el1
-        \\    b       exc_handler
-        \\
-        \\    // SError
-        \\    .align  7
-        \\    mov     x0, #3
-        \\    mrs     x1, esr_el1
-        \\    mrs     x2, elr_el1
-        \\    mrs     x3, spsr_el1
-        \\    mrs     x4, far_el1
-        \\    b       exc_handler
-    );
-}
-
 export fn main() void {
     terminal.init();
 
-    uart.uart_init();
-    rand.init();
-    terminal.print("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_\\ ~!@#$%^&*()_+`1234567890-=[]{{}}|;':,.<>?{{}}/\n", .{});
-    terminal.print("Hello, world!\n", .{});
-    terminal.print("Hello, {s}", .{"world!"});
+    terminal.step("Initializing terminal", .{});
+    terminal.stepOk("", .{});
 
-    //var x: u8 = 255;
-    //x += 1;
+    terminal.step("Initializing UART ", .{});
+    uart.uart_init();
+    terminal.stepOk("", .{});
+
+    const current_el: usize = asm ("mrs %[current_el], CurrentEL"
+        : [current_el] "=r" (-> usize),
+    );
+    uart.uart_puts("Current exception level: ");
+    uart.uart_hex(@as(u32, @intCast(current_el)));
+    uart.uart_puts("\n");
+
+    terminal.step("Initializing random ", .{});
+    rand.init();
+
+    terminal.stepOk("", .{});
+    terminal.print("\n", .{});
+    terminal.print("\n", .{});
+
+    terminal.print("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_\\ ~!@#$%^&*()_+`1234567890-=[]{{}}|;':,.<>?{{}}/\n", .{});
+
+    terminal.print("Hello, world!\n", .{});
+    terminal.print("Hello, {s}! (from a formatter)\n", .{"world"});
+
+    var x: u8 = 255;
+    x += 1;
 
     // Echo everything back
     while (true) {
-        uart.uart_send(uart.uart_getc());
+        terminal.print("{c}", .{uart.uart_getc()});
     }
 }
 
@@ -224,3 +125,83 @@ export fn exc_handler(ex_type: u64, esr: u64, elr: u64, spsr: u64, far: u64) voi
 }
 
 var fb: FrameBuffer = undefined;
+
+pub const ArgSetType = u32;
+const max_format_args = @typeInfo(ArgSetType).Int.bits;
+
+fn aarch64_test(comptime args: anytype, writer: anytype) !void {
+    const ArgsType = @TypeOf(args);
+    const args_type_info = @typeInfo(ArgsType);
+    if (args_type_info != .Struct) {
+        @compileError("expected tuple or struct argument, found " ++ @typeName(ArgsType));
+    }
+
+    const fields_info = args_type_info.Struct.fields;
+    if (fields_info.len > max_format_args) {
+        @compileError("32 arguments max are supported per format call");
+    }
+
+    comptime var arg_state: std.fmt.ArgState = .{ .args_len = fields_info.len };
+
+    comptime var i = 0;
+    inline while (i < fields_info.len) : (i += 1) {
+        const arg_to_print = comptime arg_state.nextArg(i) orelse
+            @compileError("too few arguments");
+        try aarch64_test_sub(
+            @field(args, fields_info[arg_to_print].name),
+            writer,
+            5,
+        );
+    }
+}
+
+const ANY = "any";
+fn defaultSpec(comptime T: type) [:0]const u8 {
+    switch (@typeInfo(T)) {
+        .Array => |_| return ANY,
+        .Pointer => |ptr_info| switch (ptr_info.size) {
+            .One => switch (@typeInfo(ptr_info.child)) {
+                .Array => |_| return ANY,
+                else => {},
+            },
+            .Many, .C => return "*",
+            .Slice => return ANY,
+        },
+        .Optional => |info| return "?" ++ defaultSpec(info.child),
+        .ErrorUnion => |info| return "!" ++ defaultSpec(info.payload),
+        else => {},
+    }
+    return "";
+}
+fn aarch64_test_sub(value: anytype, writer: anytype, max_depth: usize) @TypeOf(writer).Error!void {
+    const T = @TypeOf(value);
+    const actual_fmt: []const u8 = "s";
+
+    uart.uart_puts(value);
+
+    uart.uart_puts(@typeName(T));
+
+    switch (@typeInfo(T)) {
+        .Pointer => |ptr_info| {
+            switch (ptr_info.size) {
+                .One => {
+                    if (ptr_info.child == u8) {
+                        uart.uart_puts("u8");
+                        return std.fmt.formatBuf(value[0..], std.fmt.FormatOptions{}, writer);
+                    }
+                    try writer.writeAll("{ ");
+                    for (value, 0..) |elem, i| {
+                        try std.fmt.formatType(elem, actual_fmt, std.fmt.FormatOptions{}, writer, max_depth - 1);
+                        if (i != value.len - 1) {
+                            try writer.writeAll(", ");
+                        }
+                    }
+                    try writer.writeAll(" }");
+                },
+                .Many, .C => {},
+                .Slice => {},
+            }
+        },
+        else => @compileError("unable to format type '" ++ @typeName(T) ++ "'"),
+    }
+}

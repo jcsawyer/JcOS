@@ -22,7 +22,7 @@ pub fn init() void {
 }
 
 pub fn print(comptime format: []const u8, args: anytype) void {
-    std.fmt.format(@as(TerminalWriter, undefined), format, args) catch unreachable;
+    std.fmt.format(TerminalWriter{}, format, args) catch unreachable;
 }
 
 pub fn colorPrint(fg: color, comptime format: []const u8, args: anytype) void {
@@ -30,12 +30,11 @@ pub fn colorPrint(fg: color, comptime format: []const u8, args: anytype) void {
 
     current_foreground = fg;
     print(format, args);
-
     current_foreground = saved_fg;
 }
 
 pub fn panic(comptime format: []const u8, args: anytype) void {
-    colorPrint(color.red(), "\n\nKERNEL PANIC: " ++ format, args);
+    colorPrint(color.red(), "\n\nKERNEL PANIC: " ++ format ++ "\n", args);
 }
 
 pub fn step(comptime format: []const u8, args: anytype) void {
@@ -86,17 +85,30 @@ fn writeChar(c: u8) void {
     }
 }
 
+var tw = TerminalWriter{};
+
 const TerminalWriter = struct {
     const Self = @This();
     pub const Error = error{};
+    const Writer = std.io.Writer(
+        *TerminalWriter,
+        error{},
+        write,
+    );
 
-    pub fn write(_: Self, bytes: []const u8) !usize {
+    pub fn write(_: *Self, bytes: []const u8) !usize {
         writeString(bytes);
         return bytes.len;
     }
 
     pub fn writeByte(_: Self, byte: u8) !void {
         writeString(&.{byte});
+    }
+
+    pub fn writeByteNTimes(_: Self, byte: u8, n: usize) !void {
+        for (0..n) |_| {
+            writeString(&.{byte});
+        }
     }
 
     pub fn writeBytesNTimes(_: Self, bytes: []const u8, n: usize) !void {
@@ -108,4 +120,12 @@ const TerminalWriter = struct {
     pub fn writeAll(_: Self, bytes: []const u8) !void {
         writeString(bytes);
     }
+
+    pub fn writer(self: *TerminalWriter) Writer {
+        return .{ .context = self };
+    }
 };
+
+pub fn getWriter() *TerminalWriter {
+    return &tw;
+}
