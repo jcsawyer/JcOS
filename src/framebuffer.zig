@@ -32,7 +32,7 @@ pub const FrameBuffer = struct {
     }
 
     fn colorTo32(fb: *FrameBuffer, color: Color) u32 {
-        if (fb.pixel_order == 0) {
+        if (fb.pixel_order == 1) {
             return (255 - @as(u32, @intCast(color.a)) << 24) | @as(u32, @intCast(color.b)) << 16 | @as(u32, @intCast(color.g)) << 8 | @as(u32, @intCast(color.r)) << 0;
         } else {
             return (255 - @as(u32, @intCast(color.a)) << 24) | @as(u32, @intCast(color.r)) << 16 | @as(u32, @intCast(color.g)) << 8 | @as(u32, @intCast(color.b)) << 0;
@@ -174,5 +174,9 @@ pub const Color = struct {
 
     pub fn yellow() Color {
         return Color{ .r = 255, .g = 255, .b = 0, .a = 255 };
+    }
+
+    pub fn gray() Color {
+        return Color{ .r = 128, .g = 128, .b = 128, .a = 255 };
     }
 };

@@ -7,14 +7,16 @@ const power = @import("power.zig");
 const FrameBuffer = @import("framebuffer.zig").FrameBuffer;
 const Color = @import("framebuffer.zig").Color;
 const terminal = @import("terminal.zig");
+const time = @import("time.zig");
 
 export fn main() void {
+    time.init();
     terminal.init();
 
     terminal.step("Initializing terminal", .{});
     terminal.stepOk("", .{});
 
-    terminal.step("Initializing UART ", .{});
+    terminal.step("Initializing UART", .{});
     uart.uart_init();
     terminal.stepOk("", .{});
 
@@ -30,18 +32,14 @@ export fn main() void {
 
     terminal.stepOk("", .{});
     terminal.print("\n", .{});
+
+    terminal.print("ARM Exception Level: 0x{X:0>8}\n", .{current_el});
     terminal.print("\n", .{});
-
-    terminal.print("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_\\ ~!@#$%^&*()_+`1234567890-=[]{{}}|;':,.<>?{{}}/\n", .{});
-
-    terminal.print("Hello, world!\n", .{});
-    terminal.print("Hello, {s}! (from a formatter)\n", .{"world"});
-
-    var x: u8 = 255;
-    x += 1;
+    terminal.print("\n", .{});
 
     // Echo everything back
     while (true) {
+        time.update();
         terminal.print("{c}", .{uart.uart_getc()});
     }
 }
@@ -54,12 +52,16 @@ pub fn panic(message: []const u8, stack_trace: ?*std.builtin.StackTrace, ret_add
     uart.uart_puts(message);
     uart.uart_puts("\n");
 
-    terminal.panic("{s}", .{message});
+    terminal.panic("{s}\n > Press any key to restart...", .{message});
 
-    while (true) {}
+    while (true) {
+        _ = uart.uart_getc();
+        power.reset();
+    }
 }
 
 export fn exc_handler(ex_type: u64, esr: u64, elr: u64, spsr: u64, far: u64) void {
+
     // Print out interruption type
     switch (ex_type) {
         0 => uart.uart_puts("Synchronous"),

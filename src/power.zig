@@ -50,7 +50,7 @@ pub fn off() void {
 
 pub fn reset() void {
     var r: u32 = undefined;
-    // trigger restart by isntructing the GPU to boot from parition 0
+    // trigger restart by instructing the GPU to boot from parition 0
     r = PM_RSTS.*;
     const mask: u32 = 0xfffffaaa;
     r &= ~mask;

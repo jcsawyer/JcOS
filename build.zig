@@ -8,7 +8,15 @@ pub fn build(b: *std.Build) void {
         .cpu_model = .{ .explicit = &std.Target.arm.cpu.cortex_a53 },
     } });
 
-    const kernel = b.addExecutable(.{ .name = "kernel.elf", .root_source_file = b.path("src/main.zig"), .target = target, .linkage = .static, .pic = false, .omit_frame_pointer = false, .optimize = .ReleaseSmall });
+    const kernel = b.addExecutable(.{
+        .name = "kernel.elf",
+        .root_source_file = b.path("src/main.zig"),
+        .target = target,
+        .linkage = .static,
+        .pic = false,
+        .omit_frame_pointer = false,
+        .optimize = .ReleaseSmall,
+    });
     kernel.addIncludePath(b.path("src"));
     kernel.addAssemblyFile(b.path("src/start.s"));
     kernel.setLinkerScript(b.path("src/linker.ld"));

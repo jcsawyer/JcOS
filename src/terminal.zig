@@ -2,6 +2,7 @@ const std = @import("std");
 const fonts = @import("fonts.zig");
 const FrameBuffer = @import("framebuffer.zig").FrameBuffer;
 const color = @import("framebuffer.zig").Color;
+const time = @import("time.zig");
 
 var fb: FrameBuffer = undefined;
 const TAB_WIDTH = 4;
@@ -17,8 +18,8 @@ var current_background: color = color.black();
 pub fn init() void {
     fb.init();
     fb.clear(current_background);
-    screen_width = fb.virtual_width / fonts.FONT_WIDTH;
-    screen_height = fb.virtual_height / fonts.FONT_HEIGHT;
+    screen_width = fb.virtual_width / fonts.FONT_WIDTH - 2;
+    screen_height = fb.virtual_height / fonts.FONT_HEIGHT - 2;
 }
 
 pub fn print(comptime format: []const u8, args: anytype) void {
@@ -38,7 +39,10 @@ pub fn panic(comptime format: []const u8, args: anytype) void {
 }
 
 pub fn step(comptime format: []const u8, args: anytype) void {
-    colorPrint(color.blue(), ">>> ", .{});
+    colorPrint(color.gray(), "[", .{});
+    // I'd like the format to be {d:0>12.7} but fmt.format is being very funky...
+    colorPrint(color.gray(), " {d:>12}", .{time.uptime()});
+    colorPrint(color.gray(), " ] ", .{});
     print(format ++ "... ", args);
 }
 
@@ -79,7 +83,7 @@ fn writeChar(c: u8) void {
         else => {
             const x: usize = (cursor % screen_width) * fonts.FONT_WIDTH;
             const y: usize = (cursor / screen_width) * fonts.FONT_HEIGHT;
-            fb.drawGlyph(c, @as(u32, @intCast(x)), @as(u32, @intCast(y)), current_foreground, current_background);
+            fb.drawGlyph(c, @as(u32, @intCast(x + fonts.FONT_WIDTH)), @as(u32, @intCast(y + fonts.FONT_HEIGHT)), current_foreground, current_background);
             cursor += 1;
         },
     }
