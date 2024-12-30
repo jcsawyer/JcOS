@@ -9,37 +9,20 @@ pub fn build(b: *std.Build) void {
     } });
 
     const kernel = b.addExecutable(.{
-        .name = "kernel.elf",
+        .name = "kernel",
         .root_source_file = b.path("src/main.zig"),
         .target = target,
-        .linkage = .static,
-        .pic = false,
-        .omit_frame_pointer = false,
-        .optimize = .ReleaseSmall,
     });
-    kernel.addIncludePath(b.path("src"));
-    kernel.addAssemblyFile(b.path("src/start.s"));
-    kernel.setLinkerScript(b.path("src/linker.ld"));
 
-    // Disable features that are problematic in kernel space.
-    kernel.root_module.red_zone = false;
-    kernel.root_module.stack_check = false;
-    kernel.root_module.stack_protector = false;
-    kernel.want_lto = false;
-    // Delete unused sections to reduce the kernel size.
-    kernel.link_function_sections = true;
-    kernel.link_data_sections = true;
-    kernel.link_gc_sections = true;
-    // Force the page size to 4 KiB to prevent binary bloat.
-    kernel.link_z_max_page_size = 0x1000;
+    kernel.setLinkerScript(b.path("src/bsp/raspberrypi/kernel.ld"));
 
     b.installArtifact(kernel);
 
     const bin = b.addObjCopy(kernel.getEmittedBin(), .{ .format = .elf });
-    const bin_step = b.addInstallBinFile(bin.getOutput(), "kernel8.elf");
+    const bin_step = b.addInstallBinFile(bin.getOutput(), "kernel8.img");
     b.default_step.dependOn(&bin_step.step);
 
-    const qemu = b.addSystemCommand(&[_][]const u8{ "qemu-system-aarch64", "-M", "raspi3b", "-serial", "stdio", "-serial", "null", "-kernel", b.getInstallPath(bin_step.dir, bin_step.dest_rel_path) });
+    const qemu = b.addSystemCommand(&[_][]const u8{ "qemu-system-aarch64", "-M", "raspi3b", "-d", "in_asm", "-display", "none", "-kernel", b.getInstallPath(bin_step.dir, bin_step.dest_rel_path) });
     qemu.step.dependOn(&bin_step.step);
     const qemu_step = b.step("qemu", "Run kernel in QEMU.");
     qemu_step.dependOn(&qemu.step);
