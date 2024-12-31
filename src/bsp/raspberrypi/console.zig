@@ -25,6 +25,10 @@ const WriteError = anyerror;
 fn writeFn(_: Context, buf: []const u8) anyerror!usize {
     const uart: (*volatile u8) = @ptrFromInt(0x3F201000);
     for (buf) |char| {
+        if (char == '\n') {
+            uart.* = '\r';
+        }
+
         uart.* = char;
     }
     return buf.len;

@@ -14,10 +14,16 @@ pub fn kernel_init() noreturn {
     @panic("Kernel initialization is not implemented");
 }
 
+var already_panicking: bool = false;
 pub fn panic(message: []const u8, stack_trace: ?*std.builtin.StackTrace, ret_address: ?usize) noreturn {
-    _ = message;
     _ = stack_trace;
     _ = ret_address;
+    @setCold(true);
+    if (already_panicking) {
+        console.print("\nPANIC in PANIC", .{});
+    }
+    already_panicking = true;
 
+    console.print("\n\nKERNEL PANIC: {s}", .{message});
     cpu.cpu.wait_forever();
 }
