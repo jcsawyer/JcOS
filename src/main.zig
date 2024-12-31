@@ -1,6 +1,7 @@
 const std = @import("std");
-const bsp = @import("bsp.zig").raspi;
 const cpu = @import("cpu.zig");
+const bsp = @import("bsp.zig").raspi;
+const console = bsp.console;
 
 comptime {
     asm (cpu.arch_boot());
@@ -9,6 +10,7 @@ comptime {
 }
 
 pub fn kernel_init() noreturn {
+    console.print("Hello, {s}!", .{"World"});
     @panic("Kernel initialization is not implemented");
 }
 
