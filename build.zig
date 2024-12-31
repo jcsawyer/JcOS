@@ -16,6 +16,12 @@ pub fn build(b: *std.Build) void {
 
     kernel.setLinkerScript(b.path("src/bsp/raspberrypi/kernel.ld"));
 
+    const board = b.option([]const u8, "board", "The board to target.") orelse "bsp_rpi3";
+    const options = b.addOptions();
+    options.addOption([]const u8, "board", board);
+
+    kernel.root_module.addOptions("config", options);
+
     b.installArtifact(kernel);
 
     const bin = b.addObjCopy(kernel.getEmittedBin(), .{ .format = .elf });
