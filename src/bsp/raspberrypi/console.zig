@@ -1,5 +1,5 @@
 const std = @import("std");
-const bsp_console = @import("../console.zig").Console;
+const bsp_console = @import("../../console.zig").Console;
 
 var console = QEMUConsole{};
 
@@ -9,7 +9,10 @@ pub fn getConsole() bsp_console {
 
 pub const QEMUConsole = struct {
     const Self = @This();
-    //const console = bsp_console.Console(*QEMUConsole, print);
+
+    fn flush(_: *QEMUConsole) void {}
+
+    fn clearRx(_: *QEMUConsole) void {}
 
     fn print(_: *anyopaque, comptime str: []const u8, args: anytype) void {
         std.fmt.format(ConsoleWriter{ .context = {} }, str, args) catch unreachable;

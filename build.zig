@@ -12,7 +12,8 @@ pub fn build(b: *std.Build) void {
         .name = "kernel",
         .root_source_file = b.path("src/main.zig"),
         .target = target,
-        .optimize = .ReleaseSmall,
+        .optimize = .ReleaseSafe,
+        .linkage = .static,
     });
 
     kernel.setLinkerScript(b.path("src/bsp/raspberrypi/kernel.ld"));
