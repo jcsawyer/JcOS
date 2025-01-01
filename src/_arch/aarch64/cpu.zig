@@ -9,3 +9,7 @@ pub fn wait_forever() noreturn {
         asm volatile ("wfe");
     }
 }
+
+pub fn nop() void {
+    asm volatile ("nop");
+}

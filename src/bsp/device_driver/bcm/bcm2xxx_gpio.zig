@@ -1,6 +1,7 @@
 const std = @import("std");
 const config = @import("config");
 const cpu = @import("../../../cpu.zig");
+const DeviceDriver = @import("../../../driver.zig").DeviceDriver;
 
 // Make an educated guess for a good delay value (Sequence described in the BCM2837
 // peripherals PDF).
@@ -41,13 +42,26 @@ const GPIO_PUP_PDN_CNTRL_REG0 = enum(u32) {
 };
 
 const RegisterBlock = struct {
-    _reserved1: u32,
-    GPFSEL1: *volatile u32,
-    _reserved2: u32,
-    GPPUD: *volatile u32,
-    GPPUDCLK0: *volatile u32,
-    _reserved3: u32,
-    GPIO_PUP_PDN_CNTRL_REG0: *volatile u32,
+    _reserved1: u32, // (0x00)
+    GPFSEL1: *volatile u32, // (0x04)
+    _reserved2: u32, // (0x08) - Filler to align to 0x94
+    _reserved2_fill: u32, // Filler for alignment
+    _reserved2_fill2: u32, // Filler for alignment
+    _reserved2_fill3: u32, // Filler for alignment
+    _reserved2_fill4: u32, // Filler for alignment
+    _reserved2_fill5: u32, // Filler for alignment
+    _reserved2_fill6: u32, // Filler for alignment
+    _reserved2_fill7: u32, // Filler for alignment
+    _reserved2_fill8: u32, // Filler for alignment
+    _reserved2_fill9: u32, // Filler for alignment
+    _reserved2_fill10: u32, // Filler for alignment
+    _reserved2_fill11: u32, // Filler for alignment
+    _reserved2_fill12: u32, // Filler for alignment
+    GPPUD: *volatile u32, // (0x94)
+    GPPUDCLK0: *volatile u32, // (0x98)
+    _reserved3: u32, // (0x9C)
+    _reserved3_fill: u32, // Filler for alignment
+    GPIO_PUP_PDN_CNTRL_REG0: *volatile u32, // (0xE4)
 };
 
 const MMIODerefWarpper = struct {
@@ -55,7 +69,7 @@ const MMIODerefWarpper = struct {
 
     pub fn new(mmio_start_addr: usize) MMIODerefWarpper {
         return .{
-            .registers = @ptrCast(&mmio_start_addr),
+            .registers = @as(*const RegisterBlock, @ptrFromInt(mmio_start_addr)),
         };
     }
 };
@@ -110,7 +124,7 @@ pub const GPIO = struct {
         };
     }
 
-    pub fn compatible() []const u8 {
+    pub fn compatible(_: *anyopaque) []const u8 {
         return compatible_str;
     }
 
@@ -118,8 +132,14 @@ pub const GPIO = struct {
         try self.inner.map_pl011_uart();
     }
 
-    pub fn init() anyerror!void {
-        @import("../../../bsp.zig").board.console.printLn("Default init", .{});
-        // Do nothing
+    const vtable = DeviceDriver.VTable{
+        .compatible = GPIO.compatible,
+    };
+
+    pub fn driver(gpio: *GPIO) DeviceDriver {
+        return DeviceDriver{
+            .ctx = @ptrCast(gpio),
+            .vtable = &GPIO.vtable,
+        };
     }
 };

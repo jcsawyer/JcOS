@@ -3,13 +3,15 @@ const driver = @import("../../driver.zig");
 const bcm_gpio = @import("../device_driver/bcm/bcm2xxx_gpio.zig").GPIO;
 const bcm_pl011_uart = @import("../device_driver/bcm/bcm2xxx_pl011_uart.zig").PL011Uart;
 const memory = @import("memory.zig").map;
+const console = @import("../../console.zig");
+const uart_console = @import("../device_driver/bcm/bcm2xxx_pl011_uart.zig");
 
 var gpio: bcm_gpio = undefined;
-var pl011_uart: bcm_pl011_uart = undefined;
+pub var pl011_uart: bcm_pl011_uart = undefined;
 
 fn postInitUart() anyerror!void {
     std.mem.doNotOptimizeAway(postInitUart);
-    // console.register();
+    //console.register_console(@constCast(&uart_console.getConsole()));
 }
 
 fn postInitGpio() anyerror!void {
@@ -18,27 +20,19 @@ fn postInitGpio() anyerror!void {
 
 fn driverUart() anyerror!void {
     pl011_uart = bcm_pl011_uart.new(memory.mmio.PL011_UART_START);
-    const driver_impl = driver.DeviceDriver{
-        .context = @ptrCast(&pl011_uart),
-        .compatible = bcm_pl011_uart.compatible,
-    };
 
-    const driver_descriptor = driver.DeviceDriverDescriptor.new(driver_impl, postInitUart);
+    const driver_descriptor = driver.DeviceDriverDescriptor.new(pl011_uart.driver(), postInitUart);
     driver.driver_manager().add_driver(driver_descriptor);
 }
 
 fn driverGpio() anyerror!void {
     gpio = bcm_gpio.new(memory.mmio.GPIO_START);
-    const driver_impl = driver.DeviceDriver{
-        .context = @ptrCast(&gpio),
-        .compatible = bcm_gpio.compatible,
-    };
 
-    const driver_descriptor = driver.DeviceDriverDescriptor.new(driver_impl, postInitGpio);
+    const driver_descriptor = driver.DeviceDriverDescriptor.new(gpio.driver(), postInitGpio);
     driver.driver_manager().add_driver(driver_descriptor);
 }
 
 pub fn init() anyerror!void {
-    //try driverUart();
+    try driverUart();
     try driverGpio();
 }

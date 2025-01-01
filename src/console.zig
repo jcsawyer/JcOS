@@ -24,10 +24,10 @@ pub const Console = struct {
     }
 };
 
-const current_console: *const Console = &@import("bsp.zig").board.console; //&null_console.getNullConsole();
+const current_console: *Console = @constCast(&@import("bsp.zig").board.console); //@constCast(&null_console.getNullConsole());
 
 pub fn register_console(new_console: *const Console) void {
-    current_console = new_console;
+    current_console = @constCast(new_console);
 }
 
 pub fn console() Console {

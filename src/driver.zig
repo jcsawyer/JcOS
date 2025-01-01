@@ -1,6 +1,5 @@
 const std = @import("std");
-const bsp = @import("bsp.zig").board;
-const console = bsp.console;
+const console = @import("console.zig").console;
 
 const NUM_DRIVERS: usize = @intCast(5);
 pub const DeviceDriverPostInitCallback = fn () anyerror!void;
@@ -8,14 +7,26 @@ pub const DeviceDriverPostInitCallback = fn () anyerror!void;
 var driverManager = DriverManager{};
 
 pub const DeviceDriver = struct {
-    context: *anyopaque,
-    compatible: *const fn () []const u8,
-    init: *const fn () anyerror!void = &defaultInit,
+    ctx: *anyopaque = undefined,
+    vtable: *const VTable,
+
+    pub const VTable = struct {
+        compatible: *const fn (ctx: *anyopaque) []const u8,
+        init: *const fn (ctx: *anyopaque) anyerror!void = &defaultInit,
+    };
+
+    pub fn compatible(self: DeviceDriver) []const u8 {
+        return self.vtable.compatible(self.ctx);
+    }
+
+    pub fn init(self: DeviceDriver) anyerror!void {
+        return self.vtable.init(self.ctx);
+    }
 };
 
-fn defaultInit() anyerror!void {
+fn defaultInit(ctx: *anyopaque) anyerror!void {
     // Default implementation does nothing
-    std.mem.doNotOptimizeAway(defaultInit);
+    _ = ctx;
 }
 
 pub const DeviceDriverDescriptor = struct {
@@ -35,7 +46,6 @@ pub const DriverManager = struct {
     next_index: usize = 0,
 
     pub fn add_driver(self: *DriverManager, driver: DeviceDriverDescriptor) void {
-        std.mem.doNotOptimizeAway(add_driver);
         if (self.next_index >= NUM_DRIVERS) {
             return;
         }
@@ -56,7 +66,7 @@ pub const DriverManager = struct {
     pub fn print_drivers(self: *DriverManager) void {
         for (self.drivers[0..self.next_index]) |driver| {
             const compatible = driver.device_driver.compatible();
-            console.printLn("\t- {s}", .{compatible});
+            console().printLn("\t- {s}", .{compatible});
         }
     }
 };
