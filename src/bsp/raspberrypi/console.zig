@@ -32,8 +32,19 @@ pub const QEMUConsole = struct {
         return uart.*;
     }
 
+    const vtable = bsp_console.VTable{
+        .flush = QEMUConsole.flush,
+        .clearRx = QEMUConsole.clearRx,
+        .print = QEMUConsole.print,
+        .printChar = QEMUConsole.printChar,
+        .readChar = QEMUConsole.readChar,
+    };
+
     fn console(self: *QEMUConsole) bsp_console {
-        return .{ .context = self, .printFn = print };
+        return .{
+            .context = self,
+            .vtable = &QEMUConsole.vtable,
+        };
     }
 };
 

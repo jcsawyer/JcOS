@@ -26,7 +26,18 @@ pub const NullConsole = struct {
         return ' ';
     }
 
+    const vtable = bsp_console.VTable{
+        .flush = NullConsole.flush,
+        .clearRx = NullConsole.clearRx,
+        .print = NullConsole.print,
+        .printChar = NullConsole.printChar,
+        .readChar = NullConsole.readChar,
+    };
+
     fn console(self: *NullConsole) bsp_console {
-        return .{ .context = self, .printFn = print };
+        return .{
+            .context = self,
+            .vtable = &NullConsole.vtable,
+        };
     }
 };

@@ -124,7 +124,7 @@ const PL011UartInner = struct {
         }
 
         // Read the character from the FIFO
-        const ret = self.registers.DR.*;
+        const ret: u8 = @intCast(self.registers.DR.*);
         self.chars_read += 1;
         return ret;
     }
@@ -177,11 +177,11 @@ pub fn getConsole() bsp_console {
 pub const UARTConsole = struct {
     const Self = @This();
 
-    fn flush(_: *UARTConsole) void {
+    fn flush(_: *anyopaque) void {
         driver.pl011_uart.inner.flush();
     }
 
-    fn clearRx(_: *UARTConsole) void {
+    fn clearRx(_: *anyopaque) void {
         // Read from the RX FIFO until it is empty
         while (driver.pl011_uart.inner.read_char(BlockingMode.NonBlocking) != 0) {}
     }
@@ -190,12 +190,27 @@ pub const UARTConsole = struct {
         std.fmt.format(ConsoleWriter{ .context = {} }, str, args) catch unreachable;
     }
 
-    fn readChar(_: *UARTConsole, blocking_mode: BlockingMode) u8 {
-        return driver.pl011_uart.inner.read_char(blocking_mode);
+    fn printChar(_: *anyopaque, char: u8) void {
+        driver.pl011_uart.inner.write_char(char);
     }
 
+    fn readChar(_: *anyopaque) u8 {
+        return driver.pl011_uart.inner.read_char(BlockingMode.Blocking);
+    }
+
+    const vtable = bsp_console.VTable{
+        .flush = UARTConsole.flush,
+        .clearRx = UARTConsole.clearRx,
+        .print = UARTConsole.print,
+        .printChar = UARTConsole.printChar,
+        .readChar = UARTConsole.readChar,
+    };
+
     pub fn console(self: *UARTConsole) bsp_console {
-        return .{ .context = self, .printFn = print };
+        return .{
+            .context = self,
+            .vtable = &UARTConsole.vtable,
+        };
     }
 };
 
