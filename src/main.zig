@@ -3,7 +3,7 @@ const cpu = @import("cpu.zig");
 const bsp = @import("bsp.zig");
 const console = @import("print.zig");
 const driver = @import("driver.zig");
-
+const time = @import("time.zig").timeManager;
 comptime {
     asm (cpu.arch_boot());
     // Need to ensure the bsp cpu values are not compiled away
@@ -11,6 +11,7 @@ comptime {
 }
 
 pub fn kernel_init() noreturn {
+    time().init();
     bsp.board.driver.init() catch {
         @panic("Error loading drivers");
     };
@@ -23,18 +24,13 @@ pub fn kernel_init() noreturn {
 }
 
 pub fn kernel_main() noreturn {
-    console.printLn("[0] {s} version {s}", .{ "JcOS", "0.1.0" });
-    console.printLn("[1] Booting on: {s}", .{bsp.board.board_name()});
-
-    console.printLn("[2] Drivers loaded:", .{});
+    console.info("{s} version {s}", .{ "JcOS", "0.1.0" });
+    console.info("Booting on: {s}", .{bsp.board.board_name()});
+    console.info("Drivers loaded:", .{});
     driver.driver_manager().print_drivers();
 
-    // Discard any spurious received characters before going into echo mode.
-    console.clearRx();
-    while (true) {
-        const c = console.readChar();
-        console.printChar(c);
-    }
+    // Test a failing timer case
+    //time().spin_for(@import("std/time.zig").Duration.fromNanos(1));
 
     @panic("Kernel initialization is not implemented");
 }
@@ -44,10 +40,10 @@ pub fn panic(message: []const u8, stack_trace: ?*std.builtin.StackTrace, ret_add
     _ = stack_trace;
     @setCold(true);
     if (already_panicking) {
-        console.print("\nPANIC in PANIC", .{});
+        console.warn("\nPANIC in PANIC", .{});
     }
     already_panicking = true;
 
-    console.print("\n\nKERNEL PANIC: (ret: {?X})\n\t{s}\n\n", .{ ret_address, message });
+    console.panic("KERNEL PANIC: (ret: {?X})\t:\t{s}\n\n", .{ ret_address, message });
     cpu.cpu.wait_forever();
 }

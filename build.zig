@@ -12,7 +12,7 @@ pub fn build(b: *std.Build) void {
         .name = "kernel",
         .root_source_file = b.path("src/main.zig"),
         .target = target,
-        .optimize = .ReleaseSafe,
+        .optimize = .ReleaseFast,
         .linkage = .static,
     });
 

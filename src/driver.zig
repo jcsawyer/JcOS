@@ -1,5 +1,5 @@
 const std = @import("std");
-const console = @import("console.zig").console;
+const console = @import("print.zig");
 
 const NUM_DRIVERS: usize = @intCast(5);
 pub const DeviceDriverPostInitCallback = fn () anyerror!void;
@@ -64,9 +64,9 @@ pub const DriverManager = struct {
     }
 
     pub fn print_drivers(self: *DriverManager) void {
-        for (self.drivers[0..self.next_index]) |driver| {
+        for (self.drivers[0..self.next_index], 0..) |driver, i| {
             const compatible = driver.device_driver.compatible();
-            console().printLn("\t- {s}", .{compatible});
+            console.info("\t {d}. {s}", .{ i + 1, compatible });
         }
     }
 };
