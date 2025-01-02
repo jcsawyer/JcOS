@@ -18,6 +18,20 @@ pub const QEMUConsole = struct {
         std.fmt.format(ConsoleWriter{ .context = {} }, str, args) catch unreachable;
     }
 
+    fn printChar(_: *anyopaque, char: u8) void {
+        const uart: (*volatile u8) = @ptrFromInt(0x3F201000);
+        if (char == '\n') {
+            uart.* = '\r';
+        }
+
+        uart.* = char;
+    }
+
+    fn readChar(_: Self) u8 {
+        const uart: (*volatile u8) = @ptrFromInt(0x3F201000);
+        return uart.*;
+    }
+
     fn console(self: *QEMUConsole) bsp_console {
         return .{ .context = self, .printFn = print };
     }

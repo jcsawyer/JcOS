@@ -18,6 +18,14 @@ pub const NullConsole = struct {
         // Do nothing
     }
 
+    fn printChar(_: *anyopaque, _: u8) void {
+        // Do nothing
+    }
+
+    pub fn readChar(_: Self) u8 {
+        return ' ';
+    }
+
     fn console(self: *NullConsole) bsp_console {
         return .{ .context = self, .printFn = print };
     }

@@ -41,68 +41,51 @@ const GPIO_PUP_PDN_CNTRL_REG0 = enum(u32) {
     PullUp = 0b01,
 };
 
-const RegisterBlock = struct {
-    _reserved1: u32, // (0x00)
-    GPFSEL1: *volatile u32, // (0x04)
-    _reserved2: u32, // (0x08) - Filler to align to 0x94
-    _reserved2_fill: u32, // Filler for alignment
-    _reserved2_fill2: u32, // Filler for alignment
-    _reserved2_fill3: u32, // Filler for alignment
-    _reserved2_fill4: u32, // Filler for alignment
-    _reserved2_fill5: u32, // Filler for alignment
-    _reserved2_fill6: u32, // Filler for alignment
-    _reserved2_fill7: u32, // Filler for alignment
-    _reserved2_fill8: u32, // Filler for alignment
-    _reserved2_fill9: u32, // Filler for alignment
-    _reserved2_fill10: u32, // Filler for alignment
-    _reserved2_fill11: u32, // Filler for alignment
-    _reserved2_fill12: u32, // Filler for alignment
-    GPPUD: *volatile u32, // (0x94)
-    GPPUDCLK0: *volatile u32, // (0x98)
-    _reserved3: u32, // (0x9C)
-    _reserved3_fill: u32, // Filler for alignment
-    GPIO_PUP_PDN_CNTRL_REG0: *volatile u32, // (0xE4)
-};
+const RegisterBlock align(16) = struct {
+    GPFSEL1: *volatile u32,
+    GPPUD: *volatile u32,
+    GPPUDCLK0: *volatile u32,
+    GPIO_PUP_PDN_CNTRL_REG0: *volatile u32,
 
-const MMIODerefWarpper = struct {
-    registers: *const volatile RegisterBlock,
-
-    pub fn new(mmio_start_addr: usize) MMIODerefWarpper {
+    fn new(mmio_start_addr: usize) RegisterBlock {
         return .{
-            .registers = @as(*const RegisterBlock, @ptrFromInt(mmio_start_addr)),
+            .GPFSEL1 = @ptrFromInt(mmio_start_addr + 0x04),
+            .GPPUD = @ptrFromInt(mmio_start_addr + 0x94),
+            .GPPUDCLK0 = @ptrFromInt(mmio_start_addr + 0x98),
+            .GPIO_PUP_PDN_CNTRL_REG0 = @ptrFromInt(mmio_start_addr + 0xE4),
         };
     }
 };
 
 const GPIOInner = struct {
-    registers: MMIODerefWarpper,
+    registers: RegisterBlock,
 
     pub fn new(mmio_start_addr: usize) GPIOInner {
         return .{
-            .registers = MMIODerefWarpper.new(mmio_start_addr),
+            .registers = RegisterBlock.new(mmio_start_addr),
         };
     }
 
     pub fn disable_pud_14_15_bcm2837(self: *GPIOInner) void {
         // Disable pull-up/down for GPIO 14 & 15 (raspi3)
-        self.registers.registers.GPPUD.* = @intFromEnum(GPPUD_PUD.Off);
+        self.registers.GPPUD.* = 0;
         cpu.cpu.spin_for_cycles(DELAY);
 
-        self.registers.registers.GPPUDCLK0.* = (@intFromEnum(GPPUCLK0.AssertClock) << 14) | (@intFromEnum(GPPUCLK0.AssertClock) << 15);
+        self.registers.GPPUDCLK0.* = (@intFromEnum(GPPUCLK0.AssertClock) << 14) | (@intFromEnum(GPPUCLK0.AssertClock) << 15);
         cpu.cpu.spin_for_cycles(DELAY);
 
-        self.registers.registers.GPPUD.* = @intFromEnum(GPPUD_PUD.Off);
-        self.registers.registers.GPPUDCLK0.* = 0;
+        self.registers.GPPUD.* = 0;
+        self.registers.GPPUDCLK0.* = 0;
     }
 
     pub fn disable_pud_14_15_bcm2711(self: *GPIOInner) void {
         // Disable pull-up/down for GPIO 14 & 15 (raspi4)
-        self.registers.registers.GPIO_PUP_PDN_CNTRL_REG0.* = (@intFromEnum(GPIO_PUP_PDN_CNTRL_REG0.NoResistor) << 30) | (@intFromEnum(GPIO_PUP_PDN_CNTRL_REG0.NoResistor) << 28);
+        self.registers.GPIO_PUP_PDN_CNTRL_REG0.* = (@intFromEnum(GPIO_PUP_PDN_CNTRL_REG0.NoResistor) << 30) | (@intFromEnum(GPIO_PUP_PDN_CNTRL_REG0.NoResistor) << 28);
     }
 
     pub fn map_pl011_uart(self: *GPIOInner) anyerror!void {
         // Set GPIO 14 and 15 to alternative function 0 (PL011 UART RX/TX)
-        self.registers.registers.GPFSEL1.* = (@intFromEnum(GPFSEL1.AltFunc0) << 12) | (@intFromEnum(GPFSEL1.AltFunc0) << 15);
+        self.registers.GPFSEL1.* = (@intFromEnum(GPFSEL1.AltFunc0) << 12) | (@intFromEnum(GPFSEL1.AltFunc0) << 15);
 
         if (std.mem.eql(u8, config.board, "bsp_rpi3")) {
             self.disable_pud_14_15_bcm2837();
@@ -115,7 +98,7 @@ const GPIOInner = struct {
 };
 
 pub const GPIO = struct {
-    const compatible_str: []const u8 = "BCM GPIUO";
+    const compatible_str: []const u8 = "BCM GPIO";
     inner: GPIOInner,
 
     pub fn new(mmio_start_addr: usize) GPIO {

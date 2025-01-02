@@ -48,6 +48,6 @@ pub fn panic(message: []const u8, stack_trace: ?*std.builtin.StackTrace, ret_add
     }
     already_panicking = true;
 
-    console().print("\n\nKERNEL PANIC: (ret: {?X})\n\t{s}", .{ ret_address, message });
+    console().print("\n\nKERNEL PANIC: (ret: {?X})\n\t{s}\n\n", .{ ret_address, message });
     cpu.cpu.wait_forever();
 }

@@ -6,29 +6,25 @@ const bsp_console = @import("../../../console.zig").Console;
 const driver = @import("../../raspberrypi/driver.zig");
 
 const RegisterBlock = struct {
-    DR: *volatile u32, // 0x00
-    _reserved1_0: u32, // 0x04 (padding to 0x18)
-    _reserved1_1: u32,
-    _reserved1_2: u32,
-    FR: *volatile u32, // 0x18
-    _reserved2: u32, // 0x1C (padding to 0x24)
-    IBRD: *volatile u32, // 0x24
-    FBRD: *volatile u32, // 0x28
-    LCR_H: *volatile u32, // 0x2C
-    CR: *volatile u32, // 0x30
-    _reserved3_0: u32, // 0x34 (padding to 0x44)
-    _reserved3_1: u32,
-    _reserved3_2: u32,
-    _reserved3_3: u32,
-    ICR: *volatile u32, // 0x44 (0x0020_1000 + 0x3F00_0000 + 0x44)
-};
+    DR: *volatile u32,
+    FR: *volatile u32,
+    IBRD: *volatile u32,
+    FBRD: *volatile u32,
+    LCR_H: *volatile u32,
+    CR: *volatile u32,
+    IMSC: *volatile u32,
+    ICR: *volatile u32,
 
-const MMIODerefWarpper = struct {
-    registers: *const volatile RegisterBlock,
-
-    pub fn new(mmio_start_addr: usize) MMIODerefWarpper {
+    fn new(mmio_start_addr: usize) RegisterBlock {
         return .{
-            .registers = @as(*const RegisterBlock, @ptrFromInt(mmio_start_addr)),
+            .DR = @ptrFromInt(mmio_start_addr + 0x00),
+            .FR = @ptrFromInt(mmio_start_addr + 0x18),
+            .IBRD = @ptrFromInt(mmio_start_addr + 0x24),
+            .FBRD = @ptrFromInt(mmio_start_addr + 0x28),
+            .LCR_H = @ptrFromInt(mmio_start_addr + 0x2C),
+            .CR = @ptrFromInt(mmio_start_addr + 0x30),
+            .IMSC = @ptrFromInt(mmio_start_addr + 0x38),
+            .ICR = @ptrFromInt(mmio_start_addr + 0x44),
         };
     }
 };
@@ -39,13 +35,13 @@ const BlockingMode = enum {
 };
 
 const PL011UartInner = struct {
-    registers: MMIODerefWarpper,
+    registers: RegisterBlock,
     chars_written: usize,
     chars_read: usize,
 
     pub fn new(mmio_start_addr: usize) PL011UartInner {
         return .{
-            .registers = MMIODerefWarpper.new(mmio_start_addr),
+            .registers = RegisterBlock.new(mmio_start_addr),
             .chars_written = 0,
             .chars_read = 0,
         };
@@ -82,13 +78,10 @@ const PL011UartInner = struct {
         // Turn the UART off temporarily
         //const cr: *volatile u32 = @ptrFromInt(0x3F00_0000 + 0x0020_1000);
         //cr.* = 0;
-        self.registers.registers.CR.* = 0;
+        self.registers.CR.* = 0;
 
         // Clear all pending interrupts
-        const icr: *volatile u32 = @ptrFromInt(0x3F00_0000 + 0x0020_1044);
-        icr.* = 0x7FF;
-        // TODO figure out why this doesn't work
-        //self.registers.registers.ICR.* = 0x7FF;
+        self.registers.ICR.* = 0x7FF;
 
         // From the PL011 Technical Reference Manual:
         //
@@ -97,47 +90,47 @@ const PL011UartInner = struct {
         // contents of IBRD or FBRD, a LCR_H write must always be performed at the end.
         //
         // Set the baud rate, 8N1 and FIFO enabled.
-        self.registers.registers.IBRD.* = 3;
-        self.registers.registers.FBRD.* = 16;
-        self.registers.registers.LCR_H.* = 0b11 << 5 | 1 << 4;
+        self.registers.IBRD.* = 3;
+        self.registers.FBRD.* = 16;
+        self.registers.LCR_H.* = 0b11 << 5 | 1 << 4;
 
         // Enable UART and both RX and TX
-        self.registers.registers.CR.* = 0b1 | 0b10 | 0b100;
+        self.registers.CR.* = 0b1 | 0b10 | 0b100;
     }
 
     fn write_char(self: *PL011UartInner, c: u8) void {
         // Wait until there is space in the FIFO
-        while (self.registers.registers.FR.* & 0x20 != 0) {
+        while (self.registers.FR.* & 0x20 != 0) {
             cpu.nop();
         }
 
         // Write the character to the FIFO
-        self.registers.registers.DR.* = c;
+        self.registers.DR.* = c;
         self.chars_written += 1;
     }
 
     fn read_char(self: *PL011UartInner, blocking_mode: BlockingMode) u8 {
         // If RX FIFI is empty
-        if (self.registers.registers.FR.* & 0x10 != 0) {
+        if (self.registers.FR.* & 0x10 != 0) {
             // Immediately return in non-blocking mode
             if (blocking_mode == BlockingMode.NonBlocking) {
                 return 0;
             }
 
             // Otherwise, wait until a character is received
-            while (self.registers.registers.FR.* & 0x10 != 0) {
+            while (self.registers.FR.* & 0x10 != 0) {
                 cpu.nop();
             }
         }
 
         // Read the character from the FIFO
-        const ret = self.registers.registers.DR.*;
+        const ret = self.registers.DR.*;
         self.chars_read += 1;
         return ret;
     }
 
     fn flush(self: *PL011UartInner) void {
-        while (self.registers.registers.FR.* & 0x20 != 0) {
+        while (self.registers.FR.* & 0x20 != 0) {
             cpu.nop();
         }
     }
@@ -197,6 +190,10 @@ pub const UARTConsole = struct {
         std.fmt.format(ConsoleWriter{ .context = {} }, str, args) catch unreachable;
     }
 
+    fn readChar(_: *UARTConsole, blocking_mode: BlockingMode) u8 {
+        return driver.pl011_uart.inner.read_char(blocking_mode);
+    }
+
     pub fn console(self: *UARTConsole) bsp_console {
         return .{ .context = self, .printFn = print };
     }
@@ -206,7 +203,7 @@ const Context = void;
 const WriteError = anyerror;
 fn writeFn(_: Context, buf: []const u8) anyerror!usize {
     for (buf) |char| {
-        console.uart.inner.write_char(char);
+        driver.pl011_uart.inner.write_char(char);
     }
     return buf.len;
 }

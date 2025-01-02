@@ -15,12 +15,14 @@ pub const Console = struct {
         return self.printFn(self.context, str, args);
     }
 
-    pub fn printChar(self: Self, char: u8) void {
-        self.printFn(&.{char}, void);
-    }
+    pub fn printChar(_: Self, _: u8) void {}
 
     pub fn printLn(self: Self, comptime str: []const u8, args: anytype) void {
         self.print(str ++ "\n", args);
+    }
+
+    pub fn readChar(_: Self) u8 {
+        return ' ';
     }
 };
 
