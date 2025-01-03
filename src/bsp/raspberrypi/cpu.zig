@@ -1,3 +1,3 @@
 const std = @import("std");
 
-pub export const BOOT_CORE_ID: usize linksection(".text.start_arguments") = 0;
+pub export const BOOT_CORE_ID: usize linksection(".text._start_arguments") = 0;

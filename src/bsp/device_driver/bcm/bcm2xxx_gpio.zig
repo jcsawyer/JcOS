@@ -41,7 +41,7 @@ const GPIO_PUP_PDN_CNTRL_REG0 = enum(u32) {
     PullUp = 0b01,
 };
 
-const RegisterBlock align(16) = struct {
+const RegisterBlock = struct {
     GPFSEL1: *volatile u32,
     GPPUD: *volatile u32,
     GPPUDCLK0: *volatile u32,

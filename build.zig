@@ -12,8 +12,9 @@ pub fn build(b: *std.Build) void {
         .name = "kernel",
         .root_source_file = b.path("src/main.zig"),
         .target = target,
-        .optimize = .ReleaseFast,
+        .optimize = .ReleaseSafe,
         .linkage = .static,
+        .code_model = .small,
     });
 
     kernel.addIncludePath(b.path("src/std"));

@@ -59,7 +59,7 @@ pub const Duration = struct {
     }
 
     pub fn asNanos(self: Duration) u128 {
-        return @as(u128, self.secs) * @as(u128, NANOS_PER_SEC) + @as(u128, self.nanos);
+        return self.secs * NANOS_PER_SEC + self.nanos;
     }
 
     pub fn subsec_millis(self: Duration) u32 {
@@ -106,9 +106,5 @@ pub const Duration = struct {
 
     pub fn saturatingSub(self: Duration, other: Duration) Duration {
         return self.checkedSub(other) orelse ZERO;
-    }
-
-    pub fn toString(self: Duration) []const u8 {
-        return std.fmt.allocPrint("{d}.{d}s", .{ self.secs, self.nanos });
     }
 };

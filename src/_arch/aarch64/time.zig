@@ -14,7 +14,7 @@ pub const TimeError = error{
 const GenericTimerCounterValue = struct {
     value: u64,
 
-    pub const MAX: GenericTimerCounterValue = GenericTimerCounterValue{ .value = std.math.maxInt(u64) };
+    pub const MAX: GenericTimerCounterValue = GenericTimerCounterValue{ .value = 1_000_000_000 - 1 };
 
     pub fn add(self: GenericTimerCounterValue, other: GenericTimerCounterValue) GenericTimerCounterValue {
         return GenericTimerCounterValue{ .value = self.value +% other.value };
@@ -29,7 +29,7 @@ const GenericTimerCounterValue = struct {
             return TimeError.DurationTooBig;
         }
 
-        const duration_ns = duration.nanos;
+        const duration_ns: u64 = @intCast(duration.asNanos());
         const counter_value = duration_ns * arch_timer_counter_frequency() / NANOSEC_PER_SEC;
 
         return GenericTimerCounterValue{ .value = counter_value };
@@ -67,8 +67,7 @@ fn maxDuration() time.Duration {
 }
 
 fn read_cntpct() GenericTimerCounterValue {
-    @fence(AtomicOrder.seq_cst);
-    const cntpct = asm ("mrs %[cntpct], cntpct_el0"
+    const cntpct = asm volatile ("mrs %[cntpct], cntpct_el0"
         : [cntpct] "=r" (-> usize),
     );
     return GenericTimerCounterValue{ .value = @intCast(cntpct) };
@@ -79,7 +78,7 @@ pub fn uptime() time.Duration {
 }
 
 pub fn spin_for(duration: time.Duration) void {
-    const curr_counter_value = read_cntpct();
+    var curr_counter_value = read_cntpct();
 
     const counter_value_delta = GenericTimerCounterValue.fromDuration(duration) catch |err| {
         warn("spin_for: %s. Skipping\n", .{@as([*c]const u8, @ptrCast(@errorName(err)))});
@@ -87,7 +86,7 @@ pub fn spin_for(duration: time.Duration) void {
     };
     const counter_value_target = curr_counter_value.add(counter_value_delta);
 
-    while ((GenericTimerCounterValue{ .value = read_cntpct().value }).value < counter_value_target.value) {
-        cpu.nop();
+    while (curr_counter_value.value < counter_value_target.value) {
+        curr_counter_value = read_cntpct();
     }
 }

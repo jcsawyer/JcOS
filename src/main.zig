@@ -13,7 +13,6 @@ comptime {
 }
 
 pub fn kernel_init() noreturn {
-    time_manager().init();
     bsp.board.driver.init() catch {
         @panic("Error loading drivers");
     };
@@ -21,6 +20,7 @@ pub fn kernel_init() noreturn {
     driver.driver_manager().init() catch {
         @panic("Error initializing drivers");
     };
+    time_manager().init();
 
     kernel_main();
 }
@@ -35,10 +35,10 @@ pub fn kernel_main() noreturn {
     driver.driver_manager().print_drivers();
 
     while (true) {
-        const c = console.readChar();
-        console.printChar(c);
-        //console.info("Spinning for 1 second", .{});
-        //time_manager().spin_for(time.Duration.fromSecs(1));
+        //const c = console.readChar();
+        //console.printChar(c);
+        console.info("Spinning for 1 second", .{});
+        time_manager().spin_for(time.Duration.fromSecs(1));
     }
     @panic("Kernel initialization is not implemented");
 }
@@ -46,7 +46,6 @@ pub fn kernel_main() noreturn {
 var already_panicking: bool = false;
 pub fn panic(message: []const u8, stack_trace: ?*std.builtin.StackTrace, ret_address: ?usize) noreturn {
     _ = stack_trace;
-    @setCold(true);
     if (already_panicking) {
         console.panic("\nPANIC in PANIC", .{});
     }

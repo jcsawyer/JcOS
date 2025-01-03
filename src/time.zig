@@ -2,7 +2,7 @@ const std = @import("std");
 const builtin = @import("builtin");
 const time = @import("std/time.zig");
 
-pub const arch_time = switch (builtin.target.cpu.arch) {
+const arch_time = switch (builtin.target.cpu.arch) {
     .aarch64 => @import("_arch/aarch64/time.zig"),
     else => @compileError("Unsupported architecture"),
 };
