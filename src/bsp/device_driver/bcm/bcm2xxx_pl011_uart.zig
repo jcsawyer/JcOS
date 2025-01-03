@@ -4,6 +4,7 @@ const cpu = @import("../../../cpu.zig").cpu;
 const DeviceDriver = @import("../../../driver.zig").DeviceDriver;
 const bsp_console = @import("../../../console.zig").Console;
 const driver = @import("../../raspberrypi/driver.zig");
+const fmt = @import("../../../std/fmt.zig");
 
 const RegisterBlock = struct {
     DR: *volatile u32,
@@ -150,6 +151,10 @@ pub const PL011Uart = struct {
         return "PL011 UART";
     }
 
+    pub fn printChar(self: *PL011Uart, char: u8) void {
+        self.inner.write_char(char);
+    }
+
     pub fn init(ctx: *anyopaque) anyerror!void {
         const self: *PL011Uart = @alignCast(@ptrCast(ctx));
         return self.inner.init();
@@ -187,7 +192,7 @@ pub const UARTConsole = struct {
     }
 
     fn print(_: *anyopaque, comptime str: []const u8, args: anytype) void {
-        std.fmt.format(ConsoleWriter{ .context = {} }, str, args) catch unreachable;
+        fmt.format(ConsoleWriter{ .context = {} }, str, args) catch unreachable;
     }
 
     fn printChar(_: *anyopaque, char: u8) void {

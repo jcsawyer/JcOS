@@ -1,9 +1,10 @@
 const std = @import("std");
 const time = @import("../../std/time.zig");
 const AtomicOrder = std.builtin.AtomicOrder;
+const cpu = @import("../../cpu.zig").cpu;
 const warn = @import("../../print.zig").warn;
 
-var ARCH_TIMER_COUNTER_FREQUENCY: u32 = undefined;
+var ARCH_TIMER_COUNTER_FREQUENCY: usize = undefined;
 const NANOSEC_PER_SEC = 1_000_000_000;
 
 pub const TimeError = error{
@@ -49,12 +50,12 @@ const GenericTimerCounterValue = struct {
 
 pub fn init() void {
     ARCH_TIMER_COUNTER_FREQUENCY = asm ("mrs %[ARCH_TIMER_COUNTER_FREQUENCY], cntfrq_el0"
-        : [ARCH_TIMER_COUNTER_FREQUENCY] "=r" (-> u32),
+        : [ARCH_TIMER_COUNTER_FREQUENCY] "=r" (-> usize),
     );
 }
 
 fn arch_timer_counter_frequency() u32 {
-    return @volatileCast(&ARCH_TIMER_COUNTER_FREQUENCY).*;
+    return @intCast(@volatileCast(&ARCH_TIMER_COUNTER_FREQUENCY).*);
 }
 
 pub fn resolution() time.Duration {
@@ -68,9 +69,9 @@ fn maxDuration() time.Duration {
 fn read_cntpct() GenericTimerCounterValue {
     @fence(AtomicOrder.seq_cst);
     const cntpct = asm ("mrs %[cntpct], cntpct_el0"
-        : [cntpct] "=r" (-> u64),
+        : [cntpct] "=r" (-> usize),
     );
-    return GenericTimerCounterValue{ .value = cntpct };
+    return GenericTimerCounterValue{ .value = @intCast(cntpct) };
 }
 
 pub fn uptime() time.Duration {
@@ -81,12 +82,12 @@ pub fn spin_for(duration: time.Duration) void {
     const curr_counter_value = read_cntpct();
 
     const counter_value_delta = GenericTimerCounterValue.fromDuration(duration) catch |err| {
-        warn("spin_for: {s}. Skipping\n", .{@errorName(err)});
+        warn("spin_for: %s. Skipping\n", .{@as([*c]const u8, @ptrCast(@errorName(err)))});
         return;
     };
     const counter_value_target = curr_counter_value.add(counter_value_delta);
 
     while ((GenericTimerCounterValue{ .value = read_cntpct().value }).value < counter_value_target.value) {
-        @import("../../cpu.zig").cpu.nop();
+        cpu.nop();
     }
 }

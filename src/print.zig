@@ -1,37 +1,44 @@
+const std = @import("std");
 const console = @import("console.zig").console;
 const time = @import("time.zig").timeManager;
 
+pub extern fn printf_(format: [*:0]const u8, ...) c_int;
+
+export fn _putchar(c: i32) void {
+    console().printChar(@as(u8, @intCast(c)));
+}
+
+fn call_printf(comptime fmt: [*:0]const u8, args: anytype) void {
+    _ = @call(std.builtin.CallModifier.auto, printf_, .{fmt} ++ args);
+}
+
 pub fn print(comptime str: []const u8, args: anytype) void {
-    console().print(str, args);
+    call_printf(@as([*:0]const u8, @ptrCast(str)), args);
 }
 
-pub fn printLn(comptime str: []const u8, args: anytype) void {
-    console().printLn(str, args);
-}
-
-pub fn printChar(char: u8) void {
-    console().printChar(char);
+pub fn printChar(c: u8) void {
+    console().printChar(c);
 }
 
 pub fn info(comptime str: []const u8, args: anytype) void {
     const uptime = time().uptime();
-    print("[ {d:>3}.{d:0<6} ] ", .{ uptime.asSecs(), uptime.asMicros() });
-    print(str, args);
-    printChar('\n');
+    call_printf("[ %03d.%0-.6d ] ", .{ uptime.asSecs(), uptime.asMicros() });
+    call_printf(@as([*:0]const u8, @ptrCast(str)), args);
+    call_printf("\n", .{});
 }
 
 pub fn warn(comptime str: []const u8, args: anytype) void {
     const uptime = time().uptime();
-    print("[W{d:>3}.{d:0<6} ] ", .{ uptime.asSecs(), uptime.asMicros() });
-    print(str, args);
-    printChar('\n');
+    call_printf("[W%03d.%0-.6d ] ", .{ uptime.asSecs(), uptime.asMicros() });
+    call_printf(@as([*:0]const u8, @ptrCast(str)), args);
+    call_printf("\n", .{});
 }
 
 pub fn panic(comptime str: []const u8, args: anytype) void {
     const uptime = time().uptime();
-    print("[P{d:>3}.{d:0<6} ] ", .{ uptime.asSecs(), uptime.asMicros() });
-    print(str, args);
-    printChar('\n');
+    call_printf("[P%03d.%0-.6d ] ", .{ uptime.asSecs(), uptime.asMicros() });
+    call_printf(@as([*:0]const u8, @ptrCast(str)), args);
+    call_printf("\n", .{});
 }
 
 pub fn readChar() u8 {

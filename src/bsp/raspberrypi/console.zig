@@ -10,9 +10,9 @@ pub fn getConsole() bsp_console {
 pub const QEMUConsole = struct {
     const Self = @This();
 
-    fn flush(_: *QEMUConsole) void {}
+    fn flush(_: *anyopaque) void {}
 
-    fn clearRx(_: *QEMUConsole) void {}
+    fn clearRx(_: *anyopaque) void {}
 
     fn print(_: *anyopaque, comptime str: []const u8, args: anytype) void {
         std.fmt.format(ConsoleWriter{ .context = {} }, str, args) catch unreachable;
@@ -27,7 +27,7 @@ pub const QEMUConsole = struct {
         uart.* = char;
     }
 
-    fn readChar(_: Self) u8 {
+    fn readChar(_: *anyopaque) u8 {
         const uart: (*volatile u8) = @ptrFromInt(0x3F201000);
         return uart.*;
     }

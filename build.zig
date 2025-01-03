@@ -16,6 +16,9 @@ pub fn build(b: *std.Build) void {
         .linkage = .static,
     });
 
+    kernel.addIncludePath(b.path("src/std"));
+    kernel.addCSourceFile(.{ .file = b.path("src/std/printf.c") });
+
     kernel.setLinkerScript(b.path("src/bsp/raspberrypi/kernel.ld"));
 
     const board = b.option([]const u8, "board", "The board to target.") orelse "bsp_rpi3";

@@ -66,7 +66,7 @@ pub const DriverManager = struct {
     pub fn print_drivers(self: *DriverManager) void {
         for (self.drivers[0..self.next_index], 0..) |driver, i| {
             const compatible = driver.device_driver.compatible();
-            console.info("\t {d}. {s}", .{ i + 1, compatible });
+            console.info("\t %d. %s", .{ i + 1, @as([*:0]const u8, @ptrCast(compatible)) });
         }
     }
 };
