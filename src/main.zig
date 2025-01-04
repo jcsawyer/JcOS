@@ -5,6 +5,7 @@ const console = @import("print.zig");
 const driver = @import("driver.zig");
 const time_manager = @import("time.zig").timeManager;
 const time = @import("std/time.zig");
+const rng = @import("bsp/raspberrypi/driver.zig");
 
 comptime {
     asm (cpu.arch_boot());
@@ -30,15 +31,19 @@ pub fn kernel_main() noreturn {
     console.info("Hello, %s!", .{"World"});
     console.info("%s version %s", .{ "JcOS", "0.1.0" });
     console.info("Booting on: %s", .{@as([*:0]const u8, @ptrCast(bsp.board.board_name()))});
-    console.info("Architectural timer resoltion: %d", .{time_manager().resolution().asNanos()});
+    console.info("Architectural timer resoltion: %d ns", .{time_manager().resolution().asNanos()});
     console.info("Drivers loaded:", .{});
     driver.driver_manager().print_drivers();
+    console.print("\n", .{});
+
+    console.info("Spinning for 1 second", .{});
+    time_manager().spin_for(time.Duration.fromSecs(1));
+    console.info("Random number: %d", .{rng.rng.next(0, 100)});
+    console.info("READY", .{});
 
     while (true) {
-        //const c = console.readChar();
-        //console.printChar(c);
-        console.info("Spinning for 1 second", .{});
-        time_manager().spin_for(time.Duration.fromSecs(1));
+        const c = console.readChar();
+        console.printChar(c);
     }
     @panic("Kernel initialization is not implemented");
 }
@@ -57,8 +62,8 @@ pub fn panic(message: []const u8, stack_trace: ?*std.builtin.StackTrace, ret_add
 }
 
 const logo: []const u8 =
-    \\                       
-    \\    __     _____ _____ 
+    \\    __                 
+    \\   |  |    _____ _____ 
     \\ __|  |___|     |   __|
     \\|  |  |  _|  |  |__   |
     \\|_____|___|_____|_____|

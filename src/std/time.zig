@@ -31,7 +31,7 @@ pub const Duration = struct {
     pub fn fromMillis(millis: u64) Duration {
         const secs = millis / MILLIS_PER_SEC;
         const nanos = (millis % MILLIS_PER_SEC) * 1_000_000;
-        return Duration{ .secs = secs, .nanos = @as(u32, nanos) };
+        return Duration{ .secs = secs, .nanos = @intCast(nanos) };
     }
 
     pub fn fromMicros(micros: u64) Duration {
