@@ -4,8 +4,6 @@ const bcm_gpio = @import("../device_driver/bcm/bcm2xxx_gpio.zig").GPIO;
 const bcm_pl011_uart = @import("../device_driver/bcm/bcm2xxx_pl011_uart.zig").PL011Uart;
 const bcm_rng = @import("../device_driver/bcm/bcm2xxx_rng.zig").RNG;
 const memory = @import("memory.zig").map;
-const console = @import("../../console.zig");
-const uart_console = @import("../device_driver/bcm/bcm2xxx_pl011_uart.zig");
 
 var gpio: bcm_gpio = undefined;
 pub var pl011_uart: bcm_pl011_uart = undefined;

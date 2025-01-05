@@ -11,6 +11,6 @@ pub fn boot_asm() []u8 {
     return buff[0..];
 }
 
-export fn _start_zig() noreturn {
-    kernel_init();
-}
+//export fn _start_zig() noreturn {
+//    kernel_init();
+//}

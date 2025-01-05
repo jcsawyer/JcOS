@@ -2,7 +2,6 @@ const std = @import("std");
 const config = @import("config");
 
 pub const cpu = @import("raspberrypi/cpu.zig");
-const raspi_console = @import("raspberrypi/console.zig");
 const raspi_drivers = @import("raspberrypi/driver.zig");
 const uart_console = @import("device_driver/bcm/bcm2xxx_pl011_uart.zig");
 

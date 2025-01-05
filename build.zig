@@ -2,11 +2,43 @@ const std = @import("std");
 
 pub fn build(b: *std.Build) void {
     const target = b.standardTargetOptions(.{ .default_target = .{
-        .abi = .eabihf,
+        .abi = .none,
         .os_tag = .freestanding,
         .cpu_arch = .aarch64,
         .cpu_model = .{ .explicit = &std.Target.arm.cpu.cortex_a53 },
     } });
+
+    const kernel_cpp = b.addStaticLibrary(.{
+        .name = "kernel_cpp",
+        .target = target,
+        .optimize = .ReleaseSafe,
+    });
+
+    kernel_cpp.addIncludePath(b.path("src"));
+    kernel_cpp.addIncludePath(b.path("src/std"));
+    kernel_cpp.addIncludePath(b.path("src/bsp"));
+    kernel_cpp.addIncludePath(b.path("src/bsp/raspberrypi"));
+    kernel_cpp.addIncludePath(b.path("src/console"));
+
+    kernel_cpp.addCSourceFiles(.{
+        .flags = &.{
+            "-ffreestanding",
+            "-O2",
+            "-Wall",
+            "-Wextra",
+            "-fno-exceptions",
+            "-fno-rtti",
+        },
+        .files = &.{
+            "src/main.cpp",
+            "src/std/printf.c",
+            "src/_arch/aarch64/cpu/boot.cpp",
+            "src/bsp/device_driver/bcm/bcm2xxx_gpio.cpp",
+            "src/bsp/raspberrypi/qemu_console.cpp",
+        },
+    });
+
+    b.installArtifact(kernel_cpp);
 
     const kernel = b.addExecutable(.{
         .name = "kernel",
@@ -17,9 +49,7 @@ pub fn build(b: *std.Build) void {
         .code_model = .small,
     });
 
-    kernel.addIncludePath(b.path("src/std"));
-    kernel.addCSourceFile(.{ .file = b.path("src/std/printf.c") });
-
+    kernel.linkLibrary(kernel_cpp);
     kernel.setLinkerScript(b.path("src/bsp/raspberrypi/kernel.ld"));
 
     const board = b.option([]const u8, "board", "The board to target.") orelse "bsp_rpi3";
@@ -27,6 +57,8 @@ pub fn build(b: *std.Build) void {
     options.addOption([]const u8, "board", board);
 
     kernel.root_module.addOptions("config", options);
+
+    kernel.defineCMacro("RASPI_BOARD", board);
 
     b.installArtifact(kernel);
 

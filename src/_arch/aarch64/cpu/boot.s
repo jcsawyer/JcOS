@@ -53,7 +53,7 @@ _start:
 	mov	sp, x0
 
 	// Jump to Zig code.
-	b	_start_zig
+	b	_start_cpp
 
 	// Infinitely wait for events (aka "park the core").
 .L_parking_loop:
