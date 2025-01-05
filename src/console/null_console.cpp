@@ -3,12 +3,12 @@
 #include "printf.h"
 
 namespace Console {
-    void Console::flush() {}
-    void Console::clearRx() {}
-    void Console::print(const char* s, ...) {}
-    void Console::printChar(char character) {}
-    void Console::printLine(const char* format, ...) {}
-    char Console::readChar() {
-        return ' ';
+    void NullConsole::flush() {}
+    void NullConsole::clearRx() {}
+    void NullConsole::print(const char* s, ...) {}
+    void NullConsole::printChar(char character) {}
+    void NullConsole::printLine(const char* format, ...) {}
+    char NullConsole::readChar() {
+        return '\0';
     }
 }

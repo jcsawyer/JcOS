@@ -3,7 +3,7 @@
 #include "console.hpp"
 
 namespace Driver {
-    constexpr int NUM_DRIVERS = 5;
+    const int NUM_DRIVERS = 5;
 
     using DeviceDriverPostInitCallback = void (*)();
 
@@ -17,10 +17,10 @@ namespace Driver {
     // DeviceDriverDescriptor class
     class DeviceDriverDescriptor {
     public:
-        DeviceDriverDescriptor() 
-                : driver(), postInitCallback(nullptr) {}
+        DeviceDriverDescriptor(DeviceDriverPostInitCallback callback)
+                : driver(), postInitCallback(callback) {}
 
-        DeviceDriverDescriptor(DeviceDriver* driver, DeviceDriverPostInitCallback callback = nullptr)
+        DeviceDriverDescriptor(DeviceDriver* driver, DeviceDriverPostInitCallback callback)
             : driver(driver), postInitCallback(callback) {}
 
         DeviceDriver* getDriver() {
@@ -48,12 +48,13 @@ namespace Driver {
 
         void init() {
             for (int i = 0; i < nextIndex; ++i) {
-                DeviceDriver* driver = drivers[i].getDriver();
+                DeviceDriverDescriptor descriptor = drivers[i];
+                DeviceDriver* driver = descriptor.getDriver();
                 if (driver) {
                     driver->init();
                 }
 
-                DeviceDriverPostInitCallback callback = drivers[i].getPostInitCallback();
+                DeviceDriverPostInitCallback callback = descriptor.getPostInitCallback();
                 if (callback) {
                     callback();
                 }
@@ -62,10 +63,10 @@ namespace Driver {
 
         void printDrivers() {
             for (int i = 0; i < nextIndex; ++i) {
-            DeviceDriver* driver = drivers[i].getDriver();
+                DeviceDriver* driver = drivers[i].getDriver();
                 if (driver) {
                     const char* compatible = driver->compatible();
-                    Console::console.printLine("Driver %d: %s", i + 1, compatible);
+                    Console::console().printLine("Driver %d: %s", i + 1, compatible);
                 }
             }
         }
@@ -75,6 +76,5 @@ namespace Driver {
         int nextIndex = 0;
     };
 
-    // Global driver manager instance
-    inline static DriverManager driverManager = DriverManager();
+    DriverManager& driverManager();
 }

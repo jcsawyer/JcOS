@@ -80,7 +80,7 @@ const GPIOInner = struct {
 
     pub fn disable_pud_14_15_bcm2711(self: *GPIOInner) void {
         // Disable pull-up/down for GPIO 14 & 15 (raspi4)
-        self.registers.GPIO_PUP_PDN_CNTRL_REG0.* = (@intFromEnum(GPIO_PUP_PDN_CNTRL_REG0.NoResistor) << 30) | (@intFromEnum(GPIO_PUP_PDN_CNTRL_REG0.NoResistor) << 28);
+        self.registers.GPIO_PUP_PDN_CNTRL_REG0.* = (@intFromEnum(GPIO_PUP_PDN_CNTRL_REG0.PullUp) << 30) | (@intFromEnum(GPIO_PUP_PDN_CNTRL_REG0.PullUp) << 28);
     }
 
     pub fn map_pl011_uart(self: *GPIOInner) anyerror!void {

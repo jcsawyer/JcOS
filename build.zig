@@ -16,6 +16,7 @@ pub fn build(b: *std.Build) void {
 
     kernel_cpp.addIncludePath(b.path("src"));
     kernel_cpp.addIncludePath(b.path("src/std"));
+    kernel_cpp.addIncludePath(b.path("src/_arch"));
     kernel_cpp.addIncludePath(b.path("src/bsp"));
     kernel_cpp.addIncludePath(b.path("src/bsp/raspberrypi"));
     kernel_cpp.addIncludePath(b.path("src/console"));
@@ -31,10 +32,15 @@ pub fn build(b: *std.Build) void {
         },
         .files = &.{
             "src/main.cpp",
+            "src/console.cpp",
+            "src/driver.cpp",
             "src/std/printf.c",
             "src/_arch/aarch64/cpu/boot.cpp",
             "src/bsp/device_driver/bcm/bcm2xxx_gpio.cpp",
-            "src/bsp/raspberrypi/qemu_console.cpp",
+            "src/bsp/device_driver/bcm/bcm2xxx_pl011_uart.cpp",
+            //"src/bsp/raspberrypi/qemu_console.cpp",
+            "src/bsp/raspberrypi/raspi_driver.cpp",
+            "src/console/null_console.cpp",
         },
     });
 

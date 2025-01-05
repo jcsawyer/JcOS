@@ -29,8 +29,8 @@
 _start:
 	// Only proceed on the boot core. Park it otherwise.
 	mrs	x0, MPIDR_EL1
-	and	x0, x0, {CONST_CORE_ID_MASK}
-	ldr	x1, BOOT_CORE_ID      // provided by bsp/__board_name__/cpu.rs
+	and	x0, x0, 0b11
+	ldr	x1, 0
 	cmp	x0, x1
 	b.ne	.L_parking_loop
 
