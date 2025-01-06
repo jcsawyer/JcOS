@@ -3,5 +3,5 @@
 namespace CPU {
 void nop();
 void spinForCycles(unsigned int cycles);
-void waitForever();
+[[noreturn]] void waitForever();
 } // namespace CPU

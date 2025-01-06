@@ -1,7 +1,10 @@
-STD_SRCS = ./src/std/printf.cpp ./src/std/minimal_runtime.cpp
+STD_SRCS = ./src/std/printf.cpp ./src/std/minimal_runtime.cpp ./src/std/duration.cpp
 STD_INC = -I ./src/std
 
-AARCH64_SRCS = ./src/_arch/aarch64/cpu/boot.cpp ./src/_arch/aarch64/cpu.cpp
+ARCH_SRCS = ./src/_arch/time.cpp
+ARCH_INC = -I ./src/_arch
+
+AARCH64_SRCS = ./src/_arch/aarch64/cpu/boot.cpp ./src/_arch/aarch64/cpu.cpp ./src/_arch/aarch64/time.cpp
 AARCH64_INC = -I ./src/_arch/aarch64
 
 BSP_SRCS = ./src/bsp/device_driver/bcm/bcm2xxx_gpio.cpp ./src/bsp/device_driver/bcm/bcm2xxx_pl011_uart.cpp ./src/bsp/device_driver/bcm/bcm2xxx_rng.cpp
@@ -16,9 +19,9 @@ CONSOLE_INC = -I ./src/console -I ./src/console/null_console -I ./src/bsp/raspbe
 DRIVER_SRCS = ./src/driver/driver.cpp
 DRIVER_INC = -I ./src/driver
 
-SRCS = ./src/main.cpp $(STD_SRCS) $(AARCH64_SRCS) $(BSP_SRCS) $(CONSOLE_SRCS) $(DRIVER_SRCS) $(RASPI_SRCS)
+SRCS = ./src/main.cpp ./src/time.cpp $(STD_SRCS) $(ARCH_SRCS) $(AARCH64_SRCS) $(BSP_SRCS) $(CONSOLE_SRCS) $(DRIVER_SRCS) $(RASPI_SRCS)
 OBJS = $(SRCS:.cpp=.o)
-INCLUDES = -I ./src $(STD_INC) $(AARCH64_INC) $(BSP_INC) $(CONSOLE_INC) $(DRIVER_INC) $(RASPI_INC)
+INCLUDES = -I ./src $(STD_INC) $(ARCH_INC) $(AARCH64_INC) $(BSP_INC) $(CONSOLE_INC) $(DRIVER_INC) $(RASPI_INC)
 DEFINES = -DBOARD=bsp_rpi3bplus
 CFLAGS = $(DEFINES) -Wall -O0 -g -ffreestanding -nostdinc -nostdlib -nostartfiles -fno-rtti -fno-exceptions -fno-threadsafe-statics -fno-use-cxa-atexit $(INCLUDES)
 
