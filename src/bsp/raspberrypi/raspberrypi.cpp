@@ -46,7 +46,6 @@ void RaspberryPi::init() {
 
 void RaspberryPi::postInitUart() {
   Console::Console::SetInstance(getUartConsole());
-  Console::Console::GetInstance()->printLine("UART initialized");
 }
 
 void RaspberryPi::postInitGpio() { getGPIO()->mapPl011Uart(); }

@@ -1,4 +1,4 @@
-#include "bsp/device_driver/bcm/bcm2xxx_pl011_uart.hpp"
+#include "bsp/raspberrypi.hpp"
 #include "bsp/raspberrypi/raspberrypi.hpp"
 #include "console/console.hpp"
 #include "std/printf.h"
@@ -23,7 +23,7 @@ void kernel_main() {
   Console::Console *console = Console::Console::GetInstance();
   console->print(logo);
   console->printLine("%s version %s", "JcOS", "0.1.0");
-  console->printLine("Booting on Raspeberry Pi 3B+");
+  console->printLine("Booting on: %s", RaspberryPi::boardName());
   console->printLine("Drivers loaded:");
   Driver::driverManager().printDrivers();
   while (true) {
