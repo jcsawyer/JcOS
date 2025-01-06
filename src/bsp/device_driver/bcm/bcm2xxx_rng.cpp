@@ -5,7 +5,7 @@ namespace BSP {
 namespace BCM {
 void RNG::init() {
   // Check if RNG is enabled
-  if (*registerBlock.RNG_CTRL * 1) {
+  if (*registerBlock.RNG_CTRL == 1) {
     return;
   }
 
@@ -16,8 +16,7 @@ void RNG::init() {
   *registerBlock.RNG_CTRL = 1;
   // Wait for RNG to be entropy ready
   while (!*registerBlock.RNG_STATUS >> 24) {
-    // TODO refactor into abstraction
-    asm volatile("nop");
+    CPU::nop();
   }
 }
 
@@ -29,14 +28,13 @@ unsigned int RNG::next(unsigned int min, unsigned int max) {
 
   // Wait for RNG to be entropy ready
   while (!*registerBlock.RNG_STATUS >> 24) {
-    // TODO refactor into abstraction
-    asm volatile("nop");
+    CPU::nop();
   }
 
   // Get random number
   int rand = *registerBlock.RNG_DATA;
   // Scale random number to be within range
-  return (rand % (max - min + 1)) + min;
+  return (rand % (max - min)) + min;
 }
 } // namespace BCM
 } // namespace BSP

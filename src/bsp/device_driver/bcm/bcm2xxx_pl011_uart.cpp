@@ -1,4 +1,5 @@
 #include "bcm2xxx_pl011_uart.hpp"
+#include "../../../_arch/cpu.hpp"
 #include "../../../std/printf.h"
 
 namespace Driver::BSP::BCM {
@@ -84,8 +85,7 @@ char UART::getc() {
   while (*registerBlock.FR & 0x10) {
     // TODO add in blocking mode
     while (!(*registerBlock.FR & 0x10)) {
-      // TODO refactor into abstraction
-      asm volatile("nop");
+      CPU::nop();
     }
   }
 
@@ -105,10 +105,13 @@ void UART::UartConsole::flush() {}
 
 void UART::UartConsole::clearRx() {}
 
-void UART::UartConsole::print(const char *s, ...) {
-  for (int i = 0; s[i] != '\0'; i++) {
-    printChar(s[i]);
-  }
+void UART::UartConsole::print(const char *format, ...) {
+  va_list args;
+  va_start(args, format);
+
+  vprintf_(format, args);
+
+  va_end(args);
 }
 
 void UART::UartConsole::printChar(char character) { uart->putc(character); }

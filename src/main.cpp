@@ -1,7 +1,7 @@
 #include "bsp/raspberrypi.hpp"
 #include "bsp/raspberrypi/raspberrypi.hpp"
 #include "console/console.hpp"
-#include "std/printf.h"
+#include "print.hpp"
 
 extern "C" void _putchar(char c) {
   Console::Console *console = Console::Console::GetInstance();
@@ -22,13 +22,12 @@ const char *logo = R"""(
 void kernel_main() {
   Console::Console *console = Console::Console::GetInstance();
   console->print(logo);
-  console->printLine("%s version %s", "JcOS", "0.1.0");
-  console->printLine("Booting on: %s", RaspberryPi::boardName());
-  console->printLine("Drivers loaded:");
+  info("%s version %s", "JcOS", "0.1.0");
+  info("Booting on: %s", RaspberryPi::boardName());
+  info("Drivers loaded:");
   Driver::driverManager().printDrivers();
-  console->printLine(
-      "Today's random number: %d",
-      Driver::BSP::RaspberryPi::RaspberryPi::getRNG()->next(0, 100));
+  info("Today's random number: %d",
+       Driver::BSP::RaspberryPi::RaspberryPi::getRNG()->next(0, 100));
   while (true) {
     asm volatile("nop");
   }

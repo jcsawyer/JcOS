@@ -1,5 +1,6 @@
 #pragma once
 
+#include "../../../_arch/cpu.hpp"
 #include "../../../driver/driver.hpp"
 #include "../../../std/stdint.h"
 

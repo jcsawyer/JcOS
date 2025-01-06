@@ -20,7 +20,4 @@ protected:
 private:
   static Console *instance;
 };
-
-Console &console();
-void setConsole(Console *newConsole);
 } // namespace Console

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../console/console.hpp"
+#include "../print.hpp"
 #include "../std/cstddef.h"
 
 namespace Driver {
@@ -65,8 +65,7 @@ public:
       DeviceDriver *driver = drivers[i].getDriver();
       if (driver) {
         const char *compatible = driver->compatible();
-        Console::Console::GetInstance()->printLine("\t- %d: %s", i + 1,
-                                                   compatible);
+        info("\t%d: %s", i + 1, compatible);
       }
     }
   }

@@ -1,5 +1,4 @@
 #include "bcm2xxx_gpio.hpp"
-#include "../../../_arch/aarch64/aarch_cpu.hpp"
 
 namespace Driver::BSP::BCM {
 
@@ -14,7 +13,7 @@ void GPIO::disablePud1415Bcm2837() {
   r |= (4 << 12) | (4 << 15); // Set alt0 for GPIO 14, 15
   *registerBlock.GPFSEL1 = r;
   *registerBlock.GPPUD = 0; // Enable pins 14 and 15
-  spinForCycles(150);
+  CPU::spinForCycles(150);
   *registerBlock.GPPUDCLK0 = 0; // Flush GPIO setup
 }
 
