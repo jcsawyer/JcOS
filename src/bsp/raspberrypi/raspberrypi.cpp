@@ -1,4 +1,5 @@
 #include "raspberrypi.hpp"
+#include "../../driver/driver.hpp"
 #include "../../std/cstddef.h"
 #include "memory.hpp"
 
@@ -6,10 +7,10 @@ namespace Driver {
 namespace BSP {
 namespace RaspberryPi {
 
-Driver::BSP::BCM::GPIO *Driver::BSP::RaspberryPi::RaspberryPi::gpio = nullptr;
-Driver::BSP::BCM::UART *Driver::BSP::RaspberryPi::RaspberryPi::uart = nullptr;
-Driver::BSP::BCM::UART::UartConsole
-    *Driver::BSP::RaspberryPi::RaspberryPi::uartConsole = nullptr;
+Driver::BSP::BCM::GPIO *RaspberryPi::gpio = nullptr;
+Driver::BSP::BCM::UART *RaspberryPi::uart = nullptr;
+Driver::BSP::BCM::RNG *RaspberryPi::rng = nullptr;
+Driver::BSP::BCM::UART::UartConsole *RaspberryPi::uartConsole = nullptr;
 
 Driver::BSP::BCM::GPIO *RaspberryPi::getGPIO() {
   if (gpio == nullptr) {
@@ -29,6 +30,14 @@ Driver::BSP::BCM::UART *RaspberryPi::getUART() {
   return uart;
 }
 
+Driver::BSP::BCM::RNG *RaspberryPi::getRNG() {
+  if (rng == nullptr) {
+    static Driver::BSP::BCM::RNG rngInstance(Memory::Map::getMMIO().RNG_START);
+    rng = &rngInstance;
+  }
+  return rng;
+}
+
 Driver::BSP::BCM::UART::UartConsole *RaspberryPi::getUartConsole() {
   if (uartConsole == nullptr) {
     static Driver::BSP::BCM::UART::UartConsole uartConsoleInstance(getUART());
@@ -42,6 +51,8 @@ void RaspberryPi::init() {
       Driver::DeviceDriverDescriptor(getGPIO(), &postInitGpio));
   Driver::driverManager().addDriver(
       Driver::DeviceDriverDescriptor(getUART(), &postInitUart));
+  Driver::driverManager().addDriver(
+      Driver::DeviceDriverDescriptor(getRNG(), &postInitRng));
 }
 
 void RaspberryPi::postInitUart() {
@@ -49,6 +60,8 @@ void RaspberryPi::postInitUart() {
 }
 
 void RaspberryPi::postInitGpio() { getGPIO()->mapPl011Uart(); }
+
+void RaspberryPi::postInitRng() {}
 
 } // namespace RaspberryPi
 } // namespace BSP
