@@ -1,15 +1,15 @@
 #pragma once
 
 #include "../../../console/console.hpp"
+#include "../../../driver/driver.hpp"
 #include "../../../std/stdint.h"
-#include "../../raspberrypi/raspberrypi_driver.hpp"
 
 namespace Driver::BSP::BCM {
 class UART : public Driver::DeviceDriver {
 public:
   UART(uint32_t mmio_start_addr) : registerBlock(mmio_start_addr){};
-  char *compatible();
-  void init();
+  const char *compatible() override { return "BCM PL011 UART"; }
+  void init() override;
   void putc(const char c);
   char getc();
   void flush();

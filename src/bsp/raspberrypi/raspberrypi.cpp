@@ -1,25 +1,56 @@
+#include "raspberrypi.hpp"
+#include "../../std/cstddef.h"
 #include "memory.hpp"
-#include "raspberrypi_driver.hpp"
 
 namespace Driver {
 namespace BSP {
 namespace RaspberryPi {
-static Driver::BSP::BCM::GPIO gpio =
-    Driver::BSP::BCM::GPIO(Memory::Map::getMMIO().GPIO_START);
-static Driver::BSP::BCM::UART uart =
-    Driver::BSP::BCM::UART(Memory::Map::getMMIO().PL011_UART_START);
-static Driver::BSP::BCM::UART::UartConsole uartConsole =
-    Driver::BSP::BCM::UART::UartConsole(&uart);
 
-void postInitUart() { Console::setConsole(&uartConsole); }
-void posrtInitGpio() { gpio.mapPl011Uart(); }
+Driver::BSP::BCM::GPIO *Driver::BSP::RaspberryPi::RaspberryPi::gpio = nullptr;
+Driver::BSP::BCM::UART *Driver::BSP::RaspberryPi::RaspberryPi::uart = nullptr;
+Driver::BSP::BCM::UART::UartConsole
+    *Driver::BSP::RaspberryPi::RaspberryPi::uartConsole = nullptr;
 
-void init() {
-  Driver::driverManager().addDriver(
-      Driver::DeviceDriverDescriptor(&gpio, &posrtInitGpio));
-  Driver::driverManager().addDriver(
-      Driver::DeviceDriverDescriptor(&uart, &postInitUart));
+Driver::BSP::BCM::GPIO *RaspberryPi::getGPIO() {
+  if (gpio == nullptr) {
+    static Driver::BSP::BCM::GPIO gpioInstance(
+        Memory::Map::getMMIO().GPIO_START);
+    gpio = &gpioInstance;
+  }
+  return gpio;
 }
+
+Driver::BSP::BCM::UART *RaspberryPi::getUART() {
+  if (uart == nullptr) {
+    static Driver::BSP::BCM::UART uartInstance(
+        Memory::Map::getMMIO().PL011_UART_START);
+    uart = &uartInstance;
+  }
+  return uart;
+}
+
+Driver::BSP::BCM::UART::UartConsole *RaspberryPi::getUartConsole() {
+  if (uartConsole == nullptr) {
+    static Driver::BSP::BCM::UART::UartConsole uartConsoleInstance(getUART());
+    uartConsole = &uartConsoleInstance;
+  }
+  return uartConsole;
+}
+
+void RaspberryPi::init() {
+  Driver::driverManager().addDriver(
+      Driver::DeviceDriverDescriptor(getGPIO(), &postInitGpio));
+  Driver::driverManager().addDriver(
+      Driver::DeviceDriverDescriptor(getUART(), &postInitUart));
+}
+
+void RaspberryPi::postInitUart() {
+  Console::Console::SetInstance(getUartConsole());
+  Console::Console::GetInstance()->printLine("UART initialized");
+}
+
+void RaspberryPi::postInitGpio() { getGPIO()->mapPl011Uart(); }
+
 } // namespace RaspberryPi
 } // namespace BSP
 } // namespace Driver

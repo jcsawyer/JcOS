@@ -2,7 +2,6 @@
 #include "../../../_arch/aarch64/aarch_cpu.hpp"
 
 namespace Driver::BSP::BCM {
-char *GPIO::compatible() { return "brcm,bcm2xxx-gpio"; }
 
 void GPIO::init() {}
 

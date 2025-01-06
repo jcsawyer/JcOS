@@ -47,8 +47,6 @@ int call(uint8_t ch) {
   }
 }
 
-char *UART::compatible() { return "brcm,bcm2xxx-pl011-uart"; }
-
 void UART::init() {
   flush();
 

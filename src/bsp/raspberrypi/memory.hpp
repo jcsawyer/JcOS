@@ -1,3 +1,5 @@
+#pragma once
+
 namespace Memory {
 struct MMIO {
   unsigned long START;

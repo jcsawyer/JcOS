@@ -1,13 +1,15 @@
 #pragma once
 
+#include "../../../driver/driver.hpp"
 #include "../../../std/stdint.h"
-#include "../../raspberrypi/raspberrypi_driver.hpp"
 
-namespace Driver::BSP::BCM {
+namespace Driver {
+namespace BSP {
+namespace BCM {
 class GPIO : public Driver::DeviceDriver {
 public:
   GPIO(unsigned int mmio_start_addr) : registerBlock(mmio_start_addr){};
-  char *compatible() override;
+  const char *compatible() override { return "BCM GPIO"; }
   void init() override;
   void mapPl011Uart();
 
@@ -33,4 +35,6 @@ private:
   void disablePud1415Bcm2837();
   void disablePud1415Bcm2711();
 };
-} // namespace Driver::BSP::BCM
+} // namespace BCM
+} // namespace BSP
+} // namespace Driver

@@ -1,17 +1,18 @@
 #include "console.hpp"
+#include "../std/cstddef.h"
+#include "null_console/null_console.hpp"
 
 namespace Console {
 
-    static Console* _console;
+Console *Console::instance = nullptr;
 
-    Console& console() {
-        return *_console;
-    }
-
-    void setConsole(Console* newConsole) {
-        if (newConsole != _console) {
-            _console = newConsole;
-        }
-    }
-
+Console *Console::GetInstance() {
+  if (instance == nullptr) {
+    static NullConsole nullConsole;
+    instance = &nullConsole;
+  }
+  return instance;
 }
+
+void Console::SetInstance(Console *newConsole) { instance = newConsole; }
+} // namespace Console
