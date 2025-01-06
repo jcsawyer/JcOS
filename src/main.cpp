@@ -26,6 +26,9 @@ void kernel_main() {
   console->printLine("Booting on: %s", RaspberryPi::boardName());
   console->printLine("Drivers loaded:");
   Driver::driverManager().printDrivers();
+  console->printLine(
+      "Today's random number: %d",
+      Driver::BSP::RaspberryPi::RaspberryPi::getRNG()->next(0, 100));
   while (true) {
     asm volatile("nop");
   }

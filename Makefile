@@ -4,7 +4,7 @@ STD_INC = -I ./src/std
 ARCH_SRCS = ./src/_arch/aarch64/cpu/boot.cpp
 ARCH_INC = -I ./src/_arch/aarch64
 
-BSP_SRCS = ./src/bsp/device_driver/bcm/bcm2xxx_gpio.cpp ./src/bsp/device_driver/bcm/bcm2xxx_pl011_uart.cpp
+BSP_SRCS = ./src/bsp/device_driver/bcm/bcm2xxx_gpio.cpp ./src/bsp/device_driver/bcm/bcm2xxx_pl011_uart.cpp ./src/bsp/device_driver/bcm/bcm2xxx_rng.cpp
 BSP_INC = -I ./src/bsp -I ./src/bsp/device_driver/bcm
 
 RASPI_SRCS = ./src/bsp/raspberrypi/raspberrypi.cpp ./src/bsp/raspberrypi/cpu.cpp
