@@ -7,7 +7,7 @@
 #include "std/duration.hpp"
 #include "time.hpp"
 
-extern "C" void _putchar(char c) {
+extern "C" void putchar_(char c) {
   Console::Console *console = Console::Console::GetInstance();
   console->printChar(c);
 }
@@ -42,7 +42,7 @@ const char *logo = R"""(
   }
 }
 
-void kernel_init() {
+extern "C" void kernel_init() {
   Time::TimeManager::GetInstance()->init();
   Driver::BSP::RaspberryPi::RaspberryPi::init();
   Driver::driverManager().init();

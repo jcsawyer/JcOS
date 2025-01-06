@@ -27,11 +27,29 @@
 // fn _start()
 //------------------------------------------------------------------------------
 _start:
+	mrs	x0, CurrentEL
+	// running at EL3?
+    cmp     x0, #12
+    bne     ._L_EL2
+    // move on down to EL2
+    mov     x2, #0x5b1
+    msr     scr_el3, x2
+    mov     x2, #0x3c9
+    msr     spsr_el3, x2
+    adr     x2, ._L_EL2
+    msr     elr_el3, x2
+    eret
+
+._L_EL2:
+	// Only proceed if the core executes in EL2. Park it otherwise.
+	cmp	x0, 0b1100
+	b.ne	.L_parking_loop
+	b.ne	.L_parking_loop
 	// Only proceed on the boot core. Park it otherwise.
-	mrs	x0, MPIDR_EL1
-	and	x0, x0, 0b11
-	ldr	x1, BOOT_CORE_ID
-	cmp	x0, x1
+	mrs	x1, MPIDR_EL1
+	and	x1, x1, 0b11
+	ldr	x2, BOOT_CORE_ID
+	cmp	x1, x2
 	b.ne	.L_parking_loop
 
 	// If execution reaches here, it is the boot core.

@@ -1,1 +1,1 @@
-void kernel_init();
+extern "C" void kernel_init();

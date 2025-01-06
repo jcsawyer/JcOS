@@ -1,11 +1,13 @@
 #pragma once
 #include "stddef.h"
 
+extern "C" void *memset(void *dest, int value, size_t count);
+
 // Define `operator delete` for your freestanding environment.
-void operator delete(void *ptr, size_t) noexcept {
+inline void operator delete(void *ptr, size_t) noexcept {
   // No-op or custom cleanup logic for your environment.
 }
 
-void operator delete(void *ptr) noexcept {
+inline void operator delete(void *ptr) noexcept {
   // No-op or custom cleanup logic for your environment.
 }

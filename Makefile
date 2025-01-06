@@ -1,4 +1,4 @@
-STD_SRCS = ./src/std/printf.cpp ./src/std/minimal_runtime.cpp ./src/std/duration.cpp
+STD_SRCS = ./src/std/printf.cpp ./src/std/minimal_runtime.cpp ./src/std/duration.cpp ./src/std/memory.cpp
 STD_INC = -I ./src/std
 
 ARCH_SRCS = ./src/_arch/time.cpp
@@ -23,7 +23,7 @@ SRCS = ./src/main.cpp ./src/time.cpp $(STD_SRCS) $(ARCH_SRCS) $(AARCH64_SRCS) $(
 OBJS = $(SRCS:.cpp=.o)
 INCLUDES = -I ./src $(STD_INC) $(ARCH_INC) $(AARCH64_INC) $(BSP_INC) $(CONSOLE_INC) $(DRIVER_INC) $(RASPI_INC)
 DEFINES = -DBOARD=bsp_rpi3bplus
-CFLAGS = $(DEFINES) -Wall -O0 -g -ffreestanding -nostdinc -nostdlib -nostartfiles -fno-rtti -fno-exceptions -fno-threadsafe-statics -fno-use-cxa-atexit $(INCLUDES)
+CFLAGS = $(DEFINES) -Wall -O0 -mgeneral-regs-only -g -ffreestanding -nostdinc -nostdlib -nostartfiles -fno-rtti -fno-exceptions -fno-threadsafe-statics -fno-use-cxa-atexit $(INCLUDES)
 
 all: clean kernel8.img
 start.o: src/_arch/aarch64/cpu/boot.s
