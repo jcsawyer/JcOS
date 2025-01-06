@@ -1,4 +1,8 @@
 .zig-cache/
 zig-out/
 
+*.elf
+*.img
+*.o
+
 .DS_Store
