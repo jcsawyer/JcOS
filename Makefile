@@ -43,4 +43,4 @@ clean:
 	@find ./ -name '*.o' -delete
 
 run:
-	@qemu-system-aarch64 -M raspi3b -kernel kernel8.elf -serial stdio -display none
+	@qemu-system-aarch64 -M raspi3b -kernel bin/kernel8.elf -serial stdio -display none
