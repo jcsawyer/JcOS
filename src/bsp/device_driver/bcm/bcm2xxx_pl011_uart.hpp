@@ -2,7 +2,7 @@
 
 #include "../../../console/console.hpp"
 #include "../../../driver/driver.hpp"
-#include "../../../std/stdint.h"
+#include <stdint.h>
 
 namespace Driver::BSP::BCM {
 class UART : public Driver::DeviceDriver {

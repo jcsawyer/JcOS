@@ -1,8 +1,8 @@
 #pragma once
 
 #include "../print.hpp"
-#include "../std/memory.h"
-#include "../std/stddef.h"
+#include <memory.h>
+#include <stddef.h>
 
 namespace Driver {
 const int NUM_DRIVERS = 5;
@@ -66,7 +66,7 @@ public:
       DeviceDriver *driver = drivers[i].getDriver();
       if (driver) {
         const char *compatible = driver->compatible();
-        info("\t%d: %s", i + 1, compatible);
+        info("      %d: %s", i + 1, compatible);
       }
     }
   }

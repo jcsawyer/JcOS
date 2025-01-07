@@ -1,6 +1,6 @@
 #include "qemu_console.hpp"
-#include "../../../std/memory.h"
-#include "../../../std/stdarg.h"
+#include <memory.h>
+#include <stdarg.h>
 
 extern "C" void vprintf_(const char *format, ...);
 

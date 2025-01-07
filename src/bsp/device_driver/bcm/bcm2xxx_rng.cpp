@@ -4,11 +4,6 @@ namespace Driver {
 namespace BSP {
 namespace BCM {
 void RNG::init() {
-  // Check if RNG is enabled
-  if (*registerBlock.RNG_CTRL == 1) {
-    return;
-  }
-
   *registerBlock.RNG_STATUS = 0x40000;
   // Mask interrupt
   *registerBlock.RNG_INT_MASK |= 1;

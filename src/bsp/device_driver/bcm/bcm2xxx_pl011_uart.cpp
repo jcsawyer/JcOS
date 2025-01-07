@@ -1,6 +1,6 @@
 #include "bcm2xxx_pl011_uart.hpp"
 #include "../../../_arch/cpu.hpp"
-#include "../../../std/printf.h"
+#include <printf.h>
 
 namespace Driver::BSP::BCM {
 volatile uint32_t *MBOX_STATUS =
@@ -82,22 +82,20 @@ void UART::putc(const char c) {
 }
 
 char UART::getc() {
+  // TODO add in blocking mode
   while (*registerBlock.FR & 0x10) {
-    // TODO add in blocking mode
-    while (!(*registerBlock.FR & 0x10)) {
-      CPU::nop();
-    }
+    CPU::nop();
   }
 
   const char c = *registerBlock.DR;
+
   // TODO add characters read/written counts
   return c;
 }
 
 void UART::flush() {
   while (*registerBlock.FR & 0x20) {
-    // TODO refactor into abstraction
-    asm volatile("nop");
+    CPU::nop();
   }
 }
 
@@ -125,5 +123,5 @@ void UART::UartConsole::printLine(const char *format, ...) {
   uart->putc('\n');
   va_end(args);
 }
-char UART::UartConsole::readChar() { return '\0'; }
+char UART::UartConsole::readChar() { uart->getc(); }
 } // namespace Driver::BSP::BCM

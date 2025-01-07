@@ -2,7 +2,7 @@
 
 #include "../../../_arch/cpu.hpp"
 #include "../../../driver/driver.hpp"
-#include "../../../std/stdint.h"
+#include <stdint.h>
 
 namespace Driver {
 namespace BSP {

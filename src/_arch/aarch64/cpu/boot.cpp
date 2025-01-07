@@ -1,6 +1,4 @@
-#include "../../../main.hpp"
-#include "../../../std/stdint.h"
+#include <main.hpp>
+#include <stdint.h>
 
-extern "C" void _start_cpp() {
-    kernel_init();
-}
+extern "C" void _start_cpp() { kernel_init(); }

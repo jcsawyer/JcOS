@@ -1,7 +1,7 @@
 #pragma once
 
 #include "_arch/cpu.hpp"
-#include "print.hpp"
+#include <print.hpp>
 
 static bool already_panicking = false;
 

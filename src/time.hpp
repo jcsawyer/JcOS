@@ -1,8 +1,8 @@
 #pragma once
 
 #include "_arch/time.hpp"
-#include "std/duration.hpp"
-#include "std/stdint.h"
+#include <duration.hpp>
+#include <stdint.h>
 
 namespace Time {
 class TimeManager {

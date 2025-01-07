@@ -40,8 +40,8 @@
 #define PRINTF_H_
 
 #ifdef __cplusplus
-#include "stdarg.h"
-#include "stddef.h"
+#include <stdarg.h>
+#include <stddef.h>
 extern "C" {
 #else
 #include <stdarg.h>

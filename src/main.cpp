@@ -5,10 +5,10 @@
 #include "bsp/raspberrypi.hpp"
 #include "bsp/raspberrypi/raspberrypi.hpp"
 #include "console/console.hpp"
-#include "exception.hpp"
-#include "print.hpp"
-#include "std/duration.hpp"
-#include "time.hpp"
+#include <duration.hpp>
+#include <exception.hpp>
+#include <print.hpp>
+#include <time.hpp>
 
 extern "C" void putchar_(char c) {
   Console::Console *console = Console::Console::GetInstance();
@@ -45,11 +45,13 @@ const char *logo = R"""(
        Driver::BSP::RaspberryPi::RaspberryPi::getRNG()->next(0, 100));
 
   Time::TimeManager *timeManager = Time::TimeManager::GetInstance();
+  info("Timer test, spinning for 1 second...");
+  timeManager->spinFor(Time::Duration::from_secs(1));
 
+  info("Echoing input now");
   while (true) {
-    info("spinning...");
-    timeManager->spinFor(Time::Duration::from_secs(1));
-    asm volatile("nop");
+    const char c = console->readChar();
+    console->printChar(c);
   }
 }
 

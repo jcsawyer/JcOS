@@ -1,6 +1,6 @@
 #include "console.hpp"
-#include "../std/stddef.h"
 #include "null_console/null_console.hpp"
+#include <stddef.h>
 
 namespace Console {
 

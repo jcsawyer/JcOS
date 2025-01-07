@@ -1,4 +1,4 @@
-#include "../../std/stdint.h"
+#include <stdint.h>
 
 extern "C" {
 // Explicitly name the symbol "BOOT_CORE_ID" for use in assembly.
