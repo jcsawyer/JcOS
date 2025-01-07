@@ -1,7 +1,7 @@
 STD_SRCS = ./src/std/printf.cpp ./src/std/minimal_runtime.cpp ./src/std/duration.cpp ./src/std/memory.cpp
 STD_INC = -I ./src/std
 
-ARCH_SRCS = ./src/_arch/time.cpp
+ARCH_SRCS = ./src/_arch/time.cpp ./src/_arch/aarch64/exception/asynchronous.cpp ./src/_arch/aarch64/exception.cpp
 ARCH_INC = -I ./src/_arch
 
 AARCH64_SRCS = ./src/_arch/aarch64/cpu/boot.cpp ./src/_arch/aarch64/cpu.cpp ./src/_arch/aarch64/time.cpp

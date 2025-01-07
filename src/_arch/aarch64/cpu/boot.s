@@ -26,7 +26,7 @@
 //------------------------------------------------------------------------------
 // fn _start()
 //------------------------------------------------------------------------------
-_start:	
+_start:
 	// Only proceed on the boot core. Park it otherwise.
 	mrs	x1, MPIDR_EL1
 	and	x1, x1, 0b11
@@ -40,7 +40,7 @@ _start:
 
     // running at EL3?
     cmp     x0, #12
-    bne     ._L_EL1
+    bne     ._L_EL2
     // should never be executed, just for completeness
     mov     x2, #0x5b1
     msr     scr_el3, x2

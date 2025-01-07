@@ -1,8 +1,11 @@
 #include "main.hpp"
+#include "_arch/aarch64/exception.hpp"
+#include "_arch/aarch64/exception/asynchronous.hpp"
 #include "_arch/time.hpp"
 #include "bsp/raspberrypi.hpp"
 #include "bsp/raspberrypi/raspberrypi.hpp"
 #include "console/console.hpp"
+#include "exception.hpp"
 #include "print.hpp"
 #include "std/duration.hpp"
 #include "time.hpp"
@@ -28,6 +31,14 @@ const char *logo = R"""(
   console->print(logo);
   info("%s version %s", "JcOS", "0.1.0");
   info("Booting on: %s", RaspberryPi::boardName());
+
+  const char *privilegeLevel;
+  Exception::current_privilege_level(&privilegeLevel);
+  info("Current privilege level: %s", privilegeLevel);
+
+  info("Exception handling state:");
+  Exception::print_state();
+
   info("Drivers loaded:");
   Driver::driverManager().printDrivers();
   info("Today's random number: %d",
