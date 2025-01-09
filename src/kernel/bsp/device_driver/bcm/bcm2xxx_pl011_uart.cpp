@@ -123,5 +123,5 @@ void UART::UartConsole::printLine(const char *format, ...) {
   uart->putc('\n');
   va_end(args);
 }
-char UART::UartConsole::readChar() { uart->getc(); }
+char UART::UartConsole::readChar() { return uart->getc(); }
 } // namespace Driver::BSP::BCM

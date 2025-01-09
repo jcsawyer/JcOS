@@ -1,6 +1,7 @@
 #include "main.hpp"
 #include "_arch/aarch64/exception.hpp"
 #include "_arch/aarch64/exception/asynchronous.hpp"
+#include "_arch/aarch64/memory/mmu.hpp"
 #include "_arch/time.hpp"
 #include "bsp/raspberrypi.hpp"
 #include "bsp/raspberrypi/raspberrypi.hpp"
@@ -9,6 +10,9 @@
 #include <exception.hpp>
 #include <print.hpp>
 #include <time.hpp>
+#include "bsp/raspberrypi/memory/mmu.hpp"
+
+#include "_arch/aarch64/memory/mmu.hpp"
 
 extern "C" void putchar_(char c) {
   Console::Console *console = Console::Console::GetInstance();
@@ -28,9 +32,17 @@ const char *logo = R"""(
 
 [[noreturn]] void kernel_main() {
   Console::Console *console = Console::Console::GetInstance();
+
+Memory::kernelTables()->populateTTEntries();
+Memory::virtMemLayout()->printLayout();
+
+
   console->print(logo);
   info("%s version %s", "JcOS", "0.1.0");
   info("Booting on: %s", RaspberryPi::boardName());
+
+  info("MMU online. Special regions:");
+  Memory::virtMemLayout()->printLayout();
 
   const char *privilegeLevel;
   Exception::current_privilege_level(&privilegeLevel);
@@ -56,6 +68,11 @@ const char *logo = R"""(
 }
 
 extern "C" void kernel_init() {
+
+
+  Memory::MemoryManagementUnit* mmu = Memory::MMU();
+  mmu->enableMMUAndCaching();
+
   Time::TimeManager::GetInstance()->init();
   Driver::BSP::RaspberryPi::RaspberryPi::init();
   Driver::driverManager().init();

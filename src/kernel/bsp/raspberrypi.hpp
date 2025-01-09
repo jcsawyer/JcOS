@@ -1,3 +1,4 @@
+// TODO read from board
 #define bsp_rpi3 1
 #define bsp_rpi4 2
 #define bsp_rpi3b 3

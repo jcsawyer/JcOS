@@ -1,7 +1,7 @@
 STD_SRCS = ./src/kernel/std/printf.cpp ./src/kernel/std/minimal_runtime.cpp ./src/kernel/std/duration.cpp ./src/kernel/std/memory.cpp
 STD_INC = -isystem ./src/kernel/std
 
-ARCH_SRCS = ./src/kernel/_arch/time.cpp ./src/kernel/_arch/aarch64/exception/asynchronous.cpp ./src/kernel/_arch/aarch64/exception.cpp
+ARCH_SRCS = ./src/kernel/_arch/time.cpp ./src/kernel/_arch/aarch64/exception/asynchronous.cpp ./src/kernel/_arch/aarch64/exception.cpp ./src/kernel/_arch/aarch64/memory/mmu.cpp
 ARCH_INC = -I ./src/kernel/_arch
 
 AARCH64_SRCS = ./src/kernel/_arch/aarch64/cpu/boot.cpp ./src/kernel/_arch/aarch64/cpu.cpp ./src/kernel/_arch/aarch64/time.cpp
@@ -10,7 +10,7 @@ AARCH64_INC = -I ./src/kernel/_arch/aarch64
 BSP_SRCS = ./src/kernel/bsp/device_driver/bcm/bcm2xxx_gpio.cpp ./src/kernel/bsp/device_driver/bcm/bcm2xxx_pl011_uart.cpp ./src/kernel/bsp/device_driver/bcm/bcm2xxx_rng.cpp
 BSP_INC = -I ./src/kernel/bsp -I ./src/kernel/bsp/device_driver/bcm
 
-RASPI_SRCS = ./src/kernel/bsp/raspberrypi/raspberrypi.cpp ./src/kernel/bsp/raspberrypi/cpu.cpp
+RASPI_SRCS = ./src/kernel/bsp/raspberrypi/raspberrypi.cpp ./src/kernel/bsp/raspberrypi/cpu.cpp ./src/kernel/bsp/raspberrypi/memory/mmu.cpp
 RASPI_INC = -I ./src/kernel/bsp/raspberrypi
 
 CONSOLE_SRCS = ./src/kernel/console/console.cpp ./src/kernel/console/null_console/null_console.cpp ./src/kernel/bsp/raspberrypi/console/qemu_console.cpp
@@ -35,7 +35,7 @@ start.o: ./src/kernel/_arch/aarch64/cpu/boot.s
 	@aarch64-elf-gcc $(CFLAGS) -c -o $@ $<
 
 kernel8.img: start.o $(OBJS)
-	aarch64-elf-ld -nostdlib -g start.o $(OBJS) -T ./src/kernel/bsp/raspberrypi/kernel.ld -o ./bin/kernel8.elf
+	@aarch64-elf-ld -nostdlib -g start.o $(OBJS) -T ./src/kernel/bsp/raspberrypi/kernel.ld -o ./bin/kernel8.elf
 	aarch64-elf-objcopy -O binary ./bin/kernel8.elf ./bin/kernel8.img
 
 clean:
@@ -43,4 +43,4 @@ clean:
 	@find ./ -name '*.o' -delete
 
 run:
-	@qemu-system-aarch64 -M raspi3b -kernel bin/kernel8.elf -serial stdio -display none
+	@qemu-system-aarch64 -M raspi3b -kernel bin/kernel8.elf -serial stdio -display none -d in_asm
