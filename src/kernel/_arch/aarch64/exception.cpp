@@ -7,7 +7,8 @@ namespace Exception {
 // default exception handler
 extern "C" void defaultExceptionHandler(ExceptionContext *context) {
   // TODO format CPU exception message
-  panic("CPU Exception");
+  context->print();
+  panic("HALTING");
 }
 
 // Current, EL0
@@ -25,6 +26,18 @@ extern "C" void current_el0_serror(ExceptionContext *context) {
 
 // Current, ELx
 extern "C" void current_elx_synchronous(ExceptionContext *context) {
+  if (context->fault_address_valid()) {
+    // get the value of FAR_EL1
+    uint64_t far = 0;
+    asm volatile("mrs %0, far_el1" : "=r"(far));
+
+    if (far == 8ULL * 1024ULL * 1024ULL * 1024ULL) {
+
+      context->elr_el1 += 4;
+      return;
+    }
+  }
+
   defaultExceptionHandler(context);
 }
 
@@ -64,11 +77,10 @@ extern "C" void lower_aarch32_serror(ExceptionContext *context) {
 
 void handlingInit() {
 
-  // uint64_t vectorStart =
-  // reinterpret_cast<uint64_t>(&__exception_vector_start); asm volatile("msr
-  // vbar_el1, %0" : : "r"(&vectorStart));
+  uint64_t vector_base = (uint64_t)(&__exception_vector_start);
 
-  // Force VBAR to update to complete before next instruction
-  asm volatile("isb sy" ::: "memory");
+  // Write to VBAR_EL1 so the CPU uses that address for exception vectors.
+  asm volatile("msr VBAR_EL1, %0" : : "r"(vector_base));
+  asm volatile("isb"); // Force completion before next instruction
 } // namespace Exception
 } // namespace Exception

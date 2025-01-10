@@ -54,6 +54,32 @@ const char *logo = R"""(
   info("Timer test, spinning for 1 second...");
   timeManager->spinFor(Time::Duration::from_secs(1));
 
+  // Get the value of the CurrentEL register
+  const char *el_string;
+  Exception::CurrentEL::current_privilege_level(&el_string);
+  info("Current exception level: %s", el_string);
+
+  // Get the value of VBAR_EL1
+  uint64_t vbar_el1 = 0;
+  asm volatile("mrs %0, vbar_el1" : "=r"(vbar_el1));
+
+  info("Trying to read from address 8 GiB...");
+
+  unsigned long long big_addr = 8ULL * 1024ULL * 1024ULL * 1024ULL;
+  volatile unsigned long long *ptr =
+      reinterpret_cast<volatile unsigned long long *>(big_addr);
+  unsigned long long value = *ptr;
+
+  info("************************************************");
+  info("Whoa! We recovered from a synchronous exception!");
+  info("************************************************");
+  info("");
+
+  info("Let's try again");
+  big_addr = 9ULL * 1024ULL * 1024ULL * 1024ULL;
+  ptr = reinterpret_cast<volatile unsigned long long *>(big_addr);
+  value = *ptr;
+
   info("Echoing input now");
   while (true) {
     const char c = console->readChar();
@@ -62,18 +88,13 @@ const char *logo = R"""(
 }
 
 extern "C" void kernel_init() {
+  Memory::MemoryManagementUnit *mmu = Memory::MMU();
+  Exception::handlingInit();
+  mmu->enableMMUAndCaching();
+
   Time::TimeManager::GetInstance()->init();
   Driver::BSP::RaspberryPi::RaspberryPi::init();
   Driver::driverManager().init();
 
-  Memory::MemoryManagementUnit *mmu = Memory::MMU();
-  mmu->enableMMUAndCaching();
-
-  // Exception::handlingInit();
-
-  // uint64_t test = Exception::SpsrEL1().get();
-  // Memory::InMemoryRegister<Exception::SpsrEL1> spsr;
-  // uint64_t test = spsr.get();
-  // info("SpsrEL1: 0x%X", test);
   kernel_main();
 }

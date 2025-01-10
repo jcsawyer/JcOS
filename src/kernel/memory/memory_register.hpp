@@ -7,5 +7,7 @@ public:
   static constexpr uint64_t get() { return TRegister::get(); }
 
   static constexpr void set(uint64_t value) { TRegister::write(value); }
+
+  static constexpr void print() { TRegister::print(); }
 };
 } // namespace Memory
