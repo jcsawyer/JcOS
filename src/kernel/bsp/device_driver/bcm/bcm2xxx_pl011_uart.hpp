@@ -7,7 +7,7 @@
 namespace Driver::BSP::BCM {
 class UART : public Driver::DeviceDriver {
 public:
-  UART(uint32_t mmio_start_addr) : registerBlock(mmio_start_addr){};
+  UART(uint32_t mmio_start_addr) : registerBlock(mmio_start_addr) {};
   const char *compatible() override { return "BCM PL011 UART"; }
   void init() override;
   void putc(const char c);
@@ -15,7 +15,7 @@ public:
   void flush();
   class UartConsole : public Console::Console {
   public:
-    UartConsole(UART *uart) : uart(uart){};
+    UartConsole(UART *uart) : uart(uart) {};
     void flush();
     void clearRx();
     void print(const char *s, ...);

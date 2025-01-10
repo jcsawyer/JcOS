@@ -1,12 +1,13 @@
 #pragma once
 
+#include "_arch/cpu.hpp"
 #include "console/console.hpp"
 #include <print.hpp>
-#include "_arch/cpu.hpp"
 
 static bool already_panicking = false;
 
-template <class... Args> inline void panicPrint(const char *format, const char* message, Args... args) {
+template <class... Args>
+inline void panicPrint(const char *format, const char *message, Args... args) {
   Console::Console *console = Console::Console::GetInstance();
   Time::TimeManager *timeManager = Time::TimeManager::GetInstance();
 
@@ -17,7 +18,8 @@ template <class... Args> inline void panicPrint(const char *format, const char* 
   console->print("\n");
 }
 
-template <class... Args> [[noreturn]] inline void panic(const char* message, Args... args) {
+template <class... Args>
+[[noreturn]] inline constexpr void panic(const char *message, Args... args) {
   if (already_panicking) {
     warn("\n\tPANIC in PANIC\n");
     CPU::waitForever();

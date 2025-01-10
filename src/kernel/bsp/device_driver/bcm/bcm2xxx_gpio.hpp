@@ -9,7 +9,7 @@ namespace BSP {
 namespace BCM {
 class GPIO : public Driver::DeviceDriver {
 public:
-  GPIO(unsigned int mmio_start_addr) : registerBlock(mmio_start_addr){};
+  GPIO(unsigned int mmio_start_addr) : registerBlock(mmio_start_addr) {};
   const char *compatible() override { return "BCM GPIO"; }
   void init() override;
   void mapPl011Uart();

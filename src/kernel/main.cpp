@@ -4,16 +4,15 @@
 #include "_arch/aarch64/memory/mmu.hpp"
 #include "_arch/time.hpp"
 #include "bsp/raspberrypi.hpp"
+#include "bsp/raspberrypi/memory/mmu.hpp"
 #include "bsp/raspberrypi/raspberrypi.hpp"
 #include "console/console.hpp"
 #include <duration.hpp>
 #include <exception.hpp>
 #include <print.hpp>
 #include <time.hpp>
-#include "bsp/raspberrypi/memory/mmu.hpp"
 
-extern "C" void putchar_(char c)
-{
+extern "C" void putchar_(char c) {
   Console::Console *console = Console::Console::GetInstance();
   console->printChar(c);
 }
@@ -29,8 +28,7 @@ const char *logo = R"""(
 
 )""";
 
-[[noreturn]] void kernel_main()
-{
+[[noreturn]] void kernel_main() {
   Console::Console *console = Console::Console::GetInstance();
 
   console->print(logo);
@@ -57,24 +55,21 @@ const char *logo = R"""(
   timeManager->spinFor(Time::Duration::from_secs(1));
 
   info("Echoing input now");
-  while (true)
-  {
+  while (true) {
     const char c = console->readChar();
     console->printChar(c);
   }
 }
 
-extern "C" void kernel_init()
-{
+extern "C" void kernel_init() {
   Time::TimeManager::GetInstance()->init();
   Driver::BSP::RaspberryPi::RaspberryPi::init();
   Driver::driverManager().init();
 
-  Memory::MemoryManagementUnit* mmu = Memory::MMU();
+  Memory::MemoryManagementUnit *mmu = Memory::MMU();
   mmu->enableMMUAndCaching();
 
-  //Exception::handlingInit();
-  
+  // Exception::handlingInit();
 
   // uint64_t test = Exception::SpsrEL1().get();
   // Memory::InMemoryRegister<Exception::SpsrEL1> spsr;

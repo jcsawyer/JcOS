@@ -5,29 +5,26 @@
 #include <stddef.h>
 #include <stdint.h>
 
-namespace Memory
-{
-  // Memory Management Unit type
-  class MemoryManagementUnit
-  {
-  public:
-    void setUpMAIR();
-    void configureTranslationControl();
+namespace Memory {
+// Memory Management Unit type
+class MemoryManagementUnit {
+public:
+  void setUpMAIR();
+  void configureTranslationControl();
 
-    bool isEnabled() const;
+  bool isEnabled() const;
 
-    void enableMMUAndCaching();
+  void enableMMUAndCaching();
 
-    enum MAIR : uint64_t
-    {
-      DEVICE = 0,
-      NORMAL = 1,
-    };
+  enum MAIR : uint64_t {
+    DEVICE = 0,
+    NORMAL = 1,
   };
+};
 
-  // TODO : Move back into mmu.cpp
-  KernelTranslationTable* kernelTables();
+// TODO : Move back into mmu.cpp
+KernelTranslationTable *kernelTables();
 
-  MemoryManagementUnit *MMU();
+MemoryManagementUnit *MMU();
 
 } // namespace Memory

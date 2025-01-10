@@ -9,7 +9,7 @@ namespace BSP {
 namespace BCM {
 class RNG : public Driver::DeviceDriver {
 public:
-  RNG(unsigned int mmio_start_addr) : registerBlock(mmio_start_addr){};
+  RNG(unsigned int mmio_start_addr) : registerBlock(mmio_start_addr) {};
   const char *compatible() override { return "BCM RNG"; }
   void init() override;
   unsigned int next(unsigned int min, unsigned int max);
