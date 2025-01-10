@@ -3,75 +3,37 @@
 #include <printf.h>
 
 namespace Driver::BSP::BCM {
-volatile uint32_t *MBOX_STATUS =
-    reinterpret_cast<volatile uint32_t *>(0x3F00B898);
-volatile uint32_t *MBOX_WRITE =
-    reinterpret_cast<volatile uint32_t *>(0x3F00B8A0);
-volatile uint32_t *MBOX_READ =
-    reinterpret_cast<volatile uint32_t *>(0x3F00B880);
-
-const uint32_t MBOX_FULL = 0x80000000;
-const uint32_t MBOX_EMPTY = 0x40000000;
-const uint32_t MBOX_RESPONSE = 0x80000000;
-
-alignas(16) uint32_t mbox[36];
-
-int call(uint8_t ch) {
-  const uint32_t mask = 0x0F;
-  uintptr_t ptr = reinterpret_cast<uint64_t>(&mbox);
-  uintptr_t r = (ptr & ~mask) | (ch & 0xF);
-
-  // Wait until we can write to the mailbox
-  while ((*MBOX_STATUS & MBOX_FULL) != 0) {
-    asm volatile("nop");
-  }
-
-  // Write the address of our message to the mailbox with channel identifier
-  *MBOX_WRITE = static_cast<uint32_t>(r);
-
-  // Wait for the response
-  while (true) {
-    // Is there a response?
-    while ((*MBOX_STATUS & MBOX_EMPTY) != 0) {
-      asm volatile("nop");
-    }
-
-    // Is it a response to our message?
-    if (r == *MBOX_READ) {
-      // Is it a valid successful response?
-      if (mbox[1] == MBOX_RESPONSE) {
-        return 1;
-      } else {
-        return 0;
-      }
-    }
-  }
-}
-
+/// Set up baud rate and characteristics.
+///
+/// This results in 8N1 and 921_600 baud.
+///
+/// The calculation for the BRD is (we set the clock to 48 MHz in config.txt):
+/// `(48_000_000 / 16) / 921_600 = 3.2552083`.
+///
+/// This means the integer part is `3` and goes into the `IBRD`.
+/// The fractional part is `0.2552083`.
+///
+/// `FBRD` calculation according to the PL011 Technical Reference Manual:
+/// `INTEGER((0.2552083 * 64) + 0.5) = 16`.
+///
+/// Therefore, the generated baud rate divider is: `3 + 16/64 = 3.25`. Which
+/// results in a genrated baud rate of `48_000_000 / (16 * 3.25) = 923_077`.
+///
+/// Error = `((923_077 - 921_600) / 921_600) * 100 = 0.16%`.
 void UART::init() {
   flush();
 
-  // Disable UART0
+  // // Disable UART0
   *registerBlock.CR = 0;
 
-  // Set up clock for consistent divisor values
-  mbox[0] = 9 * 4;
-  mbox[1] = 0;
-  mbox[2] = 0x38002;
-  mbox[3] = 12;
-  mbox[4] = 8;
-  mbox[5] = 2;       // UART clock
-  mbox[6] = 4000000; // 4 MHz
-  mbox[7] = 0;       // Clear turbo
-  mbox[8] = 0;
-  call(8);
+  *registerBlock.ICR = 0b00000000000;
 
-  // UART configuration
-  *registerBlock.ICR = 0x7FF; // Clear pending interrupts
-  *registerBlock.IBRD = 2;    // 115200 baud
-  *registerBlock.FBRD = 0xB;
-  *registerBlock.LCRH = 0x70; // 8n1, FIFO enabled
-  *registerBlock.CR = 0x301;  // Enable UART0, Tx, Rx
+  *registerBlock.IBRD = 3;
+  *registerBlock.FBRD = 16;
+
+  *registerBlock.LCRH = 1 << 4 | 0b11 << 5;
+
+  *registerBlock.CR = 1 << 0 | 1 << 8 | 1 << 9;
 }
 
 void UART::putc(const char c) {

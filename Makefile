@@ -25,7 +25,7 @@ INCLUDES = -isystem ./src/kernel $(STD_INC) $(ARCH_INC) $(AARCH64_INC) $(BSP_INC
 DEFINES = -DBOARD=bsp_rpi3bplus
 CFLAGS = $(DEFINES) -Wall -O0 -mgeneral-regs-only -g -ffreestanding -nostdinc -nostdlib -nostartfiles -fno-rtti -fno-exceptions -fno-threadsafe-statics -fno-use-cxa-atexit $(INCLUDES)
 
-all: clean kernel8.img
+all: clean kernel8.img run
 start.o: ./src/kernel/_arch/aarch64/cpu/boot.s
 	@echo "  AS     $@"
 	@aarch64-elf-gcc $(CFLAGS) -c ./src/kernel/_arch/aarch64/cpu/boot.s -o start.o
