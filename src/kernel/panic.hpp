@@ -1,5 +1,7 @@
 #pragma once
 
+#include "console/console.hpp"
+#include <print.hpp>
 #include "_arch/cpu.hpp"
 
 static bool already_panicking = false;

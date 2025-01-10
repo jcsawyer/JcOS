@@ -30,7 +30,7 @@ inline const char* size_human_readable_ceil(size_t s) {
     }
 
 
-    char *output = "            ";
+    char* output;
     snprintf_(output, 10, "%d %s", size, unit);
     return output;
 }

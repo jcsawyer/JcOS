@@ -35,13 +35,13 @@ namespace Memory
     static const uint64_t MEM_ATTR_OFFSET = 2; // Offset for memAttributes
     static const uint64_t ACCESS_PERM_OFFSET = 4; // Offset for accessPermissions
     static const uint64_t EXECUTE_NEVER_OFFSET = 6; // Offset for executeNever
-
+    
     static AttributeFields Default() {
         return {CacheableDRAM, ReadWrite, true};
     }
 
     // User-defined conversion to uint64_t
-    operator uint64_t() const {
+    constexpr operator uint64_t() const {
         uint64_t result = 0;
         result |= (static_cast<uint64_t>(memAttributes) << MEM_ATTR_OFFSET);
         result |= (static_cast<uint64_t>(accessPermissions) << ACCESS_PERM_OFFSET);
@@ -137,16 +137,12 @@ namespace Memory
         if (virtAddr >= inner[i].virtualRangeStart &&
             virtAddr <= inner[i].virtualRangeEnd)
         {
-
           outputAddr = (inner[i].physicalRangeTranslation.isIdentity())
                            ? virtAddr
                            : inner[i].physicalRangeTranslation.offset() + virtAddr -
                                  inner[i].virtualRangeStart;
-          if (virtAddr != outputAddr)
-          {
-            info("virtAddress: 0x%X, physAddress: 0x%X (0x%X-0x%X)", virtAddr, outputAddr, inner[i].virtualRangeStart, inner[i].virtualRangeEnd);
-          }
           attributes = inner[i].attributeFields;
+          //info("virtAddr: 0x%010x, outputAddr: 0x%010x, attributes: 0x%05x", virtAddr, outputAddr, attributes);
           return 0; // Success.
         }
       }

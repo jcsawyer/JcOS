@@ -30,12 +30,16 @@ start.o: ./src/kernel/_arch/aarch64/cpu/boot.s
 	@echo "  AS     $@"
 	@aarch64-elf-gcc $(CFLAGS) -c ./src/kernel/_arch/aarch64/cpu/boot.s -o start.o
 
+#exception.o: ./src/kernel/_arch/aarch64/exception.s
+#	@echo "  AS     $@"
+#	@aarch64-elf-gcc $(CFLAGS) -c ./src/kernel/_arch/aarch64/exception.s -o exception.o
+
 %.o: %.cpp
 	@echo "  CC     $@"
 	@aarch64-elf-gcc $(CFLAGS) -c -o $@ $<
 
 kernel8.img: start.o $(OBJS)
-	@aarch64-elf-ld -nostdlib -g start.o $(OBJS) -T ./src/kernel/bsp/raspberrypi/kernel.ld -o ./bin/kernel8.elf
+	@aarch64-elf-ld -nostdlib -g  start.o $(OBJS) -T ./src/kernel/bsp/raspberrypi/kernel.ld -o ./bin/kernel8.elf
 	aarch64-elf-objcopy -O binary ./bin/kernel8.elf ./bin/kernel8.img
 
 clean:
@@ -43,4 +47,4 @@ clean:
 	@find ./ -name '*.o' -delete
 
 run:
-	@qemu-system-aarch64 -M raspi3b -kernel bin/kernel8.elf -serial stdio -display none -d in_asm
+	@qemu-system-aarch64 -M raspi3b -kernel bin/kernel8.elf -serial stdio -display none

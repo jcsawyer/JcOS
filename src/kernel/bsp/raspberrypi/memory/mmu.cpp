@@ -33,10 +33,16 @@ namespace Memory
 
         return descriptors;
     }
+    
+    static KernelVirtualLayout<NUM_MEM_RANGES> *kernelVirtualLayout = nullptr;
 
     KernelVirtualLayout<NUM_MEM_RANGES> *virtMemLayout()
     {
-        static KernelVirtualLayout<NUM_MEM_RANGES> kernelVirtualLayout = KernelVirtualLayout<NUM_MEM_RANGES>(Memory::Map::END_INCLUSIVE, getDescriptors());
-        return &kernelVirtualLayout;
+        if (kernelVirtualLayout == nullptr) {
+            static KernelVirtualLayout kvl = KernelVirtualLayout<NUM_MEM_RANGES>(Memory::Map::END_INCLUSIVE, getDescriptors());
+            kernelVirtualLayout = &kvl;
+        }
+         
+        return kernelVirtualLayout;
     }
 } // namespace Memory
