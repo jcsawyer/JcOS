@@ -1,6 +1,5 @@
 #include "arch/aarch64/exception/asynchronous.hpp"
 #include "arch/aarch64/memory/mmu.hpp"
-#include <arch/aarch64/exception.hpp>
 #include <bsp/raspberrypi.hpp>
 #include <bsp/raspberrypi/memory/mmu.hpp>
 #include <bsp/raspberrypi/raspberrypi.hpp>
@@ -37,7 +36,7 @@ auto logo = R"""(
   Memory::virtMemLayout()->printLayout();
 
   const char *privilegeLevel;
-  Exception::CurrentEL::current_privilege_level(&privilegeLevel);
+  Exception::current_privilege_level(&privilegeLevel);
   info("Current privilege level: %s", privilegeLevel);
 
   info("Exception handling state:");
@@ -54,7 +53,7 @@ auto logo = R"""(
 
   // Get the value of the CurrentEL register
   const char *el_string;
-  Exception::CurrentEL::current_privilege_level(&el_string);
+  Exception::current_privilege_level(&el_string);
   info("Current exception level: %s", el_string);
 
   info("Echoing input now");

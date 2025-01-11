@@ -62,7 +62,7 @@ INCLUDES	:= $(KERNEL_INC) $(LIBC_INC)
 DEFINES		:= -DBOARD=$(BOARD)
 CFLAGS		:= -Wall -O0 -mgeneral-regs-only -g -ffreestanding -nostdinc -nostdlib -nostartfiles -fno-rtti -fno-exceptions -fno-threadsafe-statics -fno-use-cxa-atexit
 
-all: check-args kernel8.img run
+all: check-args clean format kernel8.img run
 $(ASM_OBJ_DIR)/%.o: %.s
 	@echo "  AS\t$<\t\t->\t$@"
 	@mkdir -p $(@D)

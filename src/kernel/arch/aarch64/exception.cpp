@@ -69,6 +69,24 @@ extern "C" void lower_aarch32_serror(ExceptionContext *context) {
   defaultExceptionHandler(context);
 }
 
+PrivilegeLevel current_privilege_level(const char **el_string) {
+  CurrentEL::Value el = CurrentEL::CurrentExLevel::get();
+  switch (el) {
+  case CurrentEL::EL2:
+    *el_string = "EL2";
+    return PrivilegeLevel::Hypervisor;
+  case CurrentEL::EL1:
+    *el_string = "EL1";
+    return PrivilegeLevel::Kernel;
+  case CurrentEL::EL0:
+    *el_string = "EL0";
+    return PrivilegeLevel::User;
+  default:
+    *el_string = "Unknown";
+    return PrivilegeLevel::Unknown;
+  }
+}
+
 void handlingInit() {
 
   uint64_t vector_base = reinterpret_cast<uint64_t>(&__exception_vector_start);
