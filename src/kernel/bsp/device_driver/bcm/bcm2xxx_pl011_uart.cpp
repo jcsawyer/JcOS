@@ -74,7 +74,9 @@ void UART::UartConsole::print(const char *format, ...) {
   va_end(args);
 }
 
-void UART::UartConsole::printChar(const char character) { uart->putc(character); }
+void UART::UartConsole::printChar(const char character) {
+  uart->putc(character);
+}
 
 void UART::UartConsole::printLine(const char *format, ...) {
   va_list args;

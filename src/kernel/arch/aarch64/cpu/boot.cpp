@@ -23,7 +23,7 @@ void prepare_el2_to_el1_transition(
                         0b1 << 8 | // Mask A (SError)
                         0b1 << 7 | // Mask I (IRQ)
                         0b1 << 6 | // Mask F (FIQ)
-                        0b0101;      // M::EL1h
+                        0b0101;    // M::EL1h
   asm volatile("msr SPSR_EL2, %[value]" : : [value] "r"(spsr_value));
 
   // Set the link register to point to kernel_init

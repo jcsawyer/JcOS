@@ -400,7 +400,7 @@ static output_gadget_t discarding_gadget(void) {
 static output_gadget_t buffer_gadget(char *buffer, const size_t buffer_size) {
   const printf_size_t usable_buffer_size =
       buffer_size > PRINTF_MAX_POSSIBLE_BUFFER_SIZE
-        ? PRINTF_MAX_POSSIBLE_BUFFER_SIZE
+          ? PRINTF_MAX_POSSIBLE_BUFFER_SIZE
           : static_cast<printf_size_t>(buffer_size);
   output_gadget_t result = discarding_gadget();
   if (buffer != NULL) {
@@ -553,7 +553,8 @@ static void print_integer_finalization(output_gadget_t *output, char *buf,
 // An internal itoa-like function
 static void print_integer(output_gadget_t *output,
                           printf_unsigned_value_t value, const bool negative,
-                          const numeric_base_t base, const printf_size_t precision,
+                          const numeric_base_t base,
+                          const printf_size_t precision,
                           const printf_size_t width, printf_flags_t flags) {
   char buf[PRINTF_INTEGER_BUFFER_SIZE];
   printf_size_t len = 0U;
@@ -573,10 +574,9 @@ static void print_integer(output_gadget_t *output,
   } else {
     do {
       const char digit = static_cast<char>(value % base);
-      buf[len++] = static_cast<char>(digit < 10
-                                       ? '0' + digit
-                                       : (flags & FLAGS_UPPERCASE ? 'A' : 'a') +
-                                         digit - 10);
+      buf[len++] = static_cast<char>(
+          digit < 10 ? '0' + digit
+                     : (flags & FLAGS_UPPERCASE ? 'A' : 'a') + digit - 10);
       value /= base;
     } while (value && len < PRINTF_INTEGER_BUFFER_SIZE);
   }
@@ -1195,8 +1195,8 @@ static printf_flags_t parse_flags(const char **format) {
   } while (true);
 }
 
-static void format_string_loop(output_gadget_t *output,
-                               const char *format, const va_list args) {
+static void format_string_loop(output_gadget_t *output, const char *format,
+                               const va_list args) {
 #if PRINTF_CHECK_FOR_NUL_IN_FORMAT_SPECIFIER
 #define ADVANCE_IN_FORMAT_STRING(cptr_)                                        \
   do {                                                                         \
@@ -1246,7 +1246,8 @@ static void format_string_loop(output_gadget_t *output,
         precision = atou_(&format);
       } else if (*format == '*') {
         const int precision_ = va_arg(args, int);
-        precision = precision_ > 0 ? static_cast<printf_size_t>(precision_) : 0U;
+        precision =
+            precision_ > 0 ? static_cast<printf_size_t>(precision_) : 0U;
         ADVANCE_IN_FORMAT_STRING(format);
       }
     }
@@ -1312,18 +1313,17 @@ static void format_string_loop(output_gadget_t *output,
     case 't':
       flags |= sizeof(ptrdiff_t) <= sizeof(int)    ? FLAGS_INT
                : sizeof(ptrdiff_t) == sizeof(long) ? FLAGS_LONG
-                                                     : FLAGS_LONG_LONG;
+                                                   : FLAGS_LONG_LONG;
       ADVANCE_IN_FORMAT_STRING(format);
       break;
     case 'j':
-      flags |=
-          sizeof(intmax_t) == sizeof(long) ? FLAGS_LONG : FLAGS_LONG_LONG;
+      flags |= sizeof(intmax_t) == sizeof(long) ? FLAGS_LONG : FLAGS_LONG_LONG;
       ADVANCE_IN_FORMAT_STRING(format);
       break;
     case 'z':
       flags |= sizeof(size_t) <= sizeof(int)    ? FLAGS_INT
                : sizeof(size_t) == sizeof(long) ? FLAGS_LONG
-                                                  : FLAGS_LONG_LONG;
+                                                : FLAGS_LONG_LONG;
       ADVANCE_IN_FORMAT_STRING(format);
       break;
     default:
@@ -1387,9 +1387,9 @@ static void format_string_loop(output_gadget_t *output,
           // come in after promotion, as int's (or unsigned for the case of
           // short unsigned when it has the same size as int)
           const int value =
-              flags & FLAGS_CHAR    ? static_cast<signed char>(va_arg(args, int))
+              flags & FLAGS_CHAR ? static_cast<signed char>(va_arg(args, int))
               : flags & FLAGS_SHORT ? static_cast<short int>(va_arg(args, int))
-                                      : va_arg(args, int);
+                                    : va_arg(args, int);
           print_integer(output, ABS_FOR_PRINTING(value), value < 0, base,
                         precision, width, flags);
         }
@@ -1400,22 +1400,20 @@ static void format_string_loop(output_gadget_t *output,
 
         if (flags & FLAGS_LONG_LONG) {
 #if PRINTF_SUPPORT_LONG_LONG
-          print_integer(
-              output, va_arg(args, unsigned long long),
-              false, base, precision, width, flags);
+          print_integer(output, va_arg(args, unsigned long long), false, base,
+                        precision, width, flags);
 #endif
         } else if (flags & FLAGS_LONG) {
-          print_integer(output,
-                        va_arg(args, unsigned long),
-                        false, base, precision, width, flags);
+          print_integer(output, va_arg(args, unsigned long), false, base,
+                        precision, width, flags);
         } else {
           const unsigned int value =
-              flags & FLAGS_CHAR ? static_cast<unsigned char>(va_arg(args, unsigned int))
+              flags & FLAGS_CHAR
+                  ? static_cast<unsigned char>(va_arg(args, unsigned int))
               : flags & FLAGS_SHORT
                   ? static_cast<unsigned short int>(va_arg(args, unsigned int))
                   : va_arg(args, unsigned int);
-          print_integer(output, value, false, base,
-                        precision, width, flags);
+          print_integer(output, value, false, base, precision, width, flags);
         }
       }
       break;
@@ -1478,8 +1476,8 @@ static void format_string_loop(output_gadget_t *output,
       const uintptr_t value = reinterpret_cast<uintptr_t>(va_arg(args, void *));
       value == static_cast<uintptr_t>(NULL)
           ? out_rev_(output, ")lin(", 5, width, flags)
-          : print_integer(output, value, false,
-                          BASE_HEX, precision, width, flags);
+          : print_integer(output, value, false, BASE_HEX, precision, width,
+                          flags);
       format++;
       break;
     }

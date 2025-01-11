@@ -13,8 +13,7 @@ BCM::UART::UartConsole *RaspberryPi::uartConsole = nullptr;
 
 BCM::GPIO *RaspberryPi::getGPIO() {
   if (gpio == nullptr) {
-    static BCM::GPIO gpioInstance(
-        Memory::Map::getMMIO().GPIO_START);
+    static BCM::GPIO gpioInstance(Memory::Map::getMMIO().GPIO_START);
     gpio = &gpioInstance;
   }
   return gpio;
@@ -22,8 +21,7 @@ BCM::GPIO *RaspberryPi::getGPIO() {
 
 BCM::UART *RaspberryPi::getUART() {
   if (uart == nullptr) {
-    static BCM::UART uartInstance(
-        Memory::Map::getMMIO().PL011_UART_START);
+    static BCM::UART uartInstance(Memory::Map::getMMIO().PL011_UART_START);
     uart = &uartInstance;
   }
   return uart;
@@ -46,12 +44,9 @@ BCM::UART::UartConsole *RaspberryPi::getUartConsole() {
 }
 
 void RaspberryPi::init() {
-  driverManager().addDriver(
-      DeviceDriverDescriptor(getGPIO(), &postInitGpio));
-  driverManager().addDriver(
-      DeviceDriverDescriptor(getUART(), &postInitUart));
-  driverManager().addDriver(
-      DeviceDriverDescriptor(getRNG(), &postInitRng));
+  driverManager().addDriver(DeviceDriverDescriptor(getGPIO(), &postInitGpio));
+  driverManager().addDriver(DeviceDriverDescriptor(getUART(), &postInitUart));
+  driverManager().addDriver(DeviceDriverDescriptor(getRNG(), &postInitRng));
 }
 
 void RaspberryPi::postInitUart() {

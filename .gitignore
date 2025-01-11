@@ -4,6 +4,7 @@ zig-out/
 *.elf
 *.img
 *.o
+*.d
 
 .DS_Store
 

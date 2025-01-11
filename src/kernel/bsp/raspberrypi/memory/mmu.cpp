@@ -36,8 +36,8 @@ static KernelVirtualLayout<NUM_MEM_RANGES> *kernelVirtualLayout = nullptr;
 
 KernelVirtualLayout<NUM_MEM_RANGES> *virtMemLayout() {
   if (kernelVirtualLayout == nullptr) {
-    static auto kvl = KernelVirtualLayout<NUM_MEM_RANGES>(
-        Map::END_INCLUSIVE, getDescriptors());
+    static auto kvl = KernelVirtualLayout<NUM_MEM_RANGES>(Map::END_INCLUSIVE,
+                                                          getDescriptors());
     kernelVirtualLayout = &kvl;
   }
 

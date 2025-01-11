@@ -11,7 +11,7 @@ namespace Arch {
 
 GenericTimerCounterValue
 GenericTimerCounterValue::fromDuration(const Duration &duration,
-                                                   TimeError &error) {
+                                       TimeError &error) {
   if (duration.as_nanos() < resolution().as_nanos()) {
     return GenericTimerCounterValue(0);
   }
@@ -33,9 +33,8 @@ Duration GenericTimerCounterValue::toDuration() const {
 
   const uint64_t secs = value / archTimerCounterFrequency();
   const uint64_t sub_second_counter_value = value % archTimerCounterFrequency();
-  const uint32_t nanos =
-      static_cast<uint32_t>(sub_second_counter_value * NANOSEC_PER_SEC /
-                            archTimerCounterFrequency());
+  const uint32_t nanos = static_cast<uint32_t>(
+      sub_second_counter_value * NANOSEC_PER_SEC / archTimerCounterFrequency());
 
   return Duration(secs, nanos);
 }

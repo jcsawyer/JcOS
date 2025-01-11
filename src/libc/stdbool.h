@@ -30,23 +30,23 @@ see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
 
 #ifndef __cplusplus
 
-#define bool	_Bool
+#define bool _Bool
 #if defined __STDC_VERSION__ && __STDC_VERSION__ > 201710L
-#define true	((_Bool)+1u)
-#define false	((_Bool)+0u)
+#define true ((_Bool) + 1u)
+#define false ((_Bool) + 0u)
 #else
-#define true	1
-#define false	0
+#define true 1
+#define false 0
 #endif
 
 #else /* __cplusplus */
 
 /* Supporting _Bool in C++ is a GCC extension.  */
-#define _Bool	bool
+#define _Bool bool
 
 #endif /* __cplusplus */
 
 /* Signal that all the definitions are present.  */
-#define __bool_true_false_are_defined	1
+#define __bool_true_false_are_defined 1
 
-#endif	/* stdbool.h */
+#endif /* stdbool.h */

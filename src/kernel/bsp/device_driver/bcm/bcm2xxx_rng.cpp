@@ -1,7 +1,5 @@
 #include "bcm2xxx_rng.hpp"
 
-
-
 namespace Driver::BSP::BCM {
 void RNG::init() {
   *registerBlock.RNG_STATUS = 0x40000;
@@ -32,5 +30,3 @@ unsigned int RNG::next(const unsigned int min, const unsigned int max) const {
   return rand % (max - min) + min;
 }
 } // namespace Driver::BSP::BCM
-
-

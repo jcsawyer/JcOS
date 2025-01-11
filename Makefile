@@ -1,46 +1,66 @@
-STD_SRCS = ./src/libc/stdio/printf.cpp ./src/libc/minimal_runtime.cpp ./src/libc/memory.cpp
-STD_INC = -isystem ./src/libc
+BOARD	?=	bsp_rpi3
 
-ARCH_SRCS = ./src/kernel/arch/time.cpp ./src/kernel/arch/aarch64/exception/asynchronous.cpp ./src/kernel/arch/aarch64/exception.cpp ./src/kernel/arch/aarch64/memory/mmu.cpp
-ARCH_INC = -I ./src/kernel/arch
+# src/libc
+LIBC_SRC	:=	$(wildcard src/libc/*.cpp) \
+				$(wildcard src/libc/stdio/*.cpp)
+LIBC_INC	:=	-isystem ./src/libc
 
-AARCH64_SRCS = ./src/kernel/arch/aarch64/cpu/boot.cpp ./src/kernel/arch/aarch64/cpu.cpp ./src/kernel/arch/aarch64/time.cpp
-AARCH64_INC = -I ./src/kernel/arch/aarch64
+# src/kernel
+KERNEL_SRC	:=	$(wildcard src/kernel/*.cpp) \
+				$(wildcard src/kernel/arch/*.cpp) \
+				$(wildcard src/kernel/time/*.cpp) \
+				$(wildcard src/kernel/bsp/*.cpp) \
+				$(wildcard src/kernel/bsp/device_driver/*.cpp) \
+				$(wildcard src/kernel/bsp/device_driver/bcm/*.cpp) \
+				$(wildcard src/kernel/bsp/raspberrypi/*.cpp) \
+				$(wildcard src/kernel/bsp/raspberrypi/console/*.cpp) \
+				$(wildcard src/kernel/bsp/raspberrypi/memory/*.cpp) \
+				$(wildcard src/kernel/console/*.cpp) \
+				$(wildcard src/kernel/console/null_console/*.cpp) \
+				$(wildcard src/kernel/driver/*.cpp)
+KERNEL_INC	:=	-isystem ./src/kernel
 
-BSP_SRCS = ./src/kernel/bsp/device_driver/bcm/bcm2xxx_gpio.cpp ./src/kernel/bsp/device_driver/bcm/bcm2xxx_pl011_uart.cpp ./src/kernel/bsp/device_driver/bcm/bcm2xxx_rng.cpp
-BSP_INC = -I ./src/kernel/bsp -I ./src/kernel/bsp/device_driver/bcm
+AARCH64_SRCS :=	$(wildcard src/kernel/arch/aarch64/*.cpp) \
+				$(wildcard src/kernel/arch/aarch64/cpu/*.cpp) \
+				$(wildcard src/kernel/arch/aarch64/exception/*.cpp) \
+				$(wildcard src/kernel/arch/aarch64/memory/*.cpp)
 
-RASPI_SRCS = ./src/kernel/bsp/raspberrypi/raspberrypi.cpp ./src/kernel/bsp/raspberrypi/cpu.cpp ./src/kernel/bsp/raspberrypi/memory/mmu.cpp
-RASPI_INC = -I ./src/kernel/bsp/raspberrypi
-
-CONSOLE_SRCS = ./src/kernel/console/console.cpp ./src/kernel/console/null_console/null_console.cpp ./src/kernel/bsp/raspberrypi/console/qemu_console.cpp
-CONSOLE_INC = -I ./src/kernel/console -I ./src/kernel/console/null_console -I ./src/kernel/bsp/raspberrypi/console
-
-DRIVER_SRCS = ./src/kernel/driver/driver.cpp
-DRIVER_INC = -I ./src/kernel/driver
-
-SRCS = ./src/kernel/main.cpp ./src/kernel/time.cpp ./src/kernel/time/duration.cpp $(STD_SRCS) $(ARCH_SRCS) $(AARCH64_SRCS) $(BSP_SRCS) $(CONSOLE_SRCS) $(DRIVER_SRCS) $(RASPI_SRCS)
-OBJS = $(SRCS:.cpp=.o)
-INCLUDES = -isystem ./src/kernel $(STD_INC) $(ARCH_INC) $(AARCH64_INC) $(BSP_INC) $(CONSOLE_INC) $(DRIVER_INC) $(RASPI_INC)
-DEFINES = -DBOARD=bsp_rpi3
-CFLAGS = $(DEFINES) -Wall -O0 -mgeneral-regs-only -g -ffreestanding -nostdinc -nostdlib -nostartfiles -fno-rtti -fno-exceptions -fno-threadsafe-statics -fno-use-cxa-atexit $(INCLUDES)
+BIN_DIR		:= bin
+OBJ_DIR		:= $(BIN_DIR)/objects
+SRCS		:= $(KERNEL_SRC) $(LIBC_SRC) $(AARCH64_SRCS)
+C_OBJS		:= $(SRCS:%.cpp=$(OBJ_DIR)/%.o)
+INCLUDES	:= $(KERNEL_INC) $(LIBC_INC)
+DEFINES		:= -DBOARD=$(BOARD)
+CFLAGS		:= -Wall -O0 -mgeneral-regs-only -g -ffreestanding -nostdinc -nostdlib -nostartfiles -fno-rtti -fno-exceptions -fno-threadsafe-statics -fno-use-cxa-atexit
 
 all: clean kernel8.img run
-start.o: src/kernel/arch
-	@echo "  AS     $@"
-	@aarch64-elf-gcc $(CFLAGS) -c ./src/kernel/arch/aarch64/cpu/boot.s -o start.o
+$(OBJ_DIR)/start.o: src/kernel/arch
+	@echo "  AS\t$@"
+	@mkdir -p $(@D)
+	@aarch64-elf-gcc $(DEFINES) $(CFLAGS) -c ./src/kernel/arch/aarch64/cpu/boot.s -o $(OBJ_DIR)/start.o
 
-exception.o: src/kernel/arch
-	@echo "  AS     $@"
-	@aarch64-elf-gcc $(CFLAGS) -c ./src/kernel/arch/aarch64/exception.s -o exception.o
+$(OBJ_DIR)/exception.o: src/kernel/arch
+	@echo "  AS\t$@"
+	@mkdir -p $(@D)
+	@aarch64-elf-gcc $(DEFINES) $(CFLAGS) -c ./src/kernel/arch/aarch64/exception.s -o $(OBJ_DIR)/exception.o
 
-%.o: %.cpp
-	@echo "  CC     $@"
-	@aarch64-elf-gcc $(CFLAGS) -c -o $@ $<
+$(OBJ_DIR)/%.o: %.cpp
+	@echo "  CC\t$<\t\t->\t$@"
+	@mkdir -p $(@D)
+	@aarch64-elf-gcc $(DEFINES) $(CFLAGS) $(INCLUDES) -c $< -o $@ -MMD -MP
 
-kernel8.img: start.o exception.o $(OBJS)
-	@aarch64-elf-ld -nostdlib -g start.o exception.o $(OBJS) -T ./src/kernel/bsp/raspberrypi/kernel.ld -o ./bin/kernel8.elf
-	aarch64-elf-objcopy -O binary ./bin/kernel8.elf ./bin/kernel8.img
+kernel8.img: $(OBJ_DIR)/start.o $(OBJ_DIR)/exception.o $(C_OBJS)
+	@mkdir -p $(@D)
+	@aarch64-elf-ld -nostdlib -g $(OBJ_DIR)/start.o $(OBJ_DIR)/exception.o $(C_OBJS) -T ./src/kernel/bsp/raspberrypi/kernel.ld -o ./bin/kernel8.elf
+	@aarch64-elf-objcopy -O binary ./bin/kernel8.elf ./bin/kernel8.img
+
+format:
+	@find ./ -name '*.cpp' | xargs clang-format -i
+	@find ./ -name '*.hpp' | xargs clang-format -i
+	@find ./ -name '*.h' | xargs clang-format -i
+
+analyze:
+	@cppcheck --enable=all --inconclusive --std=c++11 --language=c++ --platform=unix64 --suppress=missingIncludeSystem --suppress=unusedFunction ./src
 
 clean:
 	@rm ./bin/kernel8.elf ./bin/kernel8.img *.o >/dev/null 2>/dev/null || true
@@ -48,3 +68,5 @@ clean:
 
 run:
 	@qemu-system-aarch64 -M raspi3b -kernel bin/kernel8.elf -serial stdio -display none
+
+.PHONY : all format analyze clean run

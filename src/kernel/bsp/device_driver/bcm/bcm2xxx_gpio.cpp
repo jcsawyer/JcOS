@@ -10,7 +10,7 @@ void GPIO::disablePud1415Bcm2837() const {
   // Configure GPIO 14 and 15
   r = *registerBlock.GPFSEL1;
   r &= ~static_cast<uint32_t>(7 << 12 | 7 << 15); // Clear GPIO 14, 15
-  r |= 4 << 12 | 4 << 15; // Set alt0 for GPIO 14, 15
+  r |= 4 << 12 | 4 << 15;                         // Set alt0 for GPIO 14, 15
   *registerBlock.GPFSEL1 = r;
   *registerBlock.GPPUD = 0; // Enable pins 14 and 15
   CPU::spinForCycles(150);
