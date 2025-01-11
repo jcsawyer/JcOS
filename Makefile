@@ -1,4 +1,4 @@
-STD_SRCS = ./src/libc/printf.cpp ./src/libc/minimal_runtime.cpp ./src/libc/memory.cpp
+STD_SRCS = ./src/libc/stdio/printf.cpp ./src/libc/minimal_runtime.cpp ./src/libc/memory.cpp
 STD_INC = -isystem ./src/libc
 
 ARCH_SRCS = ./src/kernel/arch/time.cpp ./src/kernel/arch/aarch64/exception/asynchronous.cpp ./src/kernel/arch/aarch64/exception.cpp ./src/kernel/arch/aarch64/memory/mmu.cpp

@@ -1,5 +1,5 @@
 #pragma once
-#include <printf.h>
+#include <stdio/printf.h>
 
 const size_t KIB = 1024;
 const size_t MIB = 1024 * 1024;

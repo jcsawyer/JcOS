@@ -1,6 +1,6 @@
 #include "bcm2xxx_pl011_uart.hpp"
 #include "../../../arch/cpu.hpp"
-#include <printf.h>
+#include <stdio/printf.h>
 
 namespace Driver::BSP::BCM {
 /// Set up baud rate and characteristics.

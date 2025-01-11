@@ -1,7 +1,7 @@
 #pragma once
 
-#include "../../../bsp/raspberrypi/memory/mmu.hpp"
-#include "../../../memory/mmu/translation_table.hpp"
+#include "../../../../bsp/raspberrypi/memory/mmu.hpp"
+#include "../../../../memory/mmu/translation_table.hpp"
 #include "../mmu.hpp"
 #include <panic.hpp>
 #include <stddef.h>

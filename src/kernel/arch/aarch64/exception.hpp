@@ -3,7 +3,7 @@
 #include "../../exception.hpp"
 #include <memory/memory_register.hpp>
 #include <panic.hpp>
-#include <printf.h>
+#include <stdio/printf.h>
 
 namespace Exception {
 namespace CurrentEL {

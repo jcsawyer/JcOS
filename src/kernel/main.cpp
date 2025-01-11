@@ -1,6 +1,7 @@
 #include <exception.hpp>
 #include <main.hpp>
 #include <print.hpp>
+#include <arch/aarch64/exception.hpp>
 #include <bsp/raspberrypi.hpp>
 #include <bsp/raspberrypi/raspberrypi.hpp>
 #include <bsp/raspberrypi/memory/mmu.hpp>
