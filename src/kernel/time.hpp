@@ -1,6 +1,6 @@
 #pragma once
 
-#include "_arch/time.hpp"
+#include "arch/time.hpp"
 #include <stdint.h>
 #include <time/duration.hpp>
 

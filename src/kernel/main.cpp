@@ -6,8 +6,8 @@
 #include <bsp/raspberrypi/memory/mmu.hpp>
 #include <console/console.hpp>
 #include <time/duration.hpp>
-#include "_arch/aarch64/exception/asynchronous.hpp"
-#include "_arch/aarch64/memory/mmu.hpp"
+#include "arch/aarch64/exception/asynchronous.hpp"
+#include "arch/aarch64/memory/mmu.hpp"
 
 extern "C" void putchar_(const char c) {
   Console::Console *console = Console::Console::GetInstance();

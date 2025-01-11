@@ -2,7 +2,7 @@
 
 #include <stdint.h>
 
-#include "../../_arch/aarch64/memory/mmu/translation_table.hpp"
+#include "../../arch/aarch64/memory/mmu/translation_table.hpp"
 
 namespace Memory {
 

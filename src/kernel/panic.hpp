@@ -1,6 +1,6 @@
 #pragma once
 
-#include "_arch/cpu.hpp"
+#include "arch/cpu.hpp"
 #include "console/console.hpp"
 #include <print.hpp>
 

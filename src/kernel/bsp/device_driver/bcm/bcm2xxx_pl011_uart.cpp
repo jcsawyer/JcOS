@@ -1,5 +1,5 @@
 #include "bcm2xxx_pl011_uart.hpp"
-#include "../../../_arch/cpu.hpp"
+#include "../../../arch/cpu.hpp"
 #include <printf.h>
 
 namespace Driver::BSP::BCM {

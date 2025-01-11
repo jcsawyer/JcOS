@@ -1,11 +1,11 @@
 STD_SRCS = ./src/kernel/std/printf.cpp ./src/kernel/std/minimal_runtime.cpp ./src/kernel/time/duration.cpp ./src/kernel/std/memory.cpp
 STD_INC = -isystem ./src/kernel/std
 
-ARCH_SRCS = ./src/kernel/_arch/time.cpp ./src/kernel/_arch/aarch64/exception/asynchronous.cpp ./src/kernel/_arch/aarch64/exception.cpp ./src/kernel/_arch/aarch64/memory/mmu.cpp
-ARCH_INC = -I ./src/kernel/_arch
+ARCH_SRCS = ./src/kernel/arch/time.cpp ./src/kernel/arch/aarch64/exception/asynchronous.cpp ./src/kernel/arch/aarch64/exception.cpp ./src/kernel/arch/aarch64/memory/mmu.cpp
+ARCH_INC = -I ./src/kernel/arch
 
-AARCH64_SRCS = ./src/kernel/_arch/aarch64/cpu/boot.cpp ./src/kernel/_arch/aarch64/cpu.cpp ./src/kernel/_arch/aarch64/time.cpp
-AARCH64_INC = -I ./src/kernel/_arch/aarch64
+AARCH64_SRCS = ./src/kernel/arch/aarch64/cpu/boot.cpp ./src/kernel/arch/aarch64/cpu.cpp ./src/kernel/arch/aarch64/time.cpp
+AARCH64_INC = -I ./src/kernel/arch/aarch64
 
 BSP_SRCS = ./src/kernel/bsp/device_driver/bcm/bcm2xxx_gpio.cpp ./src/kernel/bsp/device_driver/bcm/bcm2xxx_pl011_uart.cpp ./src/kernel/bsp/device_driver/bcm/bcm2xxx_rng.cpp
 BSP_INC = -I ./src/kernel/bsp -I ./src/kernel/bsp/device_driver/bcm
@@ -26,13 +26,13 @@ DEFINES = -DBOARD=bsp_rpi3
 CFLAGS = $(DEFINES) -Wall -O0 -mgeneral-regs-only -g -ffreestanding -nostdinc -nostdlib -nostartfiles -fno-rtti -fno-exceptions -fno-threadsafe-statics -fno-use-cxa-atexit $(INCLUDES)
 
 all: clean kernel8.img run
-start.o: ./src/kernel/_arch/aarch64/cpu/boot.s
+start.o: src/kernel/arch
 	@echo "  AS     $@"
-	@aarch64-elf-gcc $(CFLAGS) -c ./src/kernel/_arch/aarch64/cpu/boot.s -o start.o
+	@aarch64-elf-gcc $(CFLAGS) -c ./src/kernel/arch/aarch64/cpu/boot.s -o start.o
 
-exception.o: ./src/kernel/_arch/aarch64/exception.s
+exception.o: src/kernel/arch
 	@echo "  AS     $@"
-	@aarch64-elf-gcc $(CFLAGS) -c ./src/kernel/_arch/aarch64/exception.s -o exception.o
+	@aarch64-elf-gcc $(CFLAGS) -c ./src/kernel/arch/aarch64/exception.s -o exception.o
 
 %.o: %.cpp
 	@echo "  CC     $@"
