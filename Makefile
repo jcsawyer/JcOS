@@ -1,5 +1,15 @@
 BOARD	?=	bsp_rpi3
 
+ifeq ($(BOARD), bsp_rpi3)
+	ARCH		= aarch64
+	DEFINES		= -DBOARD=bsp_rpi3
+	QEMU_DEVICE	= raspi3b
+else ifeq ($(BOARD), bsp_rpi4)
+	ARCH		= aarch64
+	DEFINES		= -DBOARD=bsp_rpi4
+	QEMU_DEVICE	= raspi4b
+endif
+
 # src/libc
 LIBC_SRC	:=	$(wildcard src/libc/*.cpp) \
 				$(wildcard src/libc/stdio/*.cpp)
@@ -24,34 +34,40 @@ AARCH64_SRCS :=	$(wildcard src/kernel/arch/aarch64/*.cpp) \
 				$(wildcard src/kernel/arch/aarch64/cpu/*.cpp) \
 				$(wildcard src/kernel/arch/aarch64/exception/*.cpp) \
 				$(wildcard src/kernel/arch/aarch64/memory/*.cpp)
+AARCH64_ASM	:=	$(wildcard src/kernel/arch/aarch64/*.s) \
+				$(wildcard src/kernel/arch/aarch64/cpu/*.s)
 
 BIN_DIR		:= bin
 OBJ_DIR		:= $(BIN_DIR)/objects
-SRCS		:= $(KERNEL_SRC) $(LIBC_SRC) $(AARCH64_SRCS)
+ASM_OBJ_DIR	:= $(BIN_DIR)/asm_objects
+SRCS		= $(KERNEL_SRC) $(LIBC_SRC)
+ASM_SRCS	=
+
+ifeq ($(ARCH), aarch64)
+	SRCS	+= $(AARCH64_SRCS)
+	ASM_SRCS += $(AARCH64_ASM)
+endif
+
 C_OBJS		:= $(SRCS:%.cpp=$(OBJ_DIR)/%.o)
+ASM_OBJS	:= $(ASM_SRCS:%.s=$(ASM_OBJ_DIR)/%.o)
 INCLUDES	:= $(KERNEL_INC) $(LIBC_INC)
 DEFINES		:= -DBOARD=$(BOARD)
 CFLAGS		:= -Wall -O0 -mgeneral-regs-only -g -ffreestanding -nostdinc -nostdlib -nostartfiles -fno-rtti -fno-exceptions -fno-threadsafe-statics -fno-use-cxa-atexit
 
-all: clean kernel8.img run
-$(OBJ_DIR)/start.o: src/kernel/arch
-	@echo "  AS\t$@"
+all: check-args kernel8.img run
+$(ASM_OBJ_DIR)/%.o: %.s
+	@echo "  AS\t$<\t\t->\t$@"
 	@mkdir -p $(@D)
-	@aarch64-elf-gcc $(DEFINES) $(CFLAGS) -c ./src/kernel/arch/aarch64/cpu/boot.s -o $(OBJ_DIR)/start.o
-
-$(OBJ_DIR)/exception.o: src/kernel/arch
-	@echo "  AS\t$@"
-	@mkdir -p $(@D)
-	@aarch64-elf-gcc $(DEFINES) $(CFLAGS) -c ./src/kernel/arch/aarch64/exception.s -o $(OBJ_DIR)/exception.o
+	@aarch64-elf-gcc $(DEFINES) -c $< -o $@
 
 $(OBJ_DIR)/%.o: %.cpp
 	@echo "  CC\t$<\t\t->\t$@"
 	@mkdir -p $(@D)
 	@aarch64-elf-gcc $(DEFINES) $(CFLAGS) $(INCLUDES) -c $< -o $@ -MMD -MP
 
-kernel8.img: $(OBJ_DIR)/start.o $(OBJ_DIR)/exception.o $(C_OBJS)
+kernel8.img: $(ASM_OBJS) $(C_OBJS)
 	@mkdir -p $(@D)
-	@aarch64-elf-ld -nostdlib -g $(OBJ_DIR)/start.o $(OBJ_DIR)/exception.o $(C_OBJS) -T ./src/kernel/bsp/raspberrypi/kernel.ld -o ./bin/kernel8.elf
+	@aarch64-elf-ld -nostdlib -g $(ASM_OBJS) $(C_OBJS) -T ./src/kernel/bsp/raspberrypi/kernel.ld -o ./bin/kernel8.elf
 	@aarch64-elf-objcopy -O binary ./bin/kernel8.elf ./bin/kernel8.img
 
 format:
@@ -63,10 +79,23 @@ analyze:
 	@cppcheck --enable=all --inconclusive --std=c++11 --language=c++ --platform=unix64 --suppress=missingIncludeSystem --suppress=unusedFunction ./src
 
 clean:
-	@rm ./bin/kernel8.elf ./bin/kernel8.img *.o >/dev/null 2>/dev/null || true
-	@find ./ -name '*.o' -delete
+	@rm -r ./bin
 
 run:
-	@qemu-system-aarch64 -M raspi3b -kernel bin/kernel8.elf -serial stdio -display none
+	@qemu-system-aarch64 -M $(QEMU_DEVICE) -kernel bin/kernel8.elf -serial stdio -display none
 
-.PHONY : all format analyze clean run
+check-args:
+ifeq ($(BOARD), bsp_rpi3)
+	@echo "Building for Raspberry Pi 3\n"
+else ifeq ($(BOARD), bsp_rpi4)
+	@echo "Building for Raspberry Pi 4\n"
+else
+	@echo "Invalid BOARD: $(BOARD)"
+	@exit 1
+endif
+
+ifeq ($(ARCH), )
+	@echo "ARCH is not set"
+	@exit 1
+endif
+.PHONY : all format analyze clean run check-args
