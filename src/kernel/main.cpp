@@ -1,5 +1,4 @@
-#include <bsp/raspberrypi.hpp>
-#include <bsp/raspberrypi/memory/mmu.hpp>
+#include <bsp/bsp.hpp>
 #include <bsp/raspberrypi/raspberrypi.hpp>
 #include <console/console.hpp>
 #include <exception.hpp>
@@ -29,7 +28,7 @@ auto logo = R"""(
 
   console->print(logo);
   info("%s version %s", "JcOS", "0.1.0");
-  info("Booting on: %s", RaspberryPi::boardName());
+  info("Booting on: %s", BSP::DeviceName());
 
   info("MMU online. Special regions:");
   Memory::virtMemLayout()->printLayout();

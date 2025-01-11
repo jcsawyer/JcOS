@@ -1,11 +1,12 @@
+#include <bsp/bsp.hpp>
+
 // TODO read from board
 #define bsp_rpi3 1
 #define bsp_rpi4 2
 #define bsp_rpi3b 3
 #define bsp_rpi3bplus 4
 
-namespace RaspberryPi {
-static const char *boardName() {
+const char *BSP::DeviceName() {
 #if BOARD == bsp_rpi3
   return "Raspberry Pi 3";
 #elif BOARD == bsp_rpi3b
@@ -18,4 +19,3 @@ static const char *boardName() {
 #error Unknown board
 #endif
 }
-} // namespace RaspberryPi

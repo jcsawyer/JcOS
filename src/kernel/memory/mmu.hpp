@@ -22,6 +22,7 @@ public:
   };
 };
 MemoryManagementUnit *MMU();
+const size_t NUM_MEM_RANGES = 3;
 
 struct AttributeFields {
   MemAttributes memAttributes;
@@ -156,5 +157,7 @@ private:
   size_t maxVirtualAddrInclusive;
   TranslationDescriptor inner[NUM_SPECIAL_RANGES];
 };
+
+KernelVirtualLayout<NUM_MEM_RANGES> *virtMemLayout();
 
 } // namespace Memory

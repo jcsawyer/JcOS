@@ -19,7 +19,6 @@ LIBC_INC	:=	-isystem ./src/libc
 KERNEL_SRC	:=	$(wildcard src/kernel/*.cpp) \
 				$(wildcard src/kernel/arch/*.cpp) \
 				$(wildcard src/kernel/time/*.cpp) \
-				$(wildcard src/kernel/bsp/*.cpp) \
 				$(wildcard src/kernel/bsp/device_driver/*.cpp) \
 				$(wildcard src/kernel/console/*.cpp) \
 				$(wildcard src/kernel/console/null_console/*.cpp) \
@@ -34,6 +33,7 @@ AARCH64_ASM	:=	$(wildcard src/kernel/arch/aarch64/*.s) \
 				$(wildcard src/kernel/arch/aarch64/cpu/*.s)
 
 BSP_RPI_SRCS:=	$(wildcard src/kernel/bsp/device_driver/bcm/*.cpp) \
+				$(wildcard src/kernel/bsp/raspberrypi.cpp) \
 				$(wildcard src/kernel/bsp/raspberrypi/*.cpp) \
 				$(wildcard src/kernel/bsp/raspberrypi/console/*.cpp) \
 				$(wildcard src/kernel/bsp/raspberrypi/memory/*.cpp)
