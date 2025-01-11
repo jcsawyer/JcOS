@@ -2,8 +2,6 @@
 
 #include <stdint.h>
 
-#include "../../arch/aarch64/memory/mmu/translation_table.hpp"
-
 namespace Memory {
 
 const size_t GRANULE_64K = 64 * 1024;

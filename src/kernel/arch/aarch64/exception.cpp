@@ -94,5 +94,5 @@ void handlingInit() {
   // Write to VBAR_EL1 so the CPU uses that address for exception vectors.
   asm volatile("msr VBAR_EL1, %0" : : "r"(vector_base));
   asm volatile("isb"); // Force completion before next instruction
-} // namespace Exception
+}
 } // namespace Exception

@@ -14,8 +14,10 @@ namespace Memory {
 #define DSB_SY asm volatile("dsb sy" ::: "memory")
 #define ISB_SY asm volatile("isb sy" ::: "memory")
 
+KernelTranslationTable *kernelTables();
+
 // Configure MAIR_EL1 register
-void MemoryManagementUnit::setUpMAIR() {
+void setUpMAIR() {
   uint64_t mair_value = 0b1111 << 12 |
                         0b1111 << 8   // Attribute 1: Cacheable normal DRAM
                         | 0b00000100; // Attribute 0: Device
@@ -24,7 +26,7 @@ void MemoryManagementUnit::setUpMAIR() {
 }
 
 // Configure the translation control register
-void MemoryManagementUnit::configureTranslationControl() {
+void configureTranslationControl() {
   uint64_t t0sz = 64 - KernelAddrSpace::shift;
 
   uint64_t tcr_value =

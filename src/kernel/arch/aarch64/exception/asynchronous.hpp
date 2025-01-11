@@ -49,6 +49,4 @@ template <typename T> bool is_masked() {
   return DAIF::is_set(field.daif_field());
 }
 
-void print_state();
-
 } // namespace Exception

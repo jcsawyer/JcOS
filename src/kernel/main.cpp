@@ -1,11 +1,10 @@
-#include "arch/aarch64/exception/asynchronous.hpp"
-#include "arch/aarch64/memory/mmu.hpp"
 #include <bsp/raspberrypi.hpp>
 #include <bsp/raspberrypi/memory/mmu.hpp>
 #include <bsp/raspberrypi/raspberrypi.hpp>
 #include <console/console.hpp>
 #include <exception.hpp>
 #include <main.hpp>
+#include <memory/mmu.hpp>
 #include <print.hpp>
 #include <time/duration.hpp>
 

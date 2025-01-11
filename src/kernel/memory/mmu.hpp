@@ -11,6 +11,18 @@ enum AccessPermissions { ReadOnly, ReadWrite };
 
 enum MMUEnableError { AlreadyEnabled, Other };
 
+class MemoryManagementUnit {
+public:
+  static bool isEnabled();
+  static void enableMMUAndCaching();
+
+  enum MAIR : uint64_t {
+    DEVICE = 0,
+    NORMAL = 1,
+  };
+};
+MemoryManagementUnit *MMU();
+
 struct AttributeFields {
   MemAttributes memAttributes;
   AccessPermissions accessPermissions;

@@ -16,8 +16,8 @@ public:
   static Value get() {
     uint64_t value = 0;
     asm volatile("mrs %0, CurrentEL" : "=r"(value));
-    return static_cast<Value>(
-        (value >> 2) & 0b11); // Bits [3:2] hold the EL value
+    return static_cast<Value>((value >> 2) &
+                              0b11); // Bits [3:2] hold the EL value
   }
 
   static void set(uint64_t value) {
