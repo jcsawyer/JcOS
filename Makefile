@@ -1,5 +1,5 @@
-STD_SRCS = ./src/kernel/std/printf.cpp ./src/kernel/std/minimal_runtime.cpp ./src/kernel/time/duration.cpp ./src/kernel/std/memory.cpp
-STD_INC = -isystem ./src/kernel/std
+STD_SRCS = ./src/libc/printf.cpp ./src/libc/minimal_runtime.cpp ./src/libc/memory.cpp
+STD_INC = -isystem ./src/libc
 
 ARCH_SRCS = ./src/kernel/arch/time.cpp ./src/kernel/arch/aarch64/exception/asynchronous.cpp ./src/kernel/arch/aarch64/exception.cpp ./src/kernel/arch/aarch64/memory/mmu.cpp
 ARCH_INC = -I ./src/kernel/arch
@@ -19,7 +19,7 @@ CONSOLE_INC = -I ./src/kernel/console -I ./src/kernel/console/null_console -I ./
 DRIVER_SRCS = ./src/kernel/driver/driver.cpp
 DRIVER_INC = -I ./src/kernel/driver
 
-SRCS = ./src/kernel/main.cpp ./src/kernel/time.cpp $(STD_SRCS) $(ARCH_SRCS) $(AARCH64_SRCS) $(BSP_SRCS) $(CONSOLE_SRCS) $(DRIVER_SRCS) $(RASPI_SRCS)
+SRCS = ./src/kernel/main.cpp ./src/kernel/time.cpp ./src/kernel/time/duration.cpp $(STD_SRCS) $(ARCH_SRCS) $(AARCH64_SRCS) $(BSP_SRCS) $(CONSOLE_SRCS) $(DRIVER_SRCS) $(RASPI_SRCS)
 OBJS = $(SRCS:.cpp=.o)
 INCLUDES = -isystem ./src/kernel $(STD_INC) $(ARCH_INC) $(AARCH64_INC) $(BSP_INC) $(CONSOLE_INC) $(DRIVER_INC) $(RASPI_INC)
 DEFINES = -DBOARD=bsp_rpi3
