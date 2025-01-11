@@ -21,10 +21,6 @@ KERNEL_SRC	:=	$(wildcard src/kernel/*.cpp) \
 				$(wildcard src/kernel/time/*.cpp) \
 				$(wildcard src/kernel/bsp/*.cpp) \
 				$(wildcard src/kernel/bsp/device_driver/*.cpp) \
-				$(wildcard src/kernel/bsp/device_driver/bcm/*.cpp) \
-				$(wildcard src/kernel/bsp/raspberrypi/*.cpp) \
-				$(wildcard src/kernel/bsp/raspberrypi/console/*.cpp) \
-				$(wildcard src/kernel/bsp/raspberrypi/memory/*.cpp) \
 				$(wildcard src/kernel/console/*.cpp) \
 				$(wildcard src/kernel/console/null_console/*.cpp) \
 				$(wildcard src/kernel/driver/*.cpp)
@@ -37,6 +33,11 @@ AARCH64_SRCS :=	$(wildcard src/kernel/arch/aarch64/*.cpp) \
 AARCH64_ASM	:=	$(wildcard src/kernel/arch/aarch64/*.s) \
 				$(wildcard src/kernel/arch/aarch64/cpu/*.s)
 
+BSP_RPI_SRCS:=	$(wildcard src/kernel/bsp/device_driver/bcm/*.cpp) \
+				$(wildcard src/kernel/bsp/raspberrypi/*.cpp) \
+				$(wildcard src/kernel/bsp/raspberrypi/console/*.cpp) \
+				$(wildcard src/kernel/bsp/raspberrypi/memory/*.cpp)
+
 BIN_DIR		:= bin
 OBJ_DIR		:= $(BIN_DIR)/objects
 ASM_OBJ_DIR	:= $(BIN_DIR)/asm_objects
@@ -44,9 +45,16 @@ SRCS		= $(KERNEL_SRC) $(LIBC_SRC)
 ASM_SRCS	=
 
 ifeq ($(ARCH), aarch64)
-	SRCS	+= $(AARCH64_SRCS)
-	ASM_SRCS += $(AARCH64_ASM)
+	SRCS		+= $(AARCH64_SRCS)
+	ASM_SRCS	+= $(AARCH64_ASM)
 endif
+
+ifeq ($(BOARD), bsp_rpi3)
+	SRCS		+= $(BSP_RPI_SRCS)
+else ifeq ($(BOARD), bsp_rpi4)
+	SRCS		+= $(BSP_RPI_SRCS)
+endif
+
 
 C_OBJS		:= $(SRCS:%.cpp=$(OBJ_DIR)/%.o)
 ASM_OBJS	:= $(ASM_SRCS:%.s=$(ASM_OBJ_DIR)/%.o)
