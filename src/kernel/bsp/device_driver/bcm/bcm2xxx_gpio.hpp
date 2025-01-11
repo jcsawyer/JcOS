@@ -12,7 +12,7 @@ public:
   GPIO(unsigned int mmio_start_addr) : registerBlock(mmio_start_addr) {};
   const char *compatible() override { return "BCM GPIO"; }
   void init() override;
-  void mapPl011Uart();
+  void mapPl011Uart() const;
 
 private:
   class RegisterBlock {
@@ -33,8 +33,8 @@ private:
     }
   };
   RegisterBlock registerBlock;
-  void disablePud1415Bcm2837();
-  void disablePud1415Bcm2711();
+  void disablePud1415Bcm2837() const;
+  void disablePud1415Bcm2711() const;
 };
 } // namespace BCM
 } // namespace BSP

@@ -55,7 +55,7 @@ public:
   };
 
   static void print() {
-    printf_("SPSR_EL1: 0x%08x\n", get());
+    printf_("SPSR_EL1: 0x%08lX\n", get());
     printf_("      Flags:\n");
     printf_("            Negative: (N) %s\n", toFlatStr(get() & 1 << 31));
     printf_("            Zero:     (Z) %s\n", toFlatStr(get() & 1 << 30));
@@ -98,8 +98,8 @@ public:
   };
 
   static void print() {
-    printf_("ESR_EL1: 0x%X\n", get());
-    printf_("      Exception Class         (EC) : 0x%X", get() >> 26);
+    printf_("ESR_EL1: 0x%lX\n", get());
+    printf_("      Exception Class         (EC) : 0x%lX", get() >> 26);
     switch (get() >> 26) {
     case 0b000001:
       printf_(" - Trapped WFI/WFE");
@@ -137,7 +137,7 @@ public:
     }
     printf_("\n");
 
-    printf_("      Instr Specific Syndrome (ISS): 0x%X\n", get() & 0x1ffffff);
+    printf_("      Instr Specific Syndrome (ISS): 0x%lX\n", get() & 0x1ffffff);
   }
 } __attribute__((packed));
 

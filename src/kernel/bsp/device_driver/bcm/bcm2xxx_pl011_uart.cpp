@@ -36,14 +36,14 @@ void UART::init() {
   *registerBlock.CR = 1 << 0 | 1 << 8 | 1 << 9;
 }
 
-void UART::putc(const char c) {
+void UART::putc(const char c) const {
   while (*registerBlock.FR & 0x20) {
     // Wait for the UART to become ready to transmit.
   }
   *registerBlock.DR = c;
 }
 
-char UART::getc() {
+char UART::getc() const {
   // TODO add in blocking mode
   while (*registerBlock.FR & 0x10) {
     CPU::nop();
@@ -55,7 +55,7 @@ char UART::getc() {
   return c;
 }
 
-void UART::flush() {
+void UART::flush() const {
   while (*registerBlock.FR & 0x20) {
     CPU::nop();
   }
@@ -74,7 +74,7 @@ void UART::UartConsole::print(const char *format, ...) {
   va_end(args);
 }
 
-void UART::UartConsole::printChar(char character) { uart->putc(character); }
+void UART::UartConsole::printChar(const char character) { uart->putc(character); }
 
 void UART::UartConsole::printLine(const char *format, ...) {
   va_list args;

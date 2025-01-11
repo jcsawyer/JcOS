@@ -9,7 +9,7 @@ bool is_set(uint64_t field) {
   return (daif_value & field) != 0;
 }
 
-const char *to_mask_str(bool is_masked) {
+const char *to_mask_str(const bool is_masked) {
   return is_masked ? "Masked" : "Unmasked";
 }
 

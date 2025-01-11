@@ -1,7 +1,7 @@
 #pragma once
 
-#include "../../../memory/mmu.hpp"
 #include "mmu/translation_table.hpp"
+#include <memory/mmu.hpp>
 #include <stddef.h>
 #include <stdint.h>
 
@@ -9,12 +9,12 @@ namespace Memory {
 // Memory Management Unit type
 class MemoryManagementUnit {
 public:
-  void setUpMAIR();
-  void configureTranslationControl();
+  static void setUpMAIR();
+  static void configureTranslationControl();
 
-  bool isEnabled() const;
+  static bool isEnabled();
 
-  void enableMMUAndCaching();
+  static void enableMMUAndCaching();
 
   enum MAIR : uint64_t {
     DEVICE = 0,

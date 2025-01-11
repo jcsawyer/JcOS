@@ -1,9 +1,7 @@
 #pragma once
 
 #include <common.hpp>
-#include <panic.hpp>
 #include <print.hpp>
-#include <stddef.h>
 #include <stdint.h>
 
 namespace Memory {

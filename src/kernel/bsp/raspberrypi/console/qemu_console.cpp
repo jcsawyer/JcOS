@@ -1,5 +1,4 @@
 #include "qemu_console.hpp"
-#include <memory.h>
 #include <stdarg.h>
 
 extern "C" void vprintf_(const char *format, ...);
@@ -15,8 +14,8 @@ void QemuConsole::print(const char *s, ...) {
   }
 }
 
-void QemuConsole::printChar(char character) {
-  volatile char *address = reinterpret_cast<volatile char *>(0x3F201000);
+void QemuConsole::printChar(const char character) {
+  const auto address = reinterpret_cast<volatile char *>(0x3F201000);
   *address = static_cast<char>(character);
 }
 
@@ -32,7 +31,7 @@ void QemuConsole::printLine(const char *format, ...) {
 }
 
 char QemuConsole::readChar() {
-  volatile char *uartAddress = reinterpret_cast<volatile char *>(0x3F201000);
+  const auto uartAddress = reinterpret_cast<volatile char *>(0x3F201000);
   return *uartAddress; // Read character from UART
 }
 } // namespace Console

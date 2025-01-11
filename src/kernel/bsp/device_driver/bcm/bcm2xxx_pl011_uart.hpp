@@ -10,9 +10,9 @@ public:
   UART(uint32_t mmio_start_addr) : registerBlock(mmio_start_addr) {};
   const char *compatible() override { return "BCM PL011 UART"; }
   void init() override;
-  void putc(const char c);
-  char getc();
-  void flush();
+  void putc(const char c) const;
+  char getc() const;
+  void flush() const;
   class UartConsole : public Console::Console {
   public:
     UartConsole(UART *uart) : uart(uart) {};

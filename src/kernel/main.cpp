@@ -1,23 +1,20 @@
-#include "main.hpp"
-#include "_arch/aarch64/exception.hpp"
+#include <exception.hpp>
+#include <main.hpp>
+#include <print.hpp>
+#include <bsp/raspberrypi.hpp>
+#include <bsp/raspberrypi/raspberrypi.hpp>
+#include <bsp/raspberrypi/memory/mmu.hpp>
+#include <console/console.hpp>
+#include <time/duration.hpp>
 #include "_arch/aarch64/exception/asynchronous.hpp"
 #include "_arch/aarch64/memory/mmu.hpp"
-#include "_arch/time.hpp"
-#include "bsp/raspberrypi.hpp"
-#include "bsp/raspberrypi/memory/mmu.hpp"
-#include "bsp/raspberrypi/raspberrypi.hpp"
-#include "console/console.hpp"
-#include <duration.hpp>
-#include <exception.hpp>
-#include <print.hpp>
-#include <time.hpp>
 
-extern "C" void putchar_(char c) {
+extern "C" void putchar_(const char c) {
   Console::Console *console = Console::Console::GetInstance();
   console->printChar(c);
 }
 
-const char *logo = R"""(
+auto logo = R"""(
     __
    |  |    _____ _____
  __|  |___|     |   __|
@@ -59,27 +56,6 @@ const char *logo = R"""(
   Exception::CurrentEL::current_privilege_level(&el_string);
   info("Current exception level: %s", el_string);
 
-  // Get the value of VBAR_EL1
-  uint64_t vbar_el1 = 0;
-  asm volatile("mrs %0, vbar_el1" : "=r"(vbar_el1));
-
-  info("Trying to read from address 8 GiB...");
-
-  unsigned long long big_addr = 8ULL * 1024ULL * 1024ULL * 1024ULL;
-  volatile unsigned long long *ptr =
-      reinterpret_cast<volatile unsigned long long *>(big_addr);
-  unsigned long long value = *ptr;
-
-  info("************************************************");
-  info("Whoa! We recovered from a synchronous exception!");
-  info("************************************************");
-  info("");
-
-  info("Let's try again");
-  big_addr = 9ULL * 1024ULL * 1024ULL * 1024ULL;
-  ptr = reinterpret_cast<volatile unsigned long long *>(big_addr);
-  value = *ptr;
-
   info("Echoing input now");
   while (true) {
     const char c = console->readChar();
@@ -88,7 +64,7 @@ const char *logo = R"""(
 }
 
 extern "C" void kernel_init() {
-  Memory::MemoryManagementUnit *mmu = Memory::MMU();
+  const Memory::MemoryManagementUnit *mmu = Memory::MMU();
   Exception::handlingInit();
   mmu->enableMMUAndCaching();
 

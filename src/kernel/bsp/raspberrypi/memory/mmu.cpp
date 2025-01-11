@@ -11,21 +11,21 @@ TranslationDescriptor *getDescriptors() {
           codeStart(),
           codeEndExclusive() - 1,
           TranslationType::Identity(),
-          {MemAttributes::CacheableDRAM, AccessPermissions::ReadOnly, false},
+          {CacheableDRAM, ReadOnly, false},
       },
       {
           "Remapped Device MMIO",
           0x1FFF0000,
           0x1FFFFFFF,
-          TranslationType::Offset(Memory::Map::getMMIO().START + 0x200000),
-          {MemAttributes::Device, AccessPermissions::ReadWrite, true},
+          TranslationType::Offset(Map::getMMIO().START + 0x200000),
+          {Device, ReadWrite, true},
       },
       {
           "Device MMIO",
-          Memory::Map::getMMIO().START,
-          Memory::Map::getMMIO().END_INCLUSIVE,
+          Map::getMMIO().START,
+          Map::getMMIO().END_INCLUSIVE,
           TranslationType::Identity(),
-          {MemAttributes::Device, AccessPermissions::ReadWrite, true},
+          {Device, ReadWrite, true},
       },
   };
 
@@ -36,8 +36,8 @@ static KernelVirtualLayout<NUM_MEM_RANGES> *kernelVirtualLayout = nullptr;
 
 KernelVirtualLayout<NUM_MEM_RANGES> *virtMemLayout() {
   if (kernelVirtualLayout == nullptr) {
-    static KernelVirtualLayout kvl = KernelVirtualLayout<NUM_MEM_RANGES>(
-        Memory::Map::END_INCLUSIVE, getDescriptors());
+    static auto kvl = KernelVirtualLayout<NUM_MEM_RANGES>(
+        Map::END_INCLUSIVE, getDescriptors());
     kernelVirtualLayout = &kvl;
   }
 

@@ -3,7 +3,7 @@
 namespace Time {
 
 // Constructors
-Duration::Duration(uint64_t secs, uint32_t nanos)
+Duration::Duration(const uint64_t secs, const uint32_t nanos)
     : seconds_(secs), nanoseconds_(nanos) {
   if (nanoseconds_ >= NANOS_PER_SEC) {
     seconds_ += nanoseconds_ / NANOS_PER_SEC;
@@ -16,17 +16,17 @@ Duration Duration::zero() { return Duration(0, 0); }
 
 Duration Duration::max() { return Duration(INT32_MAX, NANOS_PER_SEC - 1); }
 
-Duration Duration::from_secs(uint64_t secs) { return Duration(secs, 0); }
+Duration Duration::from_secs(const uint64_t secs) { return Duration(secs, 0); }
 
-Duration Duration::from_millis(uint64_t millis) {
-  return Duration(millis / 1'000, (millis % 1'000) * 1'000'000);
+Duration Duration::from_millis(const uint64_t millis) {
+  return Duration(millis / 1'000, millis % 1'000 * 1'000'000);
 }
 
-Duration Duration::from_micros(uint64_t micros) {
-  return Duration(micros / 1'000'000, (micros % 1'000'000) * 1'000);
+Duration Duration::from_micros(const uint64_t micros) {
+  return Duration(micros / 1'000'000, micros % 1'000'000 * 1'000);
 }
 
-Duration Duration::from_nanos(uint64_t nanos) {
+Duration Duration::from_nanos(const uint64_t nanos) {
   return Duration(nanos / NANOS_PER_SEC, nanos % NANOS_PER_SEC);
 }
 

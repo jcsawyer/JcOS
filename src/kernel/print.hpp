@@ -1,7 +1,7 @@
 #pragma once
 #include "console/console.hpp"
 #include "time.hpp"
-#include <duration.hpp>
+#include <time/duration.hpp>
 
 template <class... Args> void info(const char *format, Args... args) {
   Console::Console *console = Console::Console::GetInstance();

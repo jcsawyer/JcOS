@@ -1,6 +1,6 @@
 #pragma once
-#include <duration.hpp>
 #include <stdint.h>
+#include <time/duration.hpp>
 
 namespace Time {
 namespace Arch {

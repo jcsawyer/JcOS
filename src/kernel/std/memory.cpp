@@ -1,7 +1,7 @@
 #include <memory.h>
 
-extern "C" void *memset(void *dest, int value, size_t count) {
-  unsigned char *ptr = static_cast<unsigned char *>(dest);
+extern "C" void *memset(void *dest, const int value, size_t count) {
+  auto ptr = static_cast<unsigned char *>(dest);
   while (count--) {
     *ptr++ = static_cast<unsigned char>(value);
   }

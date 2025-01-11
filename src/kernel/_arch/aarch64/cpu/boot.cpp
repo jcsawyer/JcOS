@@ -19,10 +19,10 @@ void prepare_el2_to_el1_transition(
   // Simulate exception return
   // Fake a saved program status where all interrupts are masked and SP_EL1 is
   // used as the stack pointer
-  uint64_t spsr_value = (0b1 << 9) | // Mask D (Debug)
-                        (0b1 << 8) | // Mask A (SError)
-                        (0b1 << 7) | // Mask I (IRQ)
-                        (0b1 << 6) | // Mask F (FIQ)
+  uint64_t spsr_value = 0b1 << 9 | // Mask D (Debug)
+                        0b1 << 8 | // Mask A (SError)
+                        0b1 << 7 | // Mask I (IRQ)
+                        0b1 << 6 | // Mask F (FIQ)
                         0b0101;      // M::EL1h
   asm volatile("msr SPSR_EL2, %[value]" : : [value] "r"(spsr_value));
 

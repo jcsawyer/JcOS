@@ -12,7 +12,7 @@ public:
   RNG(unsigned int mmio_start_addr) : registerBlock(mmio_start_addr) {};
   const char *compatible() override { return "BCM RNG"; }
   void init() override;
-  unsigned int next(unsigned int min, unsigned int max);
+  unsigned int next(unsigned int min, unsigned int max) const;
 
 private:
   class RegisterBlock {

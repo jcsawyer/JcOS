@@ -30,12 +30,6 @@ extern "C" void current_elx_synchronous(ExceptionContext *context) {
     // get the value of FAR_EL1
     uint64_t far = 0;
     asm volatile("mrs %0, far_el1" : "=r"(far));
-
-    if (far == 8ULL * 1024ULL * 1024ULL * 1024ULL) {
-
-      context->elr_el1 += 4;
-      return;
-    }
   }
 
   defaultExceptionHandler(context);
@@ -77,7 +71,7 @@ extern "C" void lower_aarch32_serror(ExceptionContext *context) {
 
 void handlingInit() {
 
-  uint64_t vector_base = (uint64_t)(&__exception_vector_start);
+  uint64_t vector_base = reinterpret_cast<uint64_t>(&__exception_vector_start);
 
   // Write to VBAR_EL1 so the CPU uses that address for exception vectors.
   asm volatile("msr VBAR_EL1, %0" : : "r"(vector_base));

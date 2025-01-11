@@ -1,5 +1,4 @@
 #include "time.hpp"
-#include <stddef.h>
 
 namespace Time {
 TimeManager *TimeManager::instance = nullptr;

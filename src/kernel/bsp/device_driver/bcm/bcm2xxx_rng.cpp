@@ -1,8 +1,8 @@
 #include "bcm2xxx_rng.hpp"
 
-namespace Driver {
-namespace BSP {
-namespace BCM {
+
+
+namespace Driver::BSP::BCM {
 void RNG::init() {
   *registerBlock.RNG_STATUS = 0x40000;
   // Mask interrupt
@@ -15,7 +15,7 @@ void RNG::init() {
   }
 }
 
-unsigned int RNG::next(unsigned int min, unsigned int max) {
+unsigned int RNG::next(const unsigned int min, const unsigned int max) const {
   // Check if RNG is enabled
   if (!(*registerBlock.RNG_CTRL & 1)) {
     return -1;
@@ -27,10 +27,10 @@ unsigned int RNG::next(unsigned int min, unsigned int max) {
   }
 
   // Get random number
-  int rand = *registerBlock.RNG_DATA;
+  const int rand = *registerBlock.RNG_DATA;
   // Scale random number to be within range
-  return (rand % (max - min)) + min;
+  return rand % (max - min) + min;
 }
-} // namespace BCM
-} // namespace BSP
-} // namespace Driver
+} // namespace Driver::BSP::BCM
+
+

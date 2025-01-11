@@ -349,8 +349,8 @@ typedef struct {
 // or alternatively, that '\0' can be passed to the function in the output
 // gadget. The former assumption holds within the printf library. It also
 // assumes that the output gadget has been properly initialized.
-static inline void putchar_via_gadget(output_gadget_t *gadget, char c) {
-  printf_size_t write_pos = gadget->pos++;
+static void putchar_via_gadget(output_gadget_t *gadget, const char c) {
+  const printf_size_t write_pos = gadget->pos++;
   // We're _always_ increasing pos, so as to count how may characters
   // _would_ have been written if not for the max_chars limitation
   if (write_pos >= gadget->max_chars) {
@@ -368,26 +368,26 @@ static inline void putchar_via_gadget(output_gadget_t *gadget, char c) {
 }
 
 // Possibly-write the string-terminating '\0' character
-static inline void append_termination_with_gadget(output_gadget_t *gadget) {
+static void append_termination_with_gadget(const output_gadget_t *gadget) {
   if (gadget->function != NULL || gadget->max_chars == 0) {
     return;
   }
   if (gadget->buffer == NULL) {
     return;
   }
-  printf_size_t null_char_pos =
+  const printf_size_t null_char_pos =
       gadget->pos < gadget->max_chars ? gadget->pos : gadget->max_chars - 1;
   gadget->buffer[null_char_pos] = '\0';
 }
 
 // We can't use putchar_ as is, since our output gadget
 // only takes pointers to functions with an extra argument
-static inline void putchar_wrapper(char c, void *unused) {
+static void putchar_wrapper(char c, void *unused) {
   (void)unused;
   putchar_(c);
 }
 
-static inline output_gadget_t discarding_gadget(void) {
+static output_gadget_t discarding_gadget(void) {
   output_gadget_t gadget;
   gadget.function = NULL;
   gadget.extra_function_arg = NULL;
@@ -397,11 +397,11 @@ static inline output_gadget_t discarding_gadget(void) {
   return gadget;
 }
 
-static inline output_gadget_t buffer_gadget(char *buffer, size_t buffer_size) {
-  printf_size_t usable_buffer_size =
-      (buffer_size > PRINTF_MAX_POSSIBLE_BUFFER_SIZE)
-          ? PRINTF_MAX_POSSIBLE_BUFFER_SIZE
-          : (printf_size_t)buffer_size;
+static output_gadget_t buffer_gadget(char *buffer, const size_t buffer_size) {
+  const printf_size_t usable_buffer_size =
+      buffer_size > PRINTF_MAX_POSSIBLE_BUFFER_SIZE
+        ? PRINTF_MAX_POSSIBLE_BUFFER_SIZE
+          : static_cast<printf_size_t>(buffer_size);
   output_gadget_t result = discarding_gadget();
   if (buffer != NULL) {
     result.buffer = buffer;
@@ -410,8 +410,8 @@ static inline output_gadget_t buffer_gadget(char *buffer, size_t buffer_size) {
   return result;
 }
 
-static inline output_gadget_t function_gadget(void (*function)(char, void *),
-                                              void *extra_arg) {
+static output_gadget_t function_gadget(void (*function)(char, void *),
+                                       void *extra_arg) {
   output_gadget_t result = discarding_gadget();
   result.function = function;
   result.extra_function_arg = extra_arg;
@@ -419,7 +419,7 @@ static inline output_gadget_t function_gadget(void (*function)(char, void *),
   return result;
 }
 
-static inline output_gadget_t extern_putchar_gadget(void) {
+static output_gadget_t extern_putchar_gadget(void) {
   return function_gadget(putchar_wrapper, NULL);
 }
 
@@ -428,30 +428,30 @@ static inline output_gadget_t extern_putchar_gadget(void) {
 // 'maxsize'
 // @note strlen uses size_t, but wes only use this function with printf_size_t
 // variables - hence the signature.
-static inline printf_size_t strnlen_s_(const char *str, printf_size_t maxsize) {
+static printf_size_t strnlen_s_(const char *str, printf_size_t maxsize) {
   const char *s;
   for (s = str; *s && maxsize--; ++s)
     ;
-  return (printf_size_t)(s - str);
+  return static_cast<printf_size_t>(s - str);
 }
 
 // internal test if char is a digit (0-9)
 // @return true if char is a digit
-static inline bool is_digit_(char ch) { return (ch >= '0') && (ch <= '9'); }
+static bool is_digit_(const char ch) { return ch >= '0' && ch <= '9'; }
 
 // internal ASCII string to printf_size_t conversion
 static printf_size_t atou_(const char **str) {
   printf_size_t i = 0U;
   while (is_digit_(**str)) {
-    i = i * 10U + (printf_size_t)(*((*str)++) - '0');
+    i = i * 10U + static_cast<printf_size_t>(*(*str)++ - '0');
   }
   return i;
 }
 
 // output the specified string in reverse, taking care of any zero-padding
 static void out_rev_(output_gadget_t *output, const char *buf,
-                     printf_size_t len, printf_size_t width,
-                     printf_flags_t flags) {
+                     printf_size_t len, const printf_size_t width,
+                     const printf_flags_t flags) {
   const printf_size_t start_pos = output->pos;
 
   // pad spaces up to given width
@@ -478,31 +478,31 @@ static void out_rev_(output_gadget_t *output, const char *buf,
 // necessary work on the number's prefix (as the number is initially printed in
 // reverse order)
 static void print_integer_finalization(output_gadget_t *output, char *buf,
-                                       printf_size_t len, bool negative,
-                                       numeric_base_t base,
-                                       printf_size_t precision,
+                                       printf_size_t len, const bool negative,
+                                       const numeric_base_t base,
+                                       const printf_size_t precision,
                                        printf_size_t width,
                                        printf_flags_t flags) {
-  printf_size_t unpadded_len = len;
+  const printf_size_t unpadded_len = len;
 
   // pad with leading zeros
   {
     if (!(flags & FLAGS_LEFT)) {
-      if (width && (flags & FLAGS_ZEROPAD) &&
-          (negative || (flags & (FLAGS_PLUS | FLAGS_SPACE)))) {
+      if (width && flags & FLAGS_ZEROPAD &&
+          (negative || flags & (FLAGS_PLUS | FLAGS_SPACE))) {
         width--;
       }
-      while ((flags & FLAGS_ZEROPAD) && (len < width) &&
-             (len < PRINTF_INTEGER_BUFFER_SIZE)) {
+      while (flags & FLAGS_ZEROPAD && len < width &&
+             len < PRINTF_INTEGER_BUFFER_SIZE) {
         buf[len++] = '0';
       }
     }
 
-    while ((len < precision) && (len < PRINTF_INTEGER_BUFFER_SIZE)) {
+    while (len < precision && len < PRINTF_INTEGER_BUFFER_SIZE) {
       buf[len++] = '0';
     }
 
-    if (base == BASE_OCTAL && (len > unpadded_len)) {
+    if (base == BASE_OCTAL && len > unpadded_len) {
       // Since we've written some zeros, we've satisfied the alternative format
       // leading space requirement
       flags &= ~FLAGS_HASH;
@@ -512,24 +512,24 @@ static void print_integer_finalization(output_gadget_t *output, char *buf,
   // handle hash
   if (flags & (FLAGS_HASH | FLAGS_POINTER)) {
     if (!(flags & FLAGS_PRECISION) && len &&
-        ((len == precision) || (len == width))) {
+        (len == precision || len == width)) {
       // Let's take back some padding digits to fit in what will eventually
       // be the format-specific prefix
       if (unpadded_len < len) {
         len--; // This should suffice for BASE_OCTAL
       }
       if (len && (base == BASE_HEX || base == BASE_BINARY) &&
-          (unpadded_len < len)) {
+          unpadded_len < len) {
         len--; // ... and an extra one for 0x or 0b
       }
     }
-    if ((base == BASE_HEX) && !(flags & FLAGS_UPPERCASE) &&
-        (len < PRINTF_INTEGER_BUFFER_SIZE)) {
+    if (base == BASE_HEX && !(flags & FLAGS_UPPERCASE) &&
+        len < PRINTF_INTEGER_BUFFER_SIZE) {
       buf[len++] = 'x';
-    } else if ((base == BASE_HEX) && (flags & FLAGS_UPPERCASE) &&
-               (len < PRINTF_INTEGER_BUFFER_SIZE)) {
+    } else if (base == BASE_HEX && flags & FLAGS_UPPERCASE &&
+               len < PRINTF_INTEGER_BUFFER_SIZE) {
       buf[len++] = 'X';
-    } else if ((base == BASE_BINARY) && (len < PRINTF_INTEGER_BUFFER_SIZE)) {
+    } else if (base == BASE_BINARY && len < PRINTF_INTEGER_BUFFER_SIZE) {
       buf[len++] = 'b';
     }
     if (len < PRINTF_INTEGER_BUFFER_SIZE) {
@@ -552,9 +552,9 @@ static void print_integer_finalization(output_gadget_t *output, char *buf,
 
 // An internal itoa-like function
 static void print_integer(output_gadget_t *output,
-                          printf_unsigned_value_t value, bool negative,
-                          numeric_base_t base, printf_size_t precision,
-                          printf_size_t width, printf_flags_t flags) {
+                          printf_unsigned_value_t value, const bool negative,
+                          const numeric_base_t base, const printf_size_t precision,
+                          const printf_size_t width, printf_flags_t flags) {
   char buf[PRINTF_INTEGER_BUFFER_SIZE];
   printf_size_t len = 0U;
 
@@ -572,12 +572,13 @@ static void print_integer(output_gadget_t *output,
     }
   } else {
     do {
-      const char digit = (char)(value % base);
-      buf[len++] = (char)(digit < 10 ? '0' + digit
-                                     : (flags & FLAGS_UPPERCASE ? 'A' : 'a') +
-                                           digit - 10);
+      const char digit = static_cast<char>(value % base);
+      buf[len++] = static_cast<char>(digit < 10
+                                       ? '0' + digit
+                                       : (flags & FLAGS_UPPERCASE ? 'A' : 'a') +
+                                         digit - 10);
       value /= base;
-    } while (value && (len < PRINTF_INTEGER_BUFFER_SIZE));
+    } while (value && len < PRINTF_INTEGER_BUFFER_SIZE);
   }
 
   print_integer_finalization(output, buf, len, negative, base, precision, width,
@@ -1194,8 +1195,8 @@ static printf_flags_t parse_flags(const char **format) {
   } while (true);
 }
 
-static inline void format_string_loop(output_gadget_t *output,
-                                      const char *format, va_list args) {
+static void format_string_loop(output_gadget_t *output,
+                               const char *format, const va_list args) {
 #if PRINTF_CHECK_FOR_NUL_IN_FORMAT_SPECIFIER
 #define ADVANCE_IN_FORMAT_STRING(cptr_)                                        \
   do {                                                                         \
@@ -1221,17 +1222,19 @@ static inline void format_string_loop(output_gadget_t *output,
 
     // evaluate width field
     printf_size_t width = 0U;
-    if (is_digit_(*format)) {
-      width = (printf_size_t)atou_(&format);
-    } else if (*format == '*') {
-      const int w = va_arg(args, int);
-      if (w < 0) {
-        flags |= FLAGS_LEFT; // reverse padding
-        width = (printf_size_t)-w;
-      } else {
-        width = (printf_size_t)w;
+    if (!is_digit_(*format)) {
+      if (*format == '*') {
+        const int w = va_arg(args, int);
+        if (w < 0) {
+          flags |= FLAGS_LEFT; // reverse padding
+          width = static_cast<printf_size_t>(-w);
+        } else {
+          width = static_cast<printf_size_t>(w);
+        }
+        ADVANCE_IN_FORMAT_STRING(format);
       }
-      ADVANCE_IN_FORMAT_STRING(format);
+    } else {
+      width = atou_(&format);
     }
 
     // evaluate precision field
@@ -1240,10 +1243,10 @@ static inline void format_string_loop(output_gadget_t *output,
       flags |= FLAGS_PRECISION;
       ADVANCE_IN_FORMAT_STRING(format);
       if (is_digit_(*format)) {
-        precision = (printf_size_t)atou_(&format);
+        precision = atou_(&format);
       } else if (*format == '*') {
         const int precision_ = va_arg(args, int);
-        precision = precision_ > 0 ? (printf_size_t)precision_ : 0U;
+        precision = precision_ > 0 ? static_cast<printf_size_t>(precision_) : 0U;
         ADVANCE_IN_FORMAT_STRING(format);
       }
     }
@@ -1307,19 +1310,19 @@ static inline void format_string_loop(output_gadget_t *output,
       }
       break;
     case 't':
-      flags |= (sizeof(ptrdiff_t) <= sizeof(int))    ? FLAGS_INT
-               : (sizeof(ptrdiff_t) == sizeof(long)) ? FLAGS_LONG
+      flags |= sizeof(ptrdiff_t) <= sizeof(int)    ? FLAGS_INT
+               : sizeof(ptrdiff_t) == sizeof(long) ? FLAGS_LONG
                                                      : FLAGS_LONG_LONG;
       ADVANCE_IN_FORMAT_STRING(format);
       break;
     case 'j':
       flags |=
-          (sizeof(intmax_t) == sizeof(long) ? FLAGS_LONG : FLAGS_LONG_LONG);
+          sizeof(intmax_t) == sizeof(long) ? FLAGS_LONG : FLAGS_LONG_LONG;
       ADVANCE_IN_FORMAT_STRING(format);
       break;
     case 'z':
-      flags |= (sizeof(size_t) <= sizeof(int))    ? FLAGS_INT
-               : (sizeof(size_t) == sizeof(long)) ? FLAGS_LONG
+      flags |= sizeof(size_t) <= sizeof(int)    ? FLAGS_INT
+               : sizeof(size_t) == sizeof(long) ? FLAGS_LONG
                                                   : FLAGS_LONG_LONG;
       ADVANCE_IN_FORMAT_STRING(format);
       break;
@@ -1384,8 +1387,8 @@ static inline void format_string_loop(output_gadget_t *output,
           // come in after promotion, as int's (or unsigned for the case of
           // short unsigned when it has the same size as int)
           const int value =
-              (flags & FLAGS_CHAR)    ? (signed char)va_arg(args, int)
-              : (flags & FLAGS_SHORT) ? (short int)va_arg(args, int)
+              flags & FLAGS_CHAR    ? static_cast<signed char>(va_arg(args, int))
+              : flags & FLAGS_SHORT ? static_cast<short int>(va_arg(args, int))
                                       : va_arg(args, int);
           print_integer(output, ABS_FOR_PRINTING(value), value < 0, base,
                         precision, width, flags);
@@ -1398,20 +1401,20 @@ static inline void format_string_loop(output_gadget_t *output,
         if (flags & FLAGS_LONG_LONG) {
 #if PRINTF_SUPPORT_LONG_LONG
           print_integer(
-              output, (printf_unsigned_value_t)va_arg(args, unsigned long long),
+              output, va_arg(args, unsigned long long),
               false, base, precision, width, flags);
 #endif
         } else if (flags & FLAGS_LONG) {
           print_integer(output,
-                        (printf_unsigned_value_t)va_arg(args, unsigned long),
+                        va_arg(args, unsigned long),
                         false, base, precision, width, flags);
         } else {
           const unsigned int value =
-              (flags & FLAGS_CHAR) ? (unsigned char)va_arg(args, unsigned int)
-              : (flags & FLAGS_SHORT)
-                  ? (unsigned short int)va_arg(args, unsigned int)
+              flags & FLAGS_CHAR ? static_cast<unsigned char>(va_arg(args, unsigned int))
+              : flags & FLAGS_SHORT
+                  ? static_cast<unsigned short int>(va_arg(args, unsigned int))
                   : va_arg(args, unsigned int);
-          print_integer(output, (printf_unsigned_value_t)value, false, base,
+          print_integer(output, value, false, base,
                         precision, width, flags);
         }
       }
@@ -1426,7 +1429,7 @@ static inline void format_string_loop(output_gadget_t *output,
         }
       }
       // char output
-      putchar_via_gadget(output, (char)va_arg(args, int));
+      putchar_via_gadget(output, static_cast<char>(va_arg(args, int)));
       // post padding
       if (flags & FLAGS_LEFT) {
         while (l++ < width) {
@@ -1446,7 +1449,7 @@ static inline void format_string_loop(output_gadget_t *output,
             p, precision ? precision : PRINTF_MAX_POSSIBLE_BUFFER_SIZE);
         // pre padding
         if (flags & FLAGS_PRECISION) {
-          l = (l < precision ? l : precision);
+          l = l < precision ? l : precision;
         }
         if (!(flags & FLAGS_LEFT)) {
           while (l++ < width) {
@@ -1454,8 +1457,8 @@ static inline void format_string_loop(output_gadget_t *output,
           }
         }
         // string output
-        while ((*p != 0) && (!(flags & FLAGS_PRECISION) || precision)) {
-          putchar_via_gadget(output, *(p++));
+        while (*p != 0 && (!(flags & FLAGS_PRECISION) || precision)) {
+          putchar_via_gadget(output, *p++);
           --precision;
         }
         // post padding
@@ -1472,10 +1475,10 @@ static inline void format_string_loop(output_gadget_t *output,
     case 'p': {
       width = sizeof(void *) * 2U + 2; // 2 hex chars per byte + the "0x" prefix
       flags |= FLAGS_ZEROPAD | FLAGS_POINTER;
-      uintptr_t value = (uintptr_t)va_arg(args, void *);
-      (value == (uintptr_t)NULL)
+      const uintptr_t value = reinterpret_cast<uintptr_t>(va_arg(args, void *));
+      value == static_cast<uintptr_t>(NULL)
           ? out_rev_(output, ")lin(", 5, width, flags)
-          : print_integer(output, (printf_unsigned_value_t)value, false,
+          : print_integer(output, value, false,
                           BASE_HEX, precision, width, flags);
       format++;
       break;
@@ -1492,17 +1495,17 @@ static inline void format_string_loop(output_gadget_t *output,
 #if PRINTF_SUPPORT_WRITEBACK_SPECIFIER
     case 'n': {
       if (flags & FLAGS_CHAR)
-        *(va_arg(args, char *)) = (char)output->pos;
+        *va_arg(args, char *) = static_cast<char>(output->pos);
       else if (flags & FLAGS_SHORT)
-        *(va_arg(args, short *)) = (short)output->pos;
+        *va_arg(args, short *) = static_cast<short>(output->pos);
       else if (flags & FLAGS_LONG)
-        *(va_arg(args, long *)) = (long)output->pos;
+        *va_arg(args, long *) = static_cast<long>(output->pos);
 #if PRINTF_SUPPORT_LONG_LONG
       else if (flags & FLAGS_LONG_LONG)
-        *(va_arg(args, long long *)) = (long long int)output->pos;
+        *va_arg(args, long long *) = static_cast<long long int>(output->pos);
 #endif // PRINTF_SUPPORT_LONG_LONG
       else
-        *(va_arg(args, int *)) = (int)output->pos;
+        *va_arg(args, int *) = static_cast<int>(output->pos);
       format++;
       break;
     }
@@ -1518,7 +1521,7 @@ static inline void format_string_loop(output_gadget_t *output,
 
 // internal vsnprintf - used for implementing _all library functions
 static int vsnprintf_impl(output_gadget_t *output, const char *format,
-                          va_list args) {
+                          const va_list args) {
   // Note: The library only calls vsnprintf_impl() with output->pos being 0.
   // However, it is possible to call this function with a non-zero pos value for
   // some "remedial printing".
@@ -1528,27 +1531,27 @@ static int vsnprintf_impl(output_gadget_t *output, const char *format,
   append_termination_with_gadget(output);
 
   // return written chars without terminating \0
-  return (int)output->pos;
+  return static_cast<int>(output->pos);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 
-int vprintf_(const char *format, va_list arg) {
+int vprintf_(const char *format, const va_list arg) {
   output_gadget_t gadget = extern_putchar_gadget();
   return vsnprintf_impl(&gadget, format, arg);
 }
 
-int vsnprintf_(char *s, size_t n, const char *format, va_list arg) {
+int vsnprintf_(char *s, const size_t n, const char *format, const va_list arg) {
   output_gadget_t gadget = buffer_gadget(s, n);
   return vsnprintf_impl(&gadget, format, arg);
 }
 
-int vsprintf_(char *s, const char *format, va_list arg) {
+int vsprintf_(char *s, const char *format, const va_list arg) {
   return vsnprintf_(s, PRINTF_MAX_POSSIBLE_BUFFER_SIZE, format, arg);
 }
 
 int vfctprintf(void (*out)(char c, void *extra_arg), void *extra_arg,
-               const char *format, va_list arg) {
+               const char *format, const va_list arg) {
   if (out == NULL) {
     return 0;
   }
@@ -1572,7 +1575,7 @@ int sprintf_(char *s, const char *format, ...) {
   return ret;
 }
 
-int snprintf_(char *s, size_t n, const char *format, ...) {
+int snprintf_(char *s, const size_t n, const char *format, ...) {
   va_list args;
   va_start(args, format);
   const int ret = vsnprintf_(s, n, format, args);

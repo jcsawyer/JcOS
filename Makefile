@@ -1,4 +1,4 @@
-STD_SRCS = ./src/kernel/std/printf.cpp ./src/kernel/std/minimal_runtime.cpp ./src/kernel/std/duration.cpp ./src/kernel/std/memory.cpp
+STD_SRCS = ./src/kernel/std/printf.cpp ./src/kernel/std/minimal_runtime.cpp ./src/kernel/time/duration.cpp ./src/kernel/std/memory.cpp
 STD_INC = -isystem ./src/kernel/std
 
 ARCH_SRCS = ./src/kernel/_arch/time.cpp ./src/kernel/_arch/aarch64/exception/asynchronous.cpp ./src/kernel/_arch/aarch64/exception.cpp ./src/kernel/_arch/aarch64/memory/mmu.cpp
@@ -22,7 +22,7 @@ DRIVER_INC = -I ./src/kernel/driver
 SRCS = ./src/kernel/main.cpp ./src/kernel/time.cpp $(STD_SRCS) $(ARCH_SRCS) $(AARCH64_SRCS) $(BSP_SRCS) $(CONSOLE_SRCS) $(DRIVER_SRCS) $(RASPI_SRCS)
 OBJS = $(SRCS:.cpp=.o)
 INCLUDES = -isystem ./src/kernel $(STD_INC) $(ARCH_INC) $(AARCH64_INC) $(BSP_INC) $(CONSOLE_INC) $(DRIVER_INC) $(RASPI_INC)
-DEFINES = -DBOARD=bsp_rpi3bplus
+DEFINES = -DBOARD=bsp_rpi3
 CFLAGS = $(DEFINES) -Wall -O0 -mgeneral-regs-only -g -ffreestanding -nostdinc -nostdlib -nostartfiles -fno-rtti -fno-exceptions -fno-threadsafe-statics -fno-use-cxa-atexit $(INCLUDES)
 
 all: clean kernel8.img run
