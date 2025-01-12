@@ -4,6 +4,6 @@ namespace BSP {
 class Board {
 public:
   static void init();
-  static const char *DeviceName();
+  static void PrintInfo();
 };
 } // namespace BSP

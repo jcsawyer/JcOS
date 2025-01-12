@@ -28,7 +28,7 @@ auto logo = R"""(
 
   console->print(logo);
   info("%s version %s", "JcOS", "0.1.0");
-  info("Booting on: %s", BSP::Board::DeviceName());
+  BSP::Board::PrintInfo();
 
   info("MMU online. Special regions:");
   Memory::virtMemLayout()->printLayout();
