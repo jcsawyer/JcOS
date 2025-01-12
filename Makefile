@@ -20,6 +20,7 @@ KERNEL_SRC	:=	$(wildcard src/kernel/*.cpp) \
 				$(wildcard src/kernel/arch/*.cpp) \
 				$(wildcard src/kernel/time/*.cpp) \
 				$(wildcard src/kernel/bsp/device_driver/*.cpp) \
+				$(wildcard src/kernel/bsp/bsp.cpp) \
 				$(wildcard src/kernel/console/*.cpp) \
 				$(wildcard src/kernel/console/null_console/*.cpp) \
 				$(wildcard src/kernel/driver/*.cpp)

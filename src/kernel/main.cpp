@@ -1,6 +1,6 @@
 #include <bsp/bsp.hpp>
-#include <bsp/raspberrypi/raspberrypi.hpp>
 #include <console/console.hpp>
+#include <driver/driver.hpp>
 #include <exception.hpp>
 #include <main.hpp>
 #include <memory/mmu.hpp>
@@ -42,8 +42,6 @@ auto logo = R"""(
 
   info("Drivers loaded:");
   Driver::driverManager().printDrivers();
-  info("Today's random number: %d",
-       Driver::BSP::RaspberryPi::RaspberryPi::getRNG()->next(0, 100));
 
   Time::TimeManager *timeManager = Time::TimeManager::GetInstance();
   info("Timer test, spinning for 1 second...");
@@ -67,7 +65,7 @@ extern "C" void kernel_init() {
   mmu->enableMMUAndCaching();
 
   Time::TimeManager::GetInstance()->init();
-  Driver::BSP::RaspberryPi::RaspberryPi::init();
+  BSP::Board::init();
   Driver::driverManager().init();
 
   kernel_main();
