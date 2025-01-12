@@ -1,6 +1,6 @@
 #pragma once
-#include "console/console.hpp"
-#include "time.hpp"
+#include <console/console.hpp>
+#include <time.hpp>
 #include <time/duration.hpp>
 
 template <class... Args> void info(const char *format, Args... args) {
