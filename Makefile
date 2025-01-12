@@ -29,6 +29,7 @@ KERNEL_INC	:=	-isystem ./src/kernel
 AARCH64_SRCS :=	$(wildcard src/kernel/arch/aarch64/*.cpp) \
 				$(wildcard src/kernel/arch/aarch64/cpu/*.cpp) \
 				$(wildcard src/kernel/arch/aarch64/exception/*.cpp) \
+				$(wildcard src/kernel/arch/aarch64/mailbox/*.cpp) \
 				$(wildcard src/kernel/arch/aarch64/memory/*.cpp)
 AARCH64_ASM	:=	$(wildcard src/kernel/arch/aarch64/*.s) \
 				$(wildcard src/kernel/arch/aarch64/cpu/*.s)
@@ -37,6 +38,7 @@ BSP_RPI_SRCS:=	$(wildcard src/kernel/bsp/device_driver/bcm/*.cpp) \
 				$(wildcard src/kernel/bsp/raspberrypi.cpp) \
 				$(wildcard src/kernel/bsp/raspberrypi/*.cpp) \
 				$(wildcard src/kernel/bsp/raspberrypi/console/*.cpp) \
+				$(wildcard src/kernel/bsp/raspberrypi/mailbox/*.cpp) \
 				$(wildcard src/kernel/bsp/raspberrypi/memory/*.cpp)
 
 BIN_DIR		:= bin
@@ -60,7 +62,7 @@ endif
 C_OBJS		:= $(SRCS:%.cpp=$(OBJ_DIR)/%.o)
 ASM_OBJS	:= $(ASM_SRCS:%.s=$(ASM_OBJ_DIR)/%.o)
 INCLUDES	:= $(KERNEL_INC) $(LIBC_INC)
-DEFINES		:= -DBOARD=$(BOARD)
+DEFINES		:= -DARCH=$(ARCH) -DBOARD=$(BOARD)
 CFLAGS		:= -Wall -O0 -mgeneral-regs-only -g -ffreestanding -nostdinc -nostdlib -nostartfiles -fno-rtti -fno-exceptions -fno-threadsafe-statics -fno-use-cxa-atexit
 
 all: check-args clean format kernel8.img run
