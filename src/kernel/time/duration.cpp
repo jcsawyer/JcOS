@@ -82,6 +82,11 @@ Duration Duration::operator+(const Duration &other) const {
   return Duration(seconds_ + other.seconds_, nanoseconds_ + other.nanoseconds_);
 }
 
+Duration Duration::operator+=(const Duration &other) {
+  seconds_ += other.seconds_;
+  nanoseconds_ += other.nanoseconds_;
+}
+
 Duration Duration::operator-(const Duration &other) const {
   if (*this < other) {
     return zero(); // Prevent negative durations

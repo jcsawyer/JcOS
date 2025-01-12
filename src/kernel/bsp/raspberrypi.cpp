@@ -4,7 +4,6 @@
 #include <bsp/raspberrypi/mailbox/mailbox.hpp>
 #include <bsp/raspberrypi/mailbox/messages/board_model.hpp>
 #include <bsp/raspberrypi/mailbox/messages/board_revision.hpp>
-#include <bsp/raspberrypi/mailbox/messages/firmware_version.hpp>
 
 static const char *formatMemorySize(uint32_t revision) {
   switch ((revision >> 20) & 0x7) {
@@ -111,11 +110,17 @@ void BSP::Board::PrintInfo() {
       Mailbox::RaspberryPi::Channel::Property);
 
   Mailbox::RaspberryPi::Messages::BoardRevisionRequest boardRevisionRequest;
-  auto boardRevisionResponse = mailbox.Call(&boardRevisionRequest);
+  Mailbox::RaspberryPi::Messages::BoardRevisionResponse *boardRevisionResponse =
+      nullptr;
+  if (!mailbox.Call(&boardRevisionRequest, boardRevisionResponse)) {
+    warn("Failed to get board revision");
+    return;
+  }
+
   Mailbox::RaspberryPi::Messages::BoardRevisionResponse *boardRevision;
   boardRevision =
       static_cast<Mailbox::RaspberryPi::Messages::BoardRevisionResponse *>(
-          &boardRevisionResponse);
+          boardRevisionResponse);
   uint32_t revision = boardRevision->BoardRevision();
   info("Board revision: 0x%X", revision);
 

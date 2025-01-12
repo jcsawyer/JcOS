@@ -7,7 +7,7 @@ namespace Mailbox {
 
 class Mailbox {
 public:
-  virtual Response Call(Request *request) = 0;
+  virtual bool Call(Request *request, Response *response) = 0;
   virtual bool IsFull() = 0;
   virtual bool IsEmpty() = 0;
 

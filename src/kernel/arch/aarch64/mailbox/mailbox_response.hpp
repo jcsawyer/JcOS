@@ -6,11 +6,9 @@ namespace Mailbox {
 
 class Response {
 public:
-  Response(uint32_t *data) : _data(data) {}
+  Response(uint32_t *data) : Data(data) {}
   virtual ~Response() = default;
-
-protected:
-  alignas(16) uint32_t *_data;
+  alignas(16) uint32_t *Data;
 };
 
 } // namespace Mailbox

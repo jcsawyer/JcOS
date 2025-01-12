@@ -10,7 +10,7 @@ namespace Mailbox::RaspberryPi::Messages {
 class FirmwareVersionResponse : public Response {
 public:
   FirmwareVersionResponse(uint32_t *data) : Response(data) {}
-  uint32_t FirmwareRevision() { return _data[0]; }
+  uint32_t FirmwareRevision() { return Data[0]; }
 };
 
 class FirmwareVersionRequest : public Request {

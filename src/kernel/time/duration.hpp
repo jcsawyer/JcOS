@@ -38,6 +38,7 @@ public:
 
   // Arithmetic operators
   Duration operator+(const Duration &other) const;
+  Duration operator+=(const Duration &other);
   Duration operator-(const Duration &other) const;
 
 private:

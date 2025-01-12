@@ -1,11 +1,13 @@
 #include "mailbox.hpp"
 #include <arch/cpu.hpp>
 #include <memory.h>
+#include <print.hpp>
 #include <stdint.h>
+#include <time.hpp>
 
 namespace Mailbox::RaspberryPi {
 
-Response RaspberryPiMailbox::Call(Request *request) {
+bool RaspberryPiMailbox::Call(Request *request, Response *response) {
   // Clear the data buffer
   // memset(Data, 0, sizeof(Data));
   // Determine the length of the request
@@ -19,14 +21,26 @@ Response RaspberryPiMailbox::Call(Request *request) {
   uintptr_t ptr = reinterpret_cast<uint64_t>(&Data);
   uintptr_t r = (ptr & ~mask) | (channel & 0xF);
 
+  const auto timeout = Time::Duration::from_secs(2);
+  auto end = Time::TimeManager::GetInstance()->uptime() + timeout;
   while (IsFull()) {
+    if (Time::TimeManager::GetInstance()->uptime() > end) {
+      warn("Failed to send message to mailbox within 2 second timeout...");
+      return false;
+    }
     CPU::nop();
   }
 
   *MAILBOX_WRITE = static_cast<uint32_t>(r);
 
   while (true) {
+    end = Time::TimeManager::GetInstance()->uptime() + timeout;
     while (IsEmpty()) {
+      if (Time::TimeManager::GetInstance()->uptime() > end) {
+        warn("Failed to receive response from mailbox within 2 second "
+             "timeout...");
+        return false;
+      }
       CPU::nop();
     }
     if (r == *MAILBOX_READ) {
@@ -36,9 +50,11 @@ Response RaspberryPiMailbox::Call(Request *request) {
         for (uint32_t i = 0; i < responseSize; i++) {
           responseData[i] = Data[i + 5];
         }
-        return Response(responseData);
+        response->Data = responseData;
+        return true;
       }
     }
   }
+  return false;
 }
 } // namespace Mailbox::RaspberryPi

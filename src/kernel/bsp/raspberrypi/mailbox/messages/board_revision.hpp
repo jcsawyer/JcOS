@@ -10,7 +10,7 @@ namespace Mailbox::RaspberryPi::Messages {
 class BoardRevisionResponse : public Response {
 public:
   BoardRevisionResponse(uint32_t *data) : Response(data) {}
-  uint32_t BoardRevision() { return _data[0]; }
+  uint32_t BoardRevision() { return Data[0]; }
 };
 
 class BoardRevisionRequest : public Request {

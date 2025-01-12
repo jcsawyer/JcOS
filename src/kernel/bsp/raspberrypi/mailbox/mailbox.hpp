@@ -23,7 +23,7 @@ class RaspberryPiMailbox : public Mailbox::Mailbox {
 public:
   RaspberryPiMailbox(Channel channel) : Mailbox(), channel(channel) {}
 
-  Response Call(Request *request) override;
+  bool Call(Request *request, Response *response) override;
   bool IsFull() override { return (*MAILBOX_STATUS & MAIL_FULL) != 0; }
   bool IsEmpty() override { return (*MAILBOX_STATUS & MAIL_EMPTY) != 0; }
   alignas(16) uint32_t Data[36];
