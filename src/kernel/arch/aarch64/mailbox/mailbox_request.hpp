@@ -16,8 +16,8 @@ protected:
   static const uint32_t TAG;
   static const uint32_t REQUEST_TAG = 0;
   static const uint32_t END_TAG = 0;
-  uint32_t MessageSize(uint32_t size) { return size * 4; }
-  uint32_t ResponseSize(uint32_t size) { return size / 4; }
+  static uint32_t MessageSize(uint32_t size) { return size * 4; }
+  static uint32_t ResponseSize(uint32_t size) { return size / 4; }
   alignas(16) uint32_t *_data;
 };
 

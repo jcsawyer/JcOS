@@ -84,8 +84,11 @@ void MemoryManagementUnit::enableMMUAndCaching() {
 
   // Enable the MMU and caching in SCTLR_EL1.
   uint64_t sctlr_value = READ_SYSREG(sctlr_el1);
-  sctlr_value |= 1 << 0;  // M: Enable MMU
-  sctlr_value |= 1 << 2;  // C: Enable data cache
+  sctlr_value |= 1 << 0; // M: Enable MMU
+  // TODO re-enable data cache
+  // https://github.com/rust-embedded/rust-raspberrypi-OS-tutorials/issues/11
+  // sctlr_value |= 1 << 1;  // C: Enable data cache
+  sctlr_value |= 1 << 0;  // C: Enable data cache
   sctlr_value |= 1 << 12; // I: Enable instruction cache
   WRITE_SYSREG(sctlr_el1, sctlr_value);
 

@@ -16,11 +16,12 @@ public:
 class BoardModelRequest : public Request {
 public:
   BoardModelRequest() : Request() {
-    _data[0] = Request::MessageSize(5);
+    _data[0] = Request::MessageSize(6);
     _data[1] = Request::REQUEST_TAG;
     _data[2] = TAG;
-    _data[3] = 8;
-    _data[4] = Request::END_TAG;
+    _data[3] = 4;
+    _data[4] = 0;
+    _data[5] = Request::END_TAG;
   }
 
   uint32_t *Data() override { return _data; }

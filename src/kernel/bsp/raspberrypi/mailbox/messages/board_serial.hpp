@@ -7,15 +7,20 @@
 
 namespace Mailbox::RaspberryPi::Messages {
 
-class BoardRevisionResponse : public Response {
-public:
-  BoardRevisionResponse(uint32_t *data) : Response(data) {}
-  uint32_t BoardRevision() { return Data[0]; }
+struct BoardSerial {
+  uint32_t Low;
+  uint32_t High;
 };
 
-class BoardRevisionRequest : public Request {
+class BoardSerialResponse : public Response {
 public:
-  BoardRevisionRequest() : Request() {
+  BoardSerialResponse(uint32_t *data) : Response(data) {}
+  BoardSerial BoardSerial() { return {Data[1], Data[0]}; }
+};
+
+class BoardSerialRequest : public Request {
+public:
+  BoardSerialRequest() : Request() {
     _data[0] = Request::MessageSize(8);
     _data[1] = Request::REQUEST_TAG;
     _data[2] = TAG;
@@ -28,10 +33,10 @@ public:
 
   uint32_t *Data() override { return _data; }
 
-  size_t ResponseSize() override { return 1; }
+  size_t ResponseSize() override { return 2; }
 
 private:
-  static const uint32_t TAG = 0x00010002;
+  static const uint32_t TAG = 0x10004;
   alignas(16) uint32_t *_data;
 };
 } // namespace Mailbox::RaspberryPi::Messages

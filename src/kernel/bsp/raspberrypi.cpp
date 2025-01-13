@@ -4,6 +4,7 @@
 #include <bsp/raspberrypi/mailbox/mailbox.hpp>
 #include <bsp/raspberrypi/mailbox/messages/board_model.hpp>
 #include <bsp/raspberrypi/mailbox/messages/board_revision.hpp>
+#include <bsp/raspberrypi/mailbox/messages/board_serial.hpp>
 
 static const char *formatMemorySize(uint32_t revision) {
   switch ((revision >> 20) & 0x7) {
@@ -109,6 +110,18 @@ void BSP::Board::PrintInfo() {
   Mailbox::RaspberryPi::RaspberryPiMailbox mailbox(
       Mailbox::RaspberryPi::Channel::Property);
 
+  Mailbox::RaspberryPi::Messages::BoardSerialRequest boardSerialRequset;
+  Mailbox::RaspberryPi::Messages::BoardSerialResponse *boardSerialResponse =
+      nullptr;
+  if (!mailbox.Call(&boardSerialRequset, boardSerialResponse)) {
+    warn("Failed to get board serial");
+    return;
+  }
+
+  info("      Board serial:    %08X%08X",
+       boardSerialResponse->BoardSerial().High,
+       boardSerialResponse->BoardSerial().Low);
+
   Mailbox::RaspberryPi::Messages::BoardRevisionRequest boardRevisionRequest;
   Mailbox::RaspberryPi::Messages::BoardRevisionResponse *boardRevisionResponse =
       nullptr;
@@ -136,4 +149,5 @@ void BSP::Board::PrintInfo() {
   info("      Manufacturer:    %s", formatManufacturer(revision));
   info("      Processor:       %s", formatProcessor(revision));
   info("      Type:            %s", formatType(revision));
+  info("      Revision:        1.%d", revision & 0xF);
 }

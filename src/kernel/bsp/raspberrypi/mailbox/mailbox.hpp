@@ -7,7 +7,7 @@
 #endif
 
 namespace Mailbox::RaspberryPi {
-enum Channel {
+enum Channel : char {
   Power = 0,
   FrameBuffer = 1,
   VirtualUART = 2,
@@ -26,7 +26,7 @@ public:
   bool Call(Request *request, Response *response) override;
   bool IsFull() override { return (*MAILBOX_STATUS & MAIL_FULL) != 0; }
   bool IsEmpty() override { return (*MAILBOX_STATUS & MAIL_EMPTY) != 0; }
-  alignas(16) uint32_t Data[36];
+  alignas(16) volatile uint32_t Data[36];
 
 protected:
   uint32_t MAILBOX_BASE = Memory::Map::getMMIO().VIDEOCORE_MBOX_START;
@@ -35,9 +35,9 @@ protected:
   uint32_t MAILBOX_RESPONSE = 0x80000000;
 
 private:
-  const volatile uint32_t *MAILBOX_READ =
+  volatile uint32_t *MAILBOX_READ =
       reinterpret_cast<volatile uint32_t *>(MAILBOX_BASE + 0x0);
-  const volatile uint32_t *MAILBOX_STATUS =
+  volatile uint32_t *MAILBOX_STATUS =
       reinterpret_cast<volatile uint32_t *>(MAILBOX_BASE + 0x18);
   volatile uint32_t *MAILBOX_WRITE =
       reinterpret_cast<volatile uint32_t *>(MAILBOX_BASE + 0x20);
