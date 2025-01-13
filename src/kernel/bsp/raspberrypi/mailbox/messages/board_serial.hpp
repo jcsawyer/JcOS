@@ -15,7 +15,7 @@ struct BoardSerial {
 class BoardSerialResponse : public Response {
 public:
   BoardSerialResponse(uint32_t *data) : Response(data) {}
-  BoardSerial BoardSerial() { return {Data[1], Data[0]}; }
+  BoardSerial BoardSerial() { return {Data[0], Data[1]}; }
 };
 
 class BoardSerialRequest : public Request {

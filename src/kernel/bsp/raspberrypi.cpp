@@ -63,41 +63,51 @@ static const char *formatProcessor(uint32_t revision) {
 
 static const char *formatType(uint32_t revision) {
   switch ((revision >> 4) & 0xFF) {
-  case 0:
+  case 0x0:
     return "A";
-  case 1:
+  case 0x1:
     return "B";
-  case 2:
+  case 0x2:
     return "A+";
-  case 3:
+  case 0x3:
     return "B+";
-  case 4:
+  case 0x4:
     return "2B";
-  case 5:
+  case 0x5:
     return "Alpha";
-  case 6:
+  case 0x6:
     return "CM1";
-  case 8:
+  case 0x8:
     return "3B";
-  case 9:
+  case 0x9:
     return "Zero";
-  case 10:
+  case 0xA:
+    return "CM3";
+  case 0xC:
+    return "Zero W";
+  case 0xD:
+    return "3B+";
+  case 0xE:
+    return "3A+";
+  case 0xF:
+    return "Internal use only";
+  case 0x10:
     return "CM3+";
-  case 11:
+  case 0x11:
     return "4B";
-  case 12:
+  case 0x12:
     return "Zero 2 W";
-  case 13:
+  case 0x13:
     return "400";
-  case 14:
+  case 0x14:
     return "CM4";
-  case 15:
-    return "400";
-  case 17:
+  case 0x15:
+    return "CM4S";
+  case 0x17:
     return "5";
-  case 18:
+  case 0x18:
     return "CM5";
-  case 19:
+  case 0x19:
     return "500";
   default:
     return "";
@@ -138,13 +148,13 @@ void BSP::Board::PrintInfo() {
   info("Board revision: 0x%X", revision);
 
   info("      Overvoltage:     %s",
-       (revision << 31 == 0) ? "Allowed" : "Disallowed");
+       (revision >> 31 == 0) ? "Allowed" : "Disallowed");
   info("      OTP Programming: %s",
-       (revision << 30 == 0) ? "Allowed" : "Disallowed");
+       (revision >> 30 == 0) ? "Allowed" : "Disallowed");
   info("      OTP Read:        %s",
-       (revision << 29 == 0) ? "Allowed" : "Disallowed");
+       (revision >> 29 == 0) ? "Allowed" : "Disallowed");
   info("      Warranty:        %s",
-       (revision << 25 == 0) ? "Intact" : "Voided");
+       (revision >> 25 == 0) ? "Intact" : "Voided");
   info("      Memory Size:     %s", formatMemorySize(revision));
   info("      Manufacturer:    %s", formatManufacturer(revision));
   info("      Processor:       %s", formatProcessor(revision));
