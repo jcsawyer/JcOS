@@ -10,6 +10,7 @@ BCM::GPIO *RaspberryPi::gpio = nullptr;
 BCM::UART *RaspberryPi::uart = nullptr;
 BCM::RNG *RaspberryPi::rng = nullptr;
 BCM::UART::UartConsole *RaspberryPi::uartConsole = nullptr;
+LCD::LCD16x2 *RaspberryPi::lcd = nullptr;
 
 BCM::GPIO *RaspberryPi::getGPIO() {
   if (gpio == nullptr) {
@@ -43,9 +44,18 @@ BCM::UART::UartConsole *RaspberryPi::getUartConsole() {
   return uartConsole;
 }
 
+LCD::LCD16x2 *RaspberryPi::getLCD() {
+  if (lcd == nullptr) {
+    static LCD::LCD16x2 lcdInstance(Memory::Map::getMMIO().GPIO_START);
+    lcd = &lcdInstance;
+  }
+  return lcd;
+}
+
 void RaspberryPi::init() {
   driverManager().addDriver(DeviceDriverDescriptor(getGPIO(), &postInitGpio));
   driverManager().addDriver(DeviceDriverDescriptor(getUART(), &postInitUart));
+  driverManager().addDriver(DeviceDriverDescriptor(getLCD(), &postInitLCD));
   driverManager().addDriver(DeviceDriverDescriptor(getRNG(), &postInitRng));
 }
 
@@ -56,6 +66,13 @@ void RaspberryPi::postInitUart() {
 void RaspberryPi::postInitGpio() { getGPIO()->mapPl011Uart(); }
 
 void RaspberryPi::postInitRng() {}
+
+void RaspberryPi::postInitLCD() {
+  getLCD()->init();
+  getLCD()->clear();
+  getLCD()->setCursor(0, 0);
+  getLCD()->writeString("Hello, World!");
+}
 
 } // namespace RaspberryPi
 } // namespace BSP

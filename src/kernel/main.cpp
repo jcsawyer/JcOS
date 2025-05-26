@@ -47,11 +47,6 @@ auto logo = R"""(
   info("Timer test, spinning for 1 second...");
   timeManager->spinFor(Time::Duration::from_secs(1));
 
-  // Get the value of the CurrentEL register
-  const char *el_string;
-  Exception::current_privilege_level(&el_string);
-  info("Current exception level: %s", el_string);
-
   info("Echoing input now");
   while (true) {
     const char c = console->readChar();

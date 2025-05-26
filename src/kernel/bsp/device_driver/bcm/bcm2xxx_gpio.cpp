@@ -18,7 +18,7 @@ void GPIO::disablePud1415Bcm2837() const {
 }
 
 void GPIO::disablePud1415Bcm2711() const {
-  *registerBlock.GPIO_PUP_PDN_CNTRL_REG0 = 1 << 30 | 1 << 28;
+  *registerBlock.GPIO_PUP_PDN_CNTRL_REG0 = 0b01 << 30 | 0b01 << 28;
 }
 
 void GPIO::mapPl011Uart() const {

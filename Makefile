@@ -35,6 +35,7 @@ AARCH64_ASM	:=	$(wildcard src/kernel/arch/aarch64/*.s) \
 				$(wildcard src/kernel/arch/aarch64/cpu/*.s)
 
 BSP_RPI_SRCS:=	$(wildcard src/kernel/bsp/device_driver/bcm/*.cpp) \
+				$(wildcard src/kernel/bsp/device_driver/lcd/*.cpp) \
 				$(wildcard src/kernel/bsp/raspberrypi.cpp) \
 				$(wildcard src/kernel/bsp/raspberrypi/*.cpp) \
 				$(wildcard src/kernel/bsp/raspberrypi/console/*.cpp) \
