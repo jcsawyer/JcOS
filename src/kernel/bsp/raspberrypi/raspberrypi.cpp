@@ -6,6 +6,10 @@ namespace Driver {
 namespace BSP {
 namespace RaspberryPi {
 
+size_t RaspberryPi::getDefaultLoadAddr() {
+  return Memory::boardDefaultLoadAddress();
+}
+
 BCM::GPIO *RaspberryPi::gpio = nullptr;
 BCM::UART *RaspberryPi::uart = nullptr;
 BCM::RNG *RaspberryPi::rng = nullptr;
@@ -55,7 +59,7 @@ LCD::HD44780U *RaspberryPi::getLCD() {
 void RaspberryPi::init() {
   driverManager().addDriver(DeviceDriverDescriptor(getGPIO(), &postInitGpio));
   driverManager().addDriver(DeviceDriverDescriptor(getUART(), &postInitUart));
-  driverManager().addDriver(DeviceDriverDescriptor(getLCD(), &postInitLCD));
+  // driverManager().addDriver(DeviceDriverDescriptor(getLCD(), &postInitLCD));
   driverManager().addDriver(DeviceDriverDescriptor(getRNG(), &postInitRng));
 }
 
@@ -68,10 +72,10 @@ void RaspberryPi::postInitGpio() { getGPIO()->mapPl011Uart(); }
 void RaspberryPi::postInitRng() {}
 
 void RaspberryPi::postInitLCD() {
-  getLCD()->initLCD();
-  getLCD()->clear();
-  getLCD()->setCursor(0, 0);
-  getLCD()->writeString("Hello, World!");
+  // getLCD()->initLCD();
+  // getLCD()->clear();
+  // getLCD()->setCursor(0, 0);
+  // getLCD()->writeString("Hello, World!");
 }
 
 } // namespace RaspberryPi

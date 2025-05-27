@@ -31,34 +31,51 @@ auto logo = R"""(
   info("%s version %s", "JcOS", "0.1.0");
   BSP::Board::PrintInfo();
 
-  info("MMU online. Special regions:");
-  Memory::virtMemLayout()->printLayout();
+  info("Requsting kernel binary...");
+  console->flush();
 
-  const char *privilegeLevel;
-  Exception::current_privilege_level(&privilegeLevel);
-  info("Current privilege level: %s", privilegeLevel);
+  console->clearRx();
 
-  info("Exception handling state:");
-  Exception::print_state();
+  for (int i = 0; i < 3; ++i) {
+    console->printChar(3);
+  }
 
-  info("Drivers loaded:");
-  Driver::driverManager().printDrivers();
+  // Read 4 bytes (little-endian) as binary size
+  uint32_t size = static_cast<uint8_t>(console->readChar());
+  size |= static_cast<uint8_t>(console->readChar()) << 8;
+  size |= static_cast<uint8_t>(console->readChar()) << 16;
+  size |= static_cast<uint8_t>(console->readChar()) << 24;
 
-  Time::TimeManager *timeManager = Time::TimeManager::GetInstance();
-  info("Timer test, spinning for 1 second...");
-  timeManager->spinFor(Time::Duration::from_secs(1));
+  // Acknowledge
+  console->printChar('O');
+  console->printChar('K');
 
-  info("Echoing input now");
+  // Get the address where the kernel should be loaded
+  uint8_t *kernel_addr = reinterpret_cast<uint8_t *>(0x80000);
+
+  // Read binary into memory
+  for (uint32_t i = 0; i < size; ++i) {
+    uint8_t byte = static_cast<uint8_t>(console->readChar());
+    *(volatile uint8_t *)(kernel_addr + i) = byte;
+  }
+
+  info("Loaded! Executing the payload now\n");
+  console->flush();
+
+  // Cast memory to function pointer and jump
+  using KernelEntry = void (*)(); // assuming kernel never returns
+  KernelEntry kernel = reinterpret_cast<KernelEntry>(kernel_addr);
+  kernel();
+
+  // Should never return
   while (true) {
-    const char c = console->readChar();
-    console->printChar(c);
   }
 }
 
 extern "C" void kernel_init() {
-  const Memory::MemoryManagementUnit *mmu = Memory::MMU();
-  Exception::handlingInit();
-  mmu->enableMMUAndCaching();
+  // const Memory::MemoryManagementUnit *mmu = Memory::MMU();
+  // Exception::handlingInit();
+  // mmu->enableMMUAndCaching();
 
   Time::TimeManager::GetInstance()->init();
   BSP::Board::init();

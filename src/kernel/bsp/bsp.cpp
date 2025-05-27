@@ -14,4 +14,12 @@ void Board::init() {
 #endif
 }
 
+size_t Board::getDefaultLoadAddr() {
+#if BOARD == bsp_rpi3 || BOARD == bsp_rpi4
+  return Driver::BSP::RaspberryPi::RaspberryPi::getDefaultLoadAddr();
+#else
+#error Unknown board
+#endif
+}
+
 } // namespace BSP

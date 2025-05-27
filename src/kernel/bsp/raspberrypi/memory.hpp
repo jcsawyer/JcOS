@@ -85,19 +85,7 @@ struct Map {
   }
 };
 
-extern "C" {
-extern size_t __code_start;
-extern size_t __code_end_exclusive;
-
-inline static size_t codeStart() {
-  // The start address of the code segment is provided by the linker script.
-  return reinterpret_cast<size_t>(&__code_start);
-}
-
-inline static size_t codeEndExclusive() {
-  // The end address of the code segment (exclusive) is provided by the
-  // linker script.
-  return reinterpret_cast<size_t>(&__code_end_exclusive);
-}
-}
+static const size_t boardDefaultLoadAddress() {
+  return Map::BOARD_DEFAULT_LOAD_ADDRESS;
+};
 } // namespace Memory

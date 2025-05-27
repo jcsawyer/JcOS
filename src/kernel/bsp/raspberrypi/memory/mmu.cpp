@@ -7,13 +7,6 @@ namespace Memory {
 TranslationDescriptor *getDescriptors() {
   static TranslationDescriptor descriptors[NUM_MEM_RANGES] = {
       {
-          "Kernel code and RO data",
-          codeStart(),
-          codeEndExclusive() - 1,
-          TranslationType::Identity(),
-          {CacheableDRAM, ReadOnly, false},
-      },
-      {
           "Remapped Device MMIO",
           0x1FFF0000,
           0x1FFFFFFF,

@@ -43,8 +43,4 @@ void prepare_el2_to_el1_transition(
   asm volatile("mrs %0, SP_EL1" : "=r"(sp_el1));
 }
 
-extern "C" void _start_cpp(uint64_t phys_boot_core_stack_end_exclusive_addr) {
-  prepare_el2_to_el1_transition(phys_boot_core_stack_end_exclusive_addr);
-
-  asm volatile("eret");
-}
+extern "C" void _start_cpp() { kernel_init(); }

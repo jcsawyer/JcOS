@@ -13,6 +13,7 @@ namespace RaspberryPi {
 class RaspberryPi {
 public:
   static void init();
+  static size_t getDefaultLoadAddr();
   static Driver::BSP::BCM::GPIO *getGPIO();
   static Driver::BSP::BCM::UART *getUART();
   static Driver::BSP::BCM::UART::UartConsole *getUartConsole();
