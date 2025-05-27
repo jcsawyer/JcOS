@@ -1,3 +1,4 @@
+#include "bsp/device_driver/lcd/hd44780u.hpp"
 #include <bsp/bsp.hpp>
 #include <console/console.hpp>
 #include <driver/driver.hpp>

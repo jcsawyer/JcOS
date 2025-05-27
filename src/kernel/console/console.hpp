@@ -6,6 +6,7 @@ public:
   static Console *GetInstance();
   static void SetInstance(Console *newConsole);
 
+  bool isDebugMode = true;
   virtual void flush() = 0;
   virtual void clearRx() = 0;
   virtual void print(const char *format, ...) = 0;
