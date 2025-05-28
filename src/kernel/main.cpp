@@ -1,4 +1,4 @@
-#include "bsp/device_driver/lcd/hd44780u.hpp"
+#include "bsp/raspberrypi/raspberrypi.hpp"
 #include <bsp/bsp.hpp>
 #include <console/console.hpp>
 #include <driver/driver.hpp>
@@ -49,9 +49,20 @@ auto logo = R"""(
   timeManager->spinFor(Time::Duration::from_secs(1));
 
   info("Echoing input now");
+  Driver::BSP::LCD::HD44780U *lcd =
+      Driver::BSP::RaspberryPi::RaspberryPi::getLCD();
+  lcd->clear();
+  lcd->setCursor(0, 0);
+  lcd->writeString("JcOS v0.1.0");
+  lcd->setCursor(1, 0);
+  lcd->writeString(">");
+
   while (true) {
     const char c = console->readChar();
     console->printChar(c);
+
+    const unsigned char printChar[2] = {c, '\0'};
+    lcd->writeString(reinterpret_cast<const char *>(printChar));
   }
 }
 

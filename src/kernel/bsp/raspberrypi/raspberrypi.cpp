@@ -60,18 +60,25 @@ void RaspberryPi::init() {
 }
 
 void RaspberryPi::postInitUart() {
+  LCD::HD44780U *lcd = getLCD();
+  lcd->clear();
+  lcd->setCursor(0, 0);
+  lcd->writeString("Initializing UART...");
   Console::Console::SetInstance(getUartConsole());
 }
 
 void RaspberryPi::postInitGpio() { getGPIO()->mapPl011Uart(); }
 
-void RaspberryPi::postInitRng() {}
+void RaspberryPi::postInitRng() {
+  lcd->clear();
+  lcd->setCursor(0, 0);
+  lcd->writeString("Initializing RNG...");
+}
 
 void RaspberryPi::postInitLCD() {
-  getLCD()->initLCD();
-  getLCD()->clear();
-  getLCD()->setCursor(0, 0);
-  getLCD()->writeString("Hello, World!");
+  lcd->clear();
+  lcd->setCursor(0, 0);
+  lcd->writeString("Initializing LCD...");
 }
 
 } // namespace RaspberryPi
