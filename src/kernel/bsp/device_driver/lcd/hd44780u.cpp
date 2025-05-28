@@ -12,30 +12,25 @@ constexpr unsigned char D5 = 5;
 constexpr unsigned char D6 = 6;
 constexpr unsigned char D7 = 7;
 
-// GPIO 4-7 os connected to display data pins 4-7
+// GPIO 4-7 is connected to display data pins 4-7
 // GPIO 11 is the RS pin
 // GPIO 10 is the Enable pin
 void HD44780U::setPin(unsigned char pin, bool high) const {
-  debug("Setting pin %d to %b", pin, high);
-  unsigned int reg = pin / 32;
-  int shift = pin % 32;
-  volatile unsigned int *reg_addr = reinterpret_cast<volatile unsigned int *>(
-      *registerBlock.GPFSEL0 +
-      ((high ? *registerBlock.GPFSEL0 : *registerBlock.GPCLR) / 4) + reg);
-  *reg_addr = (1 << shift);
+  if (high) {
+    *(registerBlock.GPSET + (pin / 32)) = (1 << (pin % 32));
+  } else {
+    *(registerBlock.GPCLR + (pin / 32)) = (1 << (pin % 32));
+  }
 }
 
 void HD44780U::gpioSetOutput(int pin) const {
-  debug("Setting pin %d to OUTPUT", pin);
-  int reg = pin / 10;
+  volatile uint32_t *gpfsel =
+      registerBlock.GPFSEL0 + (pin / 10); // each GPFSEL controls 10 pins
   int shift = (pin % 10) * 3;
-  volatile unsigned int *fsel = reinterpret_cast<volatile unsigned int *>(
-      *registerBlock.GPFSEL0 + (*registerBlock.GPFSEL0 / 4) + reg);
-
-  unsigned int val = *fsel;
-  val &= ~(0b111 << shift); // clear
-  val |= (0b001 << shift);  // output
-  *fsel = val;
+  uint32_t val = *gpfsel;
+  val &= ~(0b111 << shift); // clear the 3 bits for the pin
+  val |= (0b001 << shift);  // set to output
+  *gpfsel = val;
 }
 
 void delayMicroseconds(unsigned int us) {
@@ -43,7 +38,7 @@ void delayMicroseconds(unsigned int us) {
 }
 
 void HD44780U::init() {
-  delayMicroseconds(200); // Wait >40ms after power-on
+  delayMilliseconds(40); // Wait >40ms after power-on
 
   // Set pins as outputs
   gpioSetOutput(RS);
@@ -55,24 +50,27 @@ void HD44780U::init() {
 }
 
 void HD44780U::initLCD() const {
-  // 4-bit mode initialization sequence
+  // 4 - bit mode initialization sequence
   write4Bits(0x03);
-  delayMicroseconds(200);
+  delayMilliseconds(5);
   write4Bits(0x03);
-  delayMicroseconds(50);
+  delayMilliseconds(5);
   write4Bits(0x03);
-  delayMicroseconds(150);
-  write4Bits(0x02); // Set to 4-bit mode
+  delayMilliseconds(5);
+  write4Bits(0x02);
+  delayMilliseconds(1); // Set to 4-bit mode
 
-  sendCommand(0x28); // Function set: 4-bit, 2 line, 5x8 dots
-  sendCommand(0x0C); // Display ON, cursor OFF
-  sendCommand(0x06); // Entry mode: increment cursor
+  sendCommand(0x28);    // Function set: 4-bit, 2 line, 5x8 dots
+  sendCommand(0x0C);    // Display ON, cursor OFF
+  sendCommand(0x01);    // Clear display
+  delayMilliseconds(2); // Clear command takes 1.64ms
+  sendCommand(0x06);    // Entry mode: increment cursor
   clear();
 }
 
 void HD44780U::clear() const {
   sendCommand(0x01);
-  delayMicroseconds(2000);
+  delayMilliseconds(2);
 }
 
 void HD44780U::setCursor(unsigned char row, unsigned char col) const {
@@ -106,10 +104,10 @@ void HD44780U::sendData(unsigned char data) const {
 }
 
 void HD44780U::write4Bits(unsigned char nibble) const {
-  setPin(D4, nibble & 0x01);
-  setPin(D5, nibble & 0x02);
-  setPin(D6, nibble & 0x04);
-  setPin(D7, nibble & 0x08);
+  setPin(D4, (nibble >> 0) & 0x01);
+  setPin(D5, (nibble >> 1) & 0x01);
+  setPin(D6, (nibble >> 2) & 0x01);
+  setPin(D7, (nibble >> 3) & 0x01);
   pulseEnable();
 }
 
@@ -123,7 +121,11 @@ void HD44780U::pulseEnable() const {
 }
 
 void HD44780U::delayMicroseconds(unsigned int us) const {
-  Time::Arch::spinFor(Time::Duration::from_millis(us));
+  Time::Arch::spinFor(Time::Duration::from_micros(us));
+}
+
+void HD44780U::delayMilliseconds(unsigned int ms) const {
+  Time::Arch::spinFor(Time::Duration::from_millis(ms));
 }
 
 } // namespace Driver::BSP::LCD

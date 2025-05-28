@@ -27,9 +27,9 @@ auto logo = R"""(
 [[noreturn]] void kernel_main() {
   Console::Console *console = Console::Console::GetInstance();
 
-  console->print(logo);
-  info("%s version %s", "JcOS", "0.1.0");
-  BSP::Board::PrintInfo();
+  // console->print(logo);
+  // info("%s version %s", "JcOS", "0.1.0");
+  // BSP::Board::PrintInfo();
 
   info("MMU online. Special regions:");
   Memory::virtMemLayout()->printLayout();

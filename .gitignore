@@ -9,3 +9,6 @@ zig-out/
 .DS_Store
 
 .idea
+
+bin
+obj

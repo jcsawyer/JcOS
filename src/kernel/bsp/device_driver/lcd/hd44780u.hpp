@@ -22,6 +22,7 @@ private:
   void write4Bits(unsigned char nibble) const;
   void pulseEnable() const;
   void delayMicroseconds(unsigned int us) const;
+  void delayMilliseconds(unsigned int ms) const;
   void setPin(unsigned char pin, bool high) const;
   void gpioSetOutput(int pin) const;
   class RegisterBlock {
