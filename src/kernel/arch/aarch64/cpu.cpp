@@ -14,4 +14,6 @@ void waitForever() {
     asm volatile("wfe");
   }
 }
+
+void enableInterrupts() { asm volatile("msr daifclr, #2"); }
 } // namespace CPU

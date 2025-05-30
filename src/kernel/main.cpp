@@ -6,7 +6,10 @@
 #include <main.hpp>
 #include <memory/mmu.hpp>
 #include <print.hpp>
+#include <task.hpp>
 #include <time/duration.hpp>
+
+extern void timer_init();
 
 extern "C" void putchar_(const char c) {
   Console::Console *console = Console::Console::GetInstance();
@@ -23,6 +26,26 @@ auto logo = R"""(
 
 
 )""";
+
+__attribute__((used, noinline)) void task1() {
+  while (1) {
+    info("Task 1");
+    Time::TimeManager *timeManager = Time::TimeManager::GetInstance();
+    for (volatile int i = 0; i < 100000; ++i) {
+    }
+    taskManager.schedule(); // Yield to the scheduler
+  }
+}
+
+__attribute__((used, noinline)) void task2() {
+  while (1) {
+    info("Task 2");
+    Time::TimeManager *timeManager = Time::TimeManager::GetInstance();
+    for (volatile int i = 0; i < 100000; ++i)
+      ;
+    taskManager.schedule(); // Yield to the scheduler
+  }
+}
 
 [[noreturn]] void kernel_main() {
   Console::Console *console = Console::Console::GetInstance();
@@ -48,7 +71,6 @@ auto logo = R"""(
   info("Timer test, spinning for 1 second...");
   timeManager->spinFor(Time::Duration::from_secs(1));
 
-  info("Echoing input now");
   Driver::BSP::LCD::HD44780U *lcd =
       Driver::BSP::RaspberryPi::RaspberryPi::getLCD();
   lcd->clear();
@@ -57,6 +79,17 @@ auto logo = R"""(
   lcd->setCursor(1, 0);
   lcd->writeString(">");
 
+  info("Task system initializing...");
+  taskManager.init();
+  info("Task system initialized, starting task scheduler...");
+  taskManager.addTask(task1);
+  taskManager.addTask(task2);
+
+  timer_init();
+
+  taskManager.currentTask = 0;
+
+  info("Echoing input now");
   while (true) {
     const char c = console->readChar();
     console->printChar(c);

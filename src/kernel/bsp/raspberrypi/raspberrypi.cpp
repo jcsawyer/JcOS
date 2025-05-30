@@ -10,6 +10,7 @@ BCM::GPIO *RaspberryPi::gpio = nullptr;
 BCM::UART *RaspberryPi::uart = nullptr;
 BCM::RNG *RaspberryPi::rng = nullptr;
 BCM::UART::UartConsole *RaspberryPi::uartConsole = nullptr;
+BCM::Timer *RaspberryPi::timer = nullptr;
 LCD::HD44780U *RaspberryPi::lcd = nullptr;
 
 BCM::GPIO *RaspberryPi::getGPIO() {
@@ -52,11 +53,17 @@ LCD::HD44780U *RaspberryPi::getLCD() {
   return lcd;
 }
 
+BCM::Timer *RaspberryPi::getTimer() {
+  static BCM::Timer timerInstance(Memory::Map::getMMIO().TIMER_START);
+  return &timerInstance;
+}
+
 void RaspberryPi::init() {
   driverManager().addDriver(DeviceDriverDescriptor(getGPIO(), &postInitGpio));
   driverManager().addDriver(DeviceDriverDescriptor(getUART(), &postInitUart));
   driverManager().addDriver(DeviceDriverDescriptor(getLCD(), &postInitLCD));
   driverManager().addDriver(DeviceDriverDescriptor(getRNG(), &postInitRng));
+  driverManager().addDriver(DeviceDriverDescriptor(getTimer(), &postInitTimer));
 }
 
 void RaspberryPi::postInitUart() {
@@ -79,6 +86,16 @@ void RaspberryPi::postInitLCD() {
   lcd->clear();
   lcd->setCursor(0, 0);
   lcd->writeString("Initializing LCD...");
+}
+
+void RaspberryPi::postInitTimer() {
+
+  getTimer()->timer_init();
+
+  LCD::HD44780U *lcd = getLCD();
+  lcd->clear();
+  lcd->setCursor(0, 0);
+  lcd->writeString("Initializing Timer...");
 }
 
 } // namespace RaspberryPi
