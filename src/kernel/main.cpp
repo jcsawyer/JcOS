@@ -1,4 +1,5 @@
 #include "bsp/raspberrypi/raspberrypi.hpp"
+#include <arch/aarch64/exception/asynchronous.hpp>
 #include <bsp/bsp.hpp>
 #include <console/console.hpp>
 #include <driver/driver.hpp>

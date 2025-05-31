@@ -1,10 +1,11 @@
 #include "asynchronous.hpp"
 #include "../../../print.hpp"
+#include <exceptions/asynchronous.hpp>
 
 namespace Exception {
 
-bool is_set(uint64_t field) {
-  uint64_t daif_value;
+bool is_set(unsigned long field) {
+  unsigned long daif_value;
   asm volatile("mrs %0, DAIF" : "=r"(daif_value));
   return (daif_value & field) != 0;
 }
@@ -20,9 +21,38 @@ void print_state() {
   info("      FIQ:    %s", to_mask_str(is_masked<FIQ>()), nullptr);
 }
 
-extern "C" uint64_t read_daif() {
-  uint64_t value;
+namespace Asynchronous {
+
+extern "C" unsigned long read_daif() {
+  unsigned long value;
   asm volatile("mrs %0, daif" : "=r"(value));
   return value;
 }
+
+// extern "C" {
+unsigned long localIrqMaskSave() {
+  unsigned long flags;
+  asm volatile("mrs %0, daif\n"
+               "msr daifset, #2"
+               : "=r"(flags)
+               :
+               : "memory");
+  return flags;
+}
+
+void localIrqRestore(unsigned long flags) {
+  asm volatile("msr daif, %0" : : "r"(flags) : "memory");
+}
+void localIrqMask() { asm volatile("msr daifset, #2" ::: "memory"); }
+
+void localIrqUnmask() { asm volatile("msr daifclr, #2" ::: "memory"); }
+
+bool isLocalIrqMasked() {
+  unsigned long flags;
+  asm volatile("mrs %0, daif" : "=r"(flags));
+  return (flags & (1 << 7)) != 0; // IRQ bit in DAIF
+}
+
+//} // extern "C"
+} // namespace Asynchronous
 } // namespace Exception

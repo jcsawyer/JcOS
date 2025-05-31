@@ -23,7 +23,9 @@ KERNEL_SRC	:=	$(wildcard src/kernel/*.cpp) \
 				$(wildcard src/kernel/bsp/bsp.cpp) \
 				$(wildcard src/kernel/console/*.cpp) \
 				$(wildcard src/kernel/console/null_console/*.cpp) \
-				$(wildcard src/kernel/driver/*.cpp)
+				$(wildcard src/kernel/driver/*.cpp) \
+				$(wildcard src/kernel/exceptions/*.cpp) \
+				$(wildcard src/kernel/exceptions/asynchronous/*.cpp)
 KERNEL_INC	:=	-isystem ./src/kernel
 
 AARCH64_SRCS :=	$(wildcard src/kernel/arch/aarch64/*.cpp) \
