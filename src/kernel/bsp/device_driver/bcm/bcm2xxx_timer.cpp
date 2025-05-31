@@ -28,7 +28,7 @@ extern "C" void current_elx_irq(uint64_t *context) {
     *TIMER_C1 = *TIMER_CLO + 10000; // Schedule next timer IRQ
   }
 
-  asm volatile("msr daifclr, #2" ::: "memory");
+  CPU::enableInterrupts(); // Re-enable interrupts
 
   // Call the schedule, which handles everything including switching
   taskManager.schedule();
