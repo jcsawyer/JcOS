@@ -90,7 +90,7 @@ void RaspberryPi::postInitLCD() {
 
 void RaspberryPi::postInitTimer() {
 
-  getTimer()->timer_init();
+  getTimer()->timerInit();
 
   LCD::HD44780U *lcd = getLCD();
   lcd->clear();

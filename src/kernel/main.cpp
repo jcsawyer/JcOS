@@ -9,7 +9,7 @@
 #include <task.hpp>
 #include <time/duration.hpp>
 
-extern void timer_init();
+extern void timerInit();
 
 extern "C" void putchar_(const char c) {
   Console::Console *console = Console::Console::GetInstance();
@@ -42,21 +42,25 @@ void inputEchoTask() {
   }
 }
 
-void task2() {
+void task1() {
   Driver::BSP::LCD::HD44780U *lcd =
       Driver::BSP::RaspberryPi::RaspberryPi::getLCD();
   while (1) {
     Time::TimeManager *timeManager = Time::TimeManager::GetInstance();
+    lcd->setCursor(0, 0);
+    lcd->writeString("Task 1");
     timeManager->spinFor(Time::Duration::from_secs(0.5));
     taskManager.schedule(); // Yield to the scheduler
   }
 }
 
-void task3() {
+void task2() {
   Driver::BSP::LCD::HD44780U *lcd =
       Driver::BSP::RaspberryPi::RaspberryPi::getLCD();
   while (1) {
     Time::TimeManager *timeManager = Time::TimeManager::GetInstance();
+    lcd->setCursor(0, 0);
+    lcd->writeString("Task 2");
     timeManager->spinFor(Time::Duration::from_secs(0.5));
     taskManager.schedule(); // Yield to the scheduler
   }
@@ -97,11 +101,11 @@ void task3() {
   info("Task system initializing...");
   taskManager.init();
   info("Task system initialized, starting task scheduler...");
-  taskManager.addTask(inputEchoTask);
-  taskManager.addTask(task2);
-  taskManager.addTask(task3);
+  taskManager.addTask("Terminal", inputEchoTask);
+  taskManager.addTask("Task 1", task1);
+  taskManager.addTask("Task 2", task2);
 
-  timer_init();
+  timerInit();
 
   taskManager.currentTask = 0;
 }

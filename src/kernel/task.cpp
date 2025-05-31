@@ -10,16 +10,18 @@ extern "C" void enter_task(void (*entry)(void));
 void TaskManager::init() {
   taskCount = 0;
   currentTask = -1;
+  idCounter = 1000;
 }
 
-void TaskManager::addTask(void (*entry)()) {
-  info("ADD TASK: currentTask: %d, taskCount: %d, entry: %p", currentTask,
-       taskCount, entry);
+void TaskManager::addTask(const char *name, void (*entry)()) {
 
   if (taskCount >= MAX_TASKS)
     return;
 
   Task &t = tasks[taskCount];
+
+  t.name = name;
+  t.id = ++idCounter;
 
   // Initialize context
   for (int i = 0; i < 12; ++i)
@@ -35,6 +37,8 @@ void TaskManager::addTask(void (*entry)()) {
   t.stackPtr = reinterpret_cast<unsigned long *>(&t.context);
   t.entry = entry;
   taskCount++;
+
+  info("Task %p (TID %d) created: %s", entry, t.id, name);
 }
 
 Task *TaskManager::current() {

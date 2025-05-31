@@ -15,12 +15,14 @@ struct Task {
   unsigned long stack[STACK_SIZE];
   void (*entry)() = nullptr;
   bool hasStarted = false;
+  const char *name = nullptr;
+  int id = -1; // Unique identifier for the task
 };
 
 class TaskManager {
 public:
   void init();
-  void addTask(void (*entryPoint)());
+  void addTask(const char *name, void (*entryPoint)());
   void schedule();
   Task *current();
   int currentTask = -1;
@@ -28,6 +30,7 @@ public:
 private:
   Task tasks[MAX_TASKS];
   int taskCount = 0;
+  int idCounter;
 };
 
 extern TaskManager taskManager;

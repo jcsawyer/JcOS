@@ -30,7 +30,7 @@ static inline void enable_timer_irq() {
 //   task_schedule();                             // switch task
 // }
 
-void timer_init() {
+void timerInit() {
   unsigned long freq;
   asm volatile("mrs %0, cntfrq_el0" : "=r"(freq));
   asm volatile("msr cntp_tval_el0, %0" ::"r"(freq / 10)); // 100ms

@@ -15,7 +15,7 @@ namespace Driver::BSP::BCM {
 
 void Timer::init() {}
 
-void Timer::timer_init() {
+void Timer::timerInit() {
   *TIMER_CS = TIMER_IRQ_1;        // Clear any pending interrupts
   *TIMER_C1 = *TIMER_CLO + 10000; // Set next timer event in ~10ms
   *IRQ_ENABLE1 = TIMER_IRQ_1;     // Enable timer IRQ
