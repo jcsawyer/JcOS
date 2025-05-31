@@ -27,22 +27,37 @@ auto logo = R"""(
 
 )""";
 
-__attribute__((used, noinline)) void task1() {
-  while (1) {
-    info("Task 1");
-    Time::TimeManager *timeManager = Time::TimeManager::GetInstance();
-    for (volatile int i = 0; i < 100000; ++i) {
-    }
+void inputEchoTask() {
+  info("Echoing input now");
+  Console::Console *console = Console::Console::GetInstance();
+  Driver::BSP::LCD::HD44780U *lcd =
+      Driver::BSP::RaspberryPi::RaspberryPi::getLCD();
+  while (true) {
+    const char c = console->readChar();
+    console->printChar(c);
+
+    const unsigned char printChar[2] = {c, '\0'};
+    lcd->writeString(reinterpret_cast<const char *>(printChar));
     taskManager.schedule(); // Yield to the scheduler
   }
 }
 
-__attribute__((used, noinline)) void task2() {
+void task2() {
+  Driver::BSP::LCD::HD44780U *lcd =
+      Driver::BSP::RaspberryPi::RaspberryPi::getLCD();
   while (1) {
-    info("Task 2");
     Time::TimeManager *timeManager = Time::TimeManager::GetInstance();
-    for (volatile int i = 0; i < 100000; ++i)
-      ;
+    timeManager->spinFor(Time::Duration::from_secs(0.5));
+    taskManager.schedule(); // Yield to the scheduler
+  }
+}
+
+void task3() {
+  Driver::BSP::LCD::HD44780U *lcd =
+      Driver::BSP::RaspberryPi::RaspberryPi::getLCD();
+  while (1) {
+    Time::TimeManager *timeManager = Time::TimeManager::GetInstance();
+    timeManager->spinFor(Time::Duration::from_secs(0.5));
     taskManager.schedule(); // Yield to the scheduler
   }
 }
@@ -82,21 +97,13 @@ __attribute__((used, noinline)) void task2() {
   info("Task system initializing...");
   taskManager.init();
   info("Task system initialized, starting task scheduler...");
-  taskManager.addTask(task1);
+  taskManager.addTask(inputEchoTask);
   taskManager.addTask(task2);
+  taskManager.addTask(task3);
 
   timer_init();
 
   taskManager.currentTask = 0;
-
-  info("Echoing input now");
-  while (true) {
-    const char c = console->readChar();
-    console->printChar(c);
-
-    const unsigned char printChar[2] = {c, '\0'};
-    lcd->writeString(reinterpret_cast<const char *>(printChar));
-  }
 }
 
 extern "C" void kernel_init() {

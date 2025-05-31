@@ -16,17 +16,19 @@ namespace Driver::BSP::BCM {
 void Timer::init() {}
 
 void Timer::timer_init() {
-  *TIMER_CS = TIMER_IRQ_1;         // Clear any pending interrupts
-  *TIMER_C1 = *TIMER_CLO + 100000; // Set next timer event in ~10ms
-  *IRQ_ENABLE1 = TIMER_IRQ_1;      // Enable timer IRQ
-  CPU::enableInterrupts();         // Enable interrupts globally
+  *TIMER_CS = TIMER_IRQ_1;        // Clear any pending interrupts
+  *TIMER_C1 = *TIMER_CLO + 10000; // Set next timer event in ~10ms
+  *IRQ_ENABLE1 = TIMER_IRQ_1;     // Enable timer IRQ
+  CPU::enableInterrupts();        // Enable interrupts globally
 }
 
 extern "C" void current_elx_irq(uint64_t *context) {
   if (*TIMER_CS & TIMER_IRQ_1) {
-    *TIMER_CS = TIMER_IRQ_1;         // Clear the interrupt
-    *TIMER_C1 = *TIMER_CLO + 100000; // Schedule next timer IRQ
+    *TIMER_CS = TIMER_IRQ_1;        // Clear the interrupt
+    *TIMER_C1 = *TIMER_CLO + 10000; // Schedule next timer IRQ
   }
+
+  asm volatile("msr daifclr, #2" ::: "memory");
 
   // Call the schedule, which handles everything including switching
   taskManager.schedule();
