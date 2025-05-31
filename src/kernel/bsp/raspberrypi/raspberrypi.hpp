@@ -3,6 +3,7 @@
 #include "../device_driver/bcm/bcm2xxx_gpio.hpp"
 #include "../device_driver/bcm/bcm2xxx_pl011_uart.hpp"
 #include "../device_driver/bcm/bcm2xxx_rng.hpp"
+#include "../device_driver/bcm/bcm2xxx_timer.hpp"
 #include "../device_driver/lcd/hd44780u.hpp"
 #include <bsp/bsp.hpp>
 
@@ -18,6 +19,7 @@ public:
   static Driver::BSP::BCM::UART::UartConsole *getUartConsole();
   static Driver::BSP::LCD::HD44780U *getLCD();
   static Driver::BSP::BCM::RNG *getRNG();
+  static Driver::BSP::BCM::Timer *getTimer();
 
 private:
   static Driver::BSP::BCM::GPIO *gpio;
@@ -25,10 +27,12 @@ private:
   static Driver::BSP::BCM::UART::UartConsole *uartConsole;
   static Driver::BSP::LCD::HD44780U *lcd;
   static Driver::BSP::BCM::RNG *rng;
+  static Driver::BSP::BCM::Timer *timer;
   static void postInitUart();
   static void postInitGpio();
   static void postInitLCD();
   static void postInitRng();
+  static void postInitTimer();
 };
 
 } // namespace RaspberryPi

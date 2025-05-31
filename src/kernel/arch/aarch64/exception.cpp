@@ -35,9 +35,9 @@ extern "C" void current_elx_synchronous(ExceptionContext *context) {
   defaultExceptionHandler(context);
 }
 
-extern "C" void current_elx_irq(ExceptionContext *context) {
-  defaultExceptionHandler(context);
-}
+// extern "C" void current_elx_irq(ExceptionContext *context) {
+//   defaultExceptionHandler(context);
+// }
 
 extern "C" void current_elx_serror(ExceptionContext *context) {
   defaultExceptionHandler(context);
