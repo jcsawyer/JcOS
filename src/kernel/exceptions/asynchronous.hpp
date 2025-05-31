@@ -1,6 +1,6 @@
 #pragma once
 
-#include <arch/aarch64/exception/asynchronous.hpp>
+#include <arch/exception.hpp>
 
 namespace Exceptions {
 namespace Asynchronous {
@@ -48,6 +48,10 @@ public:
 
   static IRQManager *get() { return manager; }
 };
+
+IRQManager *irq_manager();
+
+void registerIrqManager(IRQManager *newManager);
 
 inline void execWithIrqMasked(void (*func)()) {
   unsigned int saved = Exception::Asynchronous::localIrqMaskSave();

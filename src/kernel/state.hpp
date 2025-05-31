@@ -3,6 +3,8 @@
 #include <panic.hpp>
 #include <stdint.h>
 
+namespace State {
+
 enum class KernelState : char {
   Init = 0,
   SingleCoreMain = 1,
@@ -11,21 +13,22 @@ enum class KernelState : char {
 
 class VolatileU8 {
 public:
-  constexpr VolatileU8(char value = 0) : value_(value) {}
+  constexpr VolatileU8(uint32_t value = 0) : value_(value) {}
 
-  char load() const { return __atomic_load_n(&value_, __ATOMIC_ACQUIRE); }
+  uint32_t load() const { return __atomic_load_n(&value_, __ATOMIC_ACQUIRE); }
 
-  void store(char value) { __atomic_store_n(&value_, value, __ATOMIC_RELEASE); }
+  void store(uint32_t value) {
+    __atomic_store_n(&value_, value, __ATOMIC_RELEASE);
+  }
 
-  bool compare_exchange(char expected, char desired) {
+  bool compare_exchange(uint32_t expected, uint32_t desired) {
     return __atomic_compare_exchange_n(&value_, &expected, desired, false,
                                        __ATOMIC_ACQUIRE, __ATOMIC_RELAXED);
   }
 
 private:
-  volatile char value_;
+  volatile uint32_t value_;
 };
-
 class StateManager {
 public:
   constexpr StateManager() : state_(static_cast<char>(KernelState::Init)) {}
@@ -70,3 +73,5 @@ inline StateManager &state_manager() {
   static StateManager instance;
   return instance;
 }
+
+} // namespace State

@@ -1,6 +1,6 @@
 #pragma once
 
-#include <arch/aarch64/exception/asynchronous.hpp>
+#include <arch/exception.hpp>
 #include <state.hpp>
 
 namespace Syncrhonization {
@@ -23,7 +23,7 @@ public:
   constexpr InitStateLock(T data) : data_(data) {}
 
   template <typename Func> auto write(Func f) const {
-    if (!state_manager().is_init()) {
+    if (!State::state_manager().is_init()) {
       panic("InitStateLock::write called after init");
     }
 

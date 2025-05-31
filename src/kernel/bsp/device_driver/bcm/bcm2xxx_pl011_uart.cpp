@@ -36,6 +36,8 @@ void UART::init() {
   *registerBlock.CR = 1 << 0 | 1 << 8 | 1 << 9;
 }
 
+void UART::registerAndEnableIrqHandler() {}
+
 void UART::putc(const char c) const {
   while (*registerBlock.FR & 0x20) {
     // Wait for the UART to become ready to transmit.

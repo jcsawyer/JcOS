@@ -1,6 +1,7 @@
 #include "bcm2xxx_rng.hpp"
 
 namespace Driver::BSP::BCM {
+
 void RNG::init() {
   *registerBlock.RNG_STATUS = 0x40000;
   // Mask interrupt
@@ -12,6 +13,8 @@ void RNG::init() {
     CPU::nop();
   }
 }
+
+void RNG::registerAndEnableIrqHandler() {}
 
 unsigned int RNG::next(const unsigned int min, const unsigned int max) const {
   // Check if RNG is enabled

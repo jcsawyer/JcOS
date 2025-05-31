@@ -1,5 +1,6 @@
 #include "bcm2xxx_timer.hpp"
 #include <arch/cpu.hpp>
+#include <arch/exception.hpp>
 #include <print.hpp>
 #include <stdint.h>
 #include <task.hpp>
@@ -15,11 +16,13 @@ namespace Driver::BSP::BCM {
 
 void Timer::init() {}
 
+void Timer::registerAndEnableIrqHandler() {}
+
 void Timer::timerInit() {
-  *TIMER_CS = TIMER_IRQ_1;        // Clear any pending interrupts
-  *TIMER_C1 = *TIMER_CLO + 10000; // Set next timer event in ~10ms
-  *IRQ_ENABLE1 = TIMER_IRQ_1;     // Enable timer IRQ
-  CPU::enableInterrupts();        // Enable interrupts globally
+  *TIMER_CS = TIMER_IRQ_1;                   // Clear any pending interrupts
+  *TIMER_C1 = *TIMER_CLO + 10000;            // Set next timer event in ~10ms
+  *IRQ_ENABLE1 = TIMER_IRQ_1;                // Enable timer IRQ
+  Exception::Asynchronous::localIrqUnmask(); // Enable interrupts globally
 }
 
 extern "C" void current_elx_irq(uint64_t *context) {
@@ -28,7 +31,7 @@ extern "C" void current_elx_irq(uint64_t *context) {
     *TIMER_C1 = *TIMER_CLO + 10000; // Schedule next timer IRQ
   }
 
-  CPU::enableInterrupts(); // Re-enable interrupts
+  Exception::Asynchronous::localIrqUnmask(); // Re-enable interrupts
 
   // Call the schedule, which handles everything including switching
   taskManager.schedule();

@@ -1,14 +1,17 @@
 #include "bsp/raspberrypi/raspberrypi.hpp"
-#include <arch/aarch64/exception/asynchronous.hpp>
 #include <bsp/bsp.hpp>
 #include <console/console.hpp>
 #include <driver/driver.hpp>
 #include <exception.hpp>
+#include <exceptions/asynchronous.hpp>
 #include <main.hpp>
 #include <memory/mmu.hpp>
 #include <print.hpp>
 #include <task.hpp>
 #include <time/duration.hpp>
+
+#include <state.hpp>
+#include <synchronization.hpp>
 
 extern void timerInit();
 
@@ -70,9 +73,9 @@ void task2() {
 [[noreturn]] void kernel_main() {
   Console::Console *console = Console::Console::GetInstance();
 
-  // console->print(logo);
-  // info("%s version %s", "JcOS", "0.1.0");
-  // BSP::Board::PrintInfo();
+  console->print(logo);
+  info("%s version %s", "JcOS", "0.1.0");
+  BSP::Board::PrintInfo();
 
   info("MMU online. Special regions:");
   Memory::virtMemLayout()->printLayout();
@@ -86,6 +89,11 @@ void task2() {
 
   info("Drivers loaded:");
   Driver::driverManager().printDrivers();
+
+  info("Registering IRQ handlers...");
+  Exceptions::Asynchronous::IRQManager *irqManager =
+      Exceptions::Asynchronous::irq_manager();
+  irqManager->printHandler();
 
   Time::TimeManager *timeManager = Time::TimeManager::GetInstance();
   info("Timer test, spinning for 1 second...");
@@ -109,6 +117,10 @@ void task2() {
   timerInit();
 
   taskManager.currentTask = 0;
+
+  while (true) {
+    taskManager.schedule();
+  }
 }
 
 extern "C" void kernel_init() {
@@ -117,8 +129,17 @@ extern "C" void kernel_init() {
   mmu->enableMMUAndCaching();
 
   Time::TimeManager::GetInstance()->init();
+
+  // Initialize the BSP driver subsystem
   BSP::Board::init();
-  Driver::driverManager().init();
+
+  // Initialize all device drivers
+  Driver::driverManager().initDriversAndIrqs();
+
+  // Unamask interrupts on boot CPU core.
+  Exception::Asynchronous::localIrqUnmask();
+
+  State::state_manager().transition_to_single_core_main();
 
   kernel_main();
 }

@@ -66,7 +66,8 @@ C_OBJS		:= $(SRCS:%.cpp=$(OBJ_DIR)/%.o)
 ASM_OBJS	:= $(ASM_SRCS:%.s=$(ASM_OBJ_DIR)/%.o)
 INCLUDES	:= $(KERNEL_INC) $(LIBC_INC)
 DEFINES		:= -DARCH=$(ARCH) -DBOARD=$(BOARD)
-CFLAGS		:= -Wall -O0 -mgeneral-regs-only -g -ffreestanding -nostdinc -nostdlib -nostartfiles -fno-rtti -fno-exceptions -fno-threadsafe-statics -fno-use-cxa-atexit
+CFLAGS		:= -Wall -O0 -mgeneral-regs-only -g -ffreestanding -nostdinc -nostdlib -nostartfiles -fno-rtti -fno-exceptions -fno-threadsafe-statics -fno-use-cxa-atexit -mno-outline-atomics
+LDFLAGS		:= -nostdlib -g
 
 all: check-args clean format kernel8.img run
 $(ASM_OBJ_DIR)/%.o: %.s
@@ -81,7 +82,7 @@ $(OBJ_DIR)/%.o: %.cpp
 
 kernel8.img: $(ASM_OBJS) $(C_OBJS)
 	@mkdir -p $(@D)
-	@aarch64-elf-ld -nostdlib -g $(ASM_OBJS) $(C_OBJS) -T ./src/kernel/bsp/raspberrypi/kernel.ld -o ./bin/kernel8.elf
+	@aarch64-elf-ld $(LDFLAGS) $(ASM_OBJS) $(C_OBJS) -T ./src/kernel/bsp/raspberrypi/kernel.ld -o ./bin/kernel8.elf
 	@aarch64-elf-objcopy -O binary ./bin/kernel8.elf ./bin/kernel8.img
 
 format:

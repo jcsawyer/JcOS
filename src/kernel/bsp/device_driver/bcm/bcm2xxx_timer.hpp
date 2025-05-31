@@ -14,6 +14,7 @@ public:
   Timer(unsigned int mmio_start_addr) : registerBlock(mmio_start_addr) {};
   const char *compatible() override { return "BCM Timer"; }
   void init() override;
+  void registerAndEnableIrqHandler() override;
   void timerInit();
 
 private:

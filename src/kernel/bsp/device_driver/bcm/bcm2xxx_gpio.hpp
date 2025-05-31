@@ -12,6 +12,7 @@ public:
   GPIO(unsigned int mmio_start_addr) : registerBlock(mmio_start_addr) {};
   const char *compatible() override { return "BCM GPIO"; }
   void init() override;
+  void registerAndEnableIrqHandler() override;
   void mapPl011Uart() const;
 
 private:

@@ -14,6 +14,7 @@ public:
   virtual const char *compatible() = 0;
   virtual void init() = 0;
   virtual ~DeviceDriver() = default;
+  virtual void registerAndEnableIrqHandler() = 0;
 };
 
 class DeviceDriverDescriptor {
@@ -46,7 +47,7 @@ public:
     drivers[nextIndex++] = descriptor;
   }
 
-  void init() const;
+  void initDriversAndIrqs() const;
 
   void printDrivers() {
     for (int i = 0; i < nextIndex; ++i) {
