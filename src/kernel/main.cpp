@@ -6,9 +6,10 @@
 #include <exceptions/asynchronous.hpp>
 #include <main.hpp>
 #include <memory/mmu.hpp>
-#include <print.hpp>
 #include <task.hpp>
 #include <time/duration.hpp>
+
+#include <bsp/device_driver/bcm/bcm2xxx_interrupt_controller/peripheral_ic.hpp>
 
 #include <state.hpp>
 #include <synchronization.hpp>
@@ -90,7 +91,7 @@ void task2() {
   info("Drivers loaded:");
   Driver::driverManager().printDrivers();
 
-  info("Registering IRQ handlers...");
+  info("Registered IRQ handlers...");
   Exceptions::Asynchronous::IRQManager *irqManager =
       Exceptions::Asynchronous::irq_manager();
   irqManager->printHandler();
@@ -108,8 +109,8 @@ void task2() {
   lcd->writeString(">");
 
   info("Task system initializing...");
-  taskManager.init();
   info("Task system initialized, starting task scheduler...");
+  taskManager.init();
   taskManager.addTask("Terminal", inputEchoTask);
   taskManager.addTask("Task 1", task1);
   taskManager.addTask("Task 2", task2);

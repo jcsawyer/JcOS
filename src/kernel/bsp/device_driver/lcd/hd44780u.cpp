@@ -5,7 +5,8 @@
 
 namespace Driver::BSP::LCD {
 
-void Driver::BSP::LCD::HD44780U::registerAndEnableIrqHandler() {}
+void Driver::BSP::LCD::HD44780U::registerAndEnableIrqHandler(
+    ::BSP::Exception::Asynchronous::IRQNumber *irqNumber) {}
 
 void Driver::BSP::LCD::HD44780U::initLcd(unsigned char rs, unsigned char en,
                                          unsigned char d0, unsigned char d1,

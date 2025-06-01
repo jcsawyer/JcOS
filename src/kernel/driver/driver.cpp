@@ -20,12 +20,13 @@ void DriverManager::initDriversAndIrqs() const {
     }
   }
 
+  // 3. Register and enable IRQ handlers for all drivers
   for (int i = 0; i < nextIndex; ++i) {
     DeviceDriverDescriptor descriptor = drivers[i];
     DeviceDriver *driver = descriptor.getDriver();
 
-    if (driver) {
-      driver->registerAndEnableIrqHandler();
+    if (driver && descriptor.getIrqNumber()) {
+      driver->registerAndEnableIrqHandler(descriptor.getIrqNumber());
     }
   }
 }

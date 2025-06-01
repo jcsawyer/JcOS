@@ -18,7 +18,7 @@ IRQContext IRQContext::create() {
 }
 
 // Executes the provided function with IRQs masked
-void exec_with_irq_masked(void (*fn)(void)) {
+void execWithIrqMasked(void (*fn)(void)) {
   unsigned long saved = Exception::Asynchronous::localIrqMaskSave();
   fn();
   Exception::Asynchronous::localIrqRestore(saved);

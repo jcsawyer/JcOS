@@ -1,6 +1,7 @@
 #pragma once
 
 #include <arch/exception.hpp>
+#include <bsp/exception/asynchronous.hpp>
 
 namespace Exceptions {
 namespace Asynchronous {
@@ -12,22 +13,24 @@ public:
   virtual bool handle() = 0;
 };
 
-class IRQManager {
-public:
-  virtual void registerHandler(unsigned int number, const char *name,
-                               IRQHandler *handler) = 0;
-  virtual void enable(unsigned int number) = 0;
-  virtual void handlePendingIrqs(const IRQContext &ctx) = 0;
-  virtual void printHandler() {}
-};
-
 struct IRQHandlerDescriptor {
-  unsigned int number;
+  BSP::Exception::Asynchronous::IRQKind kind;
+  BSP::Exception::Asynchronous::IRQNumber number;
   const char *name;
   IRQHandler *handler;
 
-  IRQHandlerDescriptor(unsigned int num, const char *nm, IRQHandler *hnd)
-      : number(num), name(nm), handler(hnd) {}
+  IRQHandlerDescriptor()
+      : kind(BSP::Exception::Asynchronous::IRQKind::Peripheral),
+        number(BSP::Exception::Asynchronous::IRQNumber{
+            BSP::Exception::Asynchronous::IRQKind::Peripheral,
+            BSP::Exception::Asynchronous::PeripheralIRQ::newBounded(-1)
+                .value()}),
+        name(nullptr), handler(nullptr) {}
+
+  IRQHandlerDescriptor(BSP::Exception::Asynchronous::IRQKind k,
+                       BSP::Exception::Asynchronous::IRQNumber num,
+                       const char *nm, IRQHandler *hnd)
+      : kind(k), number(num), name(nm), handler(hnd) {}
 };
 
 struct IRQContext {
@@ -37,6 +40,15 @@ public:
 private:
   IRQContext() = default;
   IRQContext(const IRQContext &) = default;
+};
+
+class IRQManager {
+public:
+  virtual void registerHandler(
+      const Exceptions::Asynchronous::IRQHandlerDescriptor &handler) = 0;
+  virtual void enable(BSP::Exception::Asynchronous::IRQNumber *number) = 0;
+  virtual void handlePendingIrqs(const IRQContext &ctx) = 0;
+  virtual void printHandler() = 0;
 };
 
 class IRQManagerHolder {
@@ -53,7 +65,7 @@ IRQManager *irq_manager();
 
 void registerIrqManager(IRQManager *newManager);
 
-inline void execWithIrqMasked(void (*func)()) {
+template <typename Func> inline void execWithIrqMasked(Func &&func) {
   unsigned int saved = Exception::Asynchronous::localIrqMaskSave();
   func();
   Exception::Asynchronous::localIrqRestore(saved);

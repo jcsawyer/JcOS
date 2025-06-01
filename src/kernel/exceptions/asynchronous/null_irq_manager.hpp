@@ -7,17 +7,19 @@ namespace Asynchronous {
 
 class NullIRQManager : public IRQManager {
 public:
-  void registerHandler(unsigned int number, const char *name,
-                       IRQHandler *handler) override {
-    panic("No IRQ Maanger registered yet");
+  void registerHandler(const Exceptions::Asynchronous::IRQHandlerDescriptor
+                           &irq_handler_descriptor) override {
+    panic("Register Handler: No IRQ Manager registered yet");
   }
-  void enable(unsigned int number) override {
-    panic("No IRQ Maanger registered yet");
+  void enable(::BSP::Exception::Asynchronous::IRQNumber *number) override {
+    panic("Enable: No IRQ Manager registered yet");
   }
   void handlePendingIrqs(const IRQContext &ctx) override {
-    panic("No IRQ Maanger registered yet");
+    panic("Handle Pending IRQs: No IRQ Manager registered yet");
   }
-  void printHandler() override { panic("No IRQ Maanger registered yet"); }
+  void printHandler() override {
+    panic("Print Handler: No IRQ Manager registered yet");
+  }
 };
 
 NullIRQManager null_irq_manager;

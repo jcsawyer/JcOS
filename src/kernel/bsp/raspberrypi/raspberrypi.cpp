@@ -1,17 +1,33 @@
 #include "raspberrypi.hpp"
 #include "../../driver/driver.hpp"
+#include "exception/asynchronous.hpp"
 #include "memory.hpp"
 
 namespace Driver {
 namespace BSP {
 namespace RaspberryPi {
 
+Driver::BSP::BCM::InterruptController *RaspberryPi::interruptController =
+    nullptr;
 BCM::GPIO *RaspberryPi::gpio = nullptr;
 BCM::UART *RaspberryPi::uart = nullptr;
 BCM::RNG *RaspberryPi::rng = nullptr;
 BCM::UART::UartConsole *RaspberryPi::uartConsole = nullptr;
 BCM::Timer *RaspberryPi::timer = nullptr;
 LCD::HD44780U *RaspberryPi::lcd = nullptr;
+
+Driver::BSP::BCM::InterruptController *RaspberryPi::getInterruptController() {
+#if BOARD == bsp_rpi3
+  if (interruptController == nullptr) {
+    static Driver::BSP::BCM::InterruptController interruptControllerInstance(
+        0x3F000000 + Memory::Map::INTERRUPT_CONTROLLER_OFFSET);
+    interruptController = &interruptControllerInstance;
+  }
+  return interruptController;
+#else
+#error "Unsupported board configuration"
+#endif
+}
 
 BCM::GPIO *RaspberryPi::getGPIO() {
   if (gpio == nullptr) {
@@ -60,10 +76,13 @@ BCM::Timer *RaspberryPi::getTimer() {
 
 void RaspberryPi::init() {
   driverManager().addDriver(DeviceDriverDescriptor(getGPIO(), &postInitGpio));
-  driverManager().addDriver(DeviceDriverDescriptor(getUART(), &postInitUart));
+  driverManager().addDriver(DeviceDriverDescriptor(
+      getUART(), &postInitUart, Driver::BSP::RaspberryPi::PL011_UART()));
   driverManager().addDriver(DeviceDriverDescriptor(getLCD(), &postInitLCD));
   driverManager().addDriver(DeviceDriverDescriptor(getRNG(), &postInitRng));
   driverManager().addDriver(DeviceDriverDescriptor(getTimer(), &postInitTimer));
+  driverManager().addDriver(DeviceDriverDescriptor(
+      getInterruptController(), &postInitInterruptController));
 }
 
 void RaspberryPi::postInitUart() {
@@ -96,6 +115,14 @@ void RaspberryPi::postInitTimer() {
   lcd->clear();
   lcd->setCursor(0, 0);
   lcd->writeString("Initializing Timer...");
+}
+
+void RaspberryPi::postInitInterruptController() {
+  LCD::HD44780U *lcd = getLCD();
+  lcd->clear();
+  lcd->setCursor(0, 0);
+  lcd->writeString("Initializing Interrupts...");
+  Exceptions::Asynchronous::registerIrqManager(getInterruptController());
 }
 
 } // namespace RaspberryPi

@@ -1,11 +1,12 @@
 #pragma once
 
 #include "../print.hpp"
+#include <bsp/exception/asynchronous.hpp>
 #include <memory.h>
 #include <stddef.h>
 
 namespace Driver {
-const int NUM_DRIVERS = 5;
+const int NUM_DRIVERS = 6;
 
 typedef void (*DeviceDriverPostInitCallback)();
 
@@ -14,20 +15,31 @@ public:
   virtual const char *compatible() = 0;
   virtual void init() = 0;
   virtual ~DeviceDriver() = default;
-  virtual void registerAndEnableIrqHandler() = 0;
+  virtual void registerAndEnableIrqHandler(
+      ::BSP::Exception::Asynchronous::IRQNumber *irqNumber) = 0;
 };
 
 class DeviceDriverDescriptor {
 public:
-  DeviceDriverDescriptor() : driver(), postInitCallback(nullptr) {}
+  DeviceDriverDescriptor()
+      : driver(), postInitCallback(nullptr), irqNumber(nullptr) {}
   DeviceDriverDescriptor(DeviceDriverPostInitCallback callback)
-      : driver(), postInitCallback(callback) {}
+      : driver(), postInitCallback(callback), irqNumber(nullptr) {}
 
   DeviceDriverDescriptor(DeviceDriver *driver,
                          DeviceDriverPostInitCallback callback)
-      : driver(driver), postInitCallback(callback) {}
+      : driver(driver), postInitCallback(callback), irqNumber(nullptr) {}
+
+  DeviceDriverDescriptor(DeviceDriver *driver,
+                         DeviceDriverPostInitCallback callback,
+                         ::BSP::Exception::Asynchronous::IRQNumber *irqNumber)
+      : driver(driver), postInitCallback(callback), irqNumber(irqNumber) {}
 
   DeviceDriver *getDriver() { return driver; }
+
+  ::BSP::Exception::Asynchronous::IRQNumber *getIrqNumber() {
+    return irqNumber;
+  }
 
   DeviceDriverPostInitCallback getPostInitCallback() const {
     return postInitCallback;
@@ -36,6 +48,7 @@ public:
 private:
   DeviceDriver *driver;
   DeviceDriverPostInitCallback postInitCallback;
+  ::BSP::Exception::Asynchronous::IRQNumber *irqNumber;
 };
 
 class DriverManager {

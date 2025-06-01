@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../device_driver/bcm/bcm2xxx_gpio.hpp"
+#include "../device_driver/bcm/bcm2xxx_interrupt_controller.hpp"
 #include "../device_driver/bcm/bcm2xxx_pl011_uart.hpp"
 #include "../device_driver/bcm/bcm2xxx_rng.hpp"
 #include "../device_driver/bcm/bcm2xxx_timer.hpp"
@@ -20,6 +21,7 @@ public:
   static Driver::BSP::LCD::HD44780U *getLCD();
   static Driver::BSP::BCM::RNG *getRNG();
   static Driver::BSP::BCM::Timer *getTimer();
+  static Driver::BSP::BCM::InterruptController *getInterruptController();
 
 private:
   static Driver::BSP::BCM::GPIO *gpio;
@@ -28,11 +30,13 @@ private:
   static Driver::BSP::LCD::HD44780U *lcd;
   static Driver::BSP::BCM::RNG *rng;
   static Driver::BSP::BCM::Timer *timer;
+  static Driver::BSP::BCM::InterruptController *interruptController;
   static void postInitUart();
   static void postInitGpio();
   static void postInitLCD();
   static void postInitRng();
   static void postInitTimer();
+  static void postInitInterruptController();
 };
 
 } // namespace RaspberryPi

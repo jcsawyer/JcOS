@@ -14,7 +14,8 @@ void RNG::init() {
   }
 }
 
-void RNG::registerAndEnableIrqHandler() {}
+void RNG::registerAndEnableIrqHandler(
+    ::BSP::Exception::Asynchronous::IRQNumber *irqNumber) {}
 
 unsigned int RNG::next(const unsigned int min, const unsigned int max) const {
   // Check if RNG is enabled

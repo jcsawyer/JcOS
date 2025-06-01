@@ -7,14 +7,15 @@ namespace Syncrhonization {
 
 template <typename T> class IRQSafeNullLock {
 public:
-  constexpr IRQSafeNullLock(T data) : data_(data) {}
+  explicit IRQSafeNullLock(T &data) : data_(data) {}
 
-  template <typename Func> auto lock(Func f) const {
-    return exec_with_irq_masked([&]() -> decltype(auto) { return f(data_); });
+  template <typename Func> auto lock(Func f) {
+    return Exceptions::Asynchronous::execWithIrqMasked(
+        [&]() -> decltype(auto) { return f(data_); });
   }
 
 private:
-  mutable T data_;
+  T &data_;
 };
 
 // Lock for init-phase data: writable only during single-core boot

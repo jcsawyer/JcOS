@@ -1,6 +1,7 @@
 #pragma once
 
 #include "hd44780u.hpp"
+#include <bsp/exception/asynchronous.hpp>
 #include <lcd/lcd.hpp>
 #include <stdint.h>
 
@@ -11,7 +12,8 @@ public:
   HD44780U(unsigned int mmio_start_addr) : registerBlock(mmio_start_addr) {};
   const char *compatible() { return "HD44780U LCD"; }
   void init() { initLcd(11, 10, 255, 255, 255, 255, 4, 5, 6, 7); };
-  void registerAndEnableIrqHandler() override;
+  void registerAndEnableIrqHandler(
+      ::BSP::Exception::Asynchronous::IRQNumber *irqNumber) override;
   void initLcd(unsigned char registerSelect, unsigned char enable,
                unsigned char d0, unsigned char d1, unsigned char d2,
                unsigned char d3, unsigned char d4, unsigned char d5,

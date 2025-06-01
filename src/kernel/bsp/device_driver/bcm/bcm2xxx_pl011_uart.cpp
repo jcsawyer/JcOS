@@ -1,5 +1,6 @@
 #include "bcm2xxx_pl011_uart.hpp"
 #include "../../../arch/cpu.hpp"
+#include <exceptions/asynchronous.hpp>
 #include <stdio/printf.h>
 
 namespace Driver::BSP::BCM {
@@ -36,7 +37,19 @@ void UART::init() {
   *registerBlock.CR = 1 << 0 | 1 << 8 | 1 << 9;
 }
 
-void UART::registerAndEnableIrqHandler() {}
+void UART::registerAndEnableIrqHandler(
+    ::BSP::Exception::Asynchronous::IRQNumber *irqNumber) {
+
+  Exceptions::Asynchronous::IRQHandlerDescriptor descriptor(
+      irqNumber->kind, *irqNumber, compatible(),
+      const_cast<IRQHandler *>(static_cast<const IRQHandler *>(this)));
+
+  // Register and enable via irq_manager singleton
+  Exceptions::Asynchronous::IRQManager *irqManager =
+      Exceptions::Asynchronous::irq_manager();
+  irqManager->registerHandler(descriptor);
+  irqManager->enable(irqNumber);
+}
 
 void UART::putc(const char c) const {
   while (*registerBlock.FR & 0x20) {
@@ -90,4 +103,24 @@ void UART::UartConsole::printLine(const char *format, ...) {
   va_end(args);
 }
 char UART::UartConsole::readChar() { return uart->getc(); }
+
+bool UART::handle() {
+  lock().lock([](UART &inner) {
+    auto pending = *inner.registerBlock.MIS;
+
+    // Clear all pending IRQs
+    *inner.registerBlock.ICR = (1 << 1);
+
+    // Check for any kindof RX interrupt
+    if (pending & (1 << 4 | 1 << 6)) {
+      // Echo any received characters.
+      while (true) {
+        // auto opt = inner.read_char_converting(BlockingMode::NonBlocking);
+        // if (!opt.has_value())
+        //   break;
+        // inner.printChar(opt.value());
+      }
+    }
+  });
+}
 } // namespace Driver::BSP::BCM

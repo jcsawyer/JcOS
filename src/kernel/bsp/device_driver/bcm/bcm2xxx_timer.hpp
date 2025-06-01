@@ -1,5 +1,6 @@
 #pragma once
 
+#include <bsp/exception/asynchronous.hpp>
 #include <driver/driver.hpp>
 #include <stdint.h>
 
@@ -14,7 +15,8 @@ public:
   Timer(unsigned int mmio_start_addr) : registerBlock(mmio_start_addr) {};
   const char *compatible() override { return "BCM Timer"; }
   void init() override;
-  void registerAndEnableIrqHandler() override;
+  void registerAndEnableIrqHandler(
+      ::BSP::Exception::Asynchronous::IRQNumber *irqNumber) override;
   void timerInit();
 
 private:

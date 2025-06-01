@@ -4,7 +4,8 @@ namespace Driver::BSP::BCM {
 
 void GPIO::init() {}
 
-void GPIO::registerAndEnableIrqHandler() {}
+void GPIO::registerAndEnableIrqHandler(
+    ::BSP::Exception::Asynchronous::IRQNumber *irqNumber) {}
 
 void GPIO::disablePud1415Bcm2837() const {
 

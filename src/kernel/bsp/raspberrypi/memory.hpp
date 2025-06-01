@@ -73,6 +73,7 @@ struct Map {
   static const size_t GPIO_OFFSET = 0x00200000;
   static const size_t UART_OFFSET = 0x00201000;
   static const size_t TIMER_OFFSET = 0x00003000;
+  static const size_t INTERRUPT_CONTROLLER_OFFSET = 0x0000B200;
 
   inline static MMIO getMMIO() {
 #if BOARD == bsp_rpi3

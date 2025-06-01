@@ -16,7 +16,8 @@ namespace Driver::BSP::BCM {
 
 void Timer::init() {}
 
-void Timer::registerAndEnableIrqHandler() {}
+void Timer::registerAndEnableIrqHandler(
+    ::BSP::Exception::Asynchronous::IRQNumber *irqNumber) {}
 
 void Timer::timerInit() {
   *TIMER_CS = TIMER_IRQ_1;                   // Clear any pending interrupts

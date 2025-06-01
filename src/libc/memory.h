@@ -11,3 +11,6 @@ inline void operator delete(void *ptr, size_t) noexcept {
 inline void operator delete(void *ptr) noexcept {
   // No-op or custom cleanup logic for your environment.
 }
+
+inline void *operator new(size_t, void *ptr) noexcept { return ptr; }
+inline void operator delete(void *, void *) noexcept {} // no-op

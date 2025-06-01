@@ -2,6 +2,7 @@
 
 #include "../../../arch/cpu.hpp"
 #include "../../../driver/driver.hpp"
+#include <bsp/exception/asynchronous.hpp>
 #include <stdint.h>
 
 namespace Driver {
@@ -12,7 +13,8 @@ public:
   GPIO(unsigned int mmio_start_addr) : registerBlock(mmio_start_addr) {};
   const char *compatible() override { return "BCM GPIO"; }
   void init() override;
-  void registerAndEnableIrqHandler() override;
+  void registerAndEnableIrqHandler(
+      ::BSP::Exception::Asynchronous::IRQNumber *irqNumber) override;
   void mapPl011Uart() const;
 
 private:
