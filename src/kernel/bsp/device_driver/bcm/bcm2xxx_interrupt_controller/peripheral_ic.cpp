@@ -23,18 +23,23 @@ void PeripheralIC::registerHandler(const IRQHandlerDescriptor &handler) {
 }
 
 void PeripheralIC::enable(IRQNumber *number) {
-  uint32_t irq = number->peripheral.get();
-  uint32_t bit = 1u << (irq % 32);
+  volatile uint32_t *enableReg = nullptr;
 
-  if (irq < 32) {
-    *registerBlock.ENABLE_1 = bit;
+  if (number->peripheral.get() <= 31) {
+    enableReg = registerBlock.ENABLE_1;
   } else {
-    *registerBlock.ENABLE_2 = bit;
+    enableReg = registerBlock.ENABLE_2;
   }
+
+  uint32_t enable_bit = 1u << (number->peripheral.get() % 32);
+
+  // Writing 1 to the bit enables the IRQ
+  *enableReg = enable_bit;
 }
 
 void PeripheralIC::handlePendingIrqs(
     const Exceptions::Asynchronous::IRQContext &) {
+
   uint64_t pending_mask =
       (static_cast<uint64_t>(*registerBlock.PENDING_2) << 32) |
       static_cast<uint64_t>(*registerBlock.PENDING_1);

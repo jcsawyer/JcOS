@@ -80,7 +80,8 @@ void RaspberryPi::init() {
       getUART(), &postInitUart, Driver::BSP::RaspberryPi::PL011_UART()));
   driverManager().addDriver(DeviceDriverDescriptor(getLCD(), &postInitLCD));
   driverManager().addDriver(DeviceDriverDescriptor(getRNG(), &postInitRng));
-  driverManager().addDriver(DeviceDriverDescriptor(getTimer(), &postInitTimer));
+  // driverManager().addDriver(DeviceDriverDescriptor(getTimer(),
+  // &postInitTimer));
   driverManager().addDriver(DeviceDriverDescriptor(
       getInterruptController(), &postInitInterruptController));
 }

@@ -7,14 +7,10 @@ void InterruptController::registerHandler(
         &irq_handler_descriptor) {
   switch (irq_handler_descriptor.number.kind) {
   case ::BSP::Exception::Asynchronous::IRQKind::Local:
-    panic(
-        "BMC2XXX Interrupt Controller: Local IRQs not supported in this BSP.");
+    panic("Local IRQs not supported in this BSP.");
 
   case ::BSP::Exception::Asynchronous::IRQKind::Peripheral: {
     auto pirq = irq_handler_descriptor.number;
-
-    info("Registering peripheral IRQ handler: %s, IRQ: %d",
-         irq_handler_descriptor.name, pirq.peripheral.get());
 
     static Exceptions::Asynchronous::IRQHandlerDescriptor periph_descriptor{
         ::BSP::Exception::Asynchronous::IRQKind::Peripheral, pirq,

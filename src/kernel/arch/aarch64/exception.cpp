@@ -1,5 +1,6 @@
 #include "exception.hpp"
 #include "../../exception.hpp"
+#include <exceptions/asynchronous.hpp>
 #include <panic.hpp>
 #include <stdint.h>
 
@@ -35,9 +36,10 @@ extern "C" void current_elx_synchronous(ExceptionContext *context) {
   defaultExceptionHandler(context);
 }
 
-// extern "C" void current_elx_irq(ExceptionContext *context) {
-//   defaultExceptionHandler(context);
-// }
+extern "C" void current_elx_irq(ExceptionContext *context) {
+  auto token = Exceptions::Asynchronous::IRQContext::create();
+  Exceptions::Asynchronous::irq_manager()->handlePendingIrqs(token);
+}
 
 extern "C" void current_elx_serror(ExceptionContext *context) {
   defaultExceptionHandler(context);

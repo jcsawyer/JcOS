@@ -26,17 +26,17 @@ void Timer::timerInit() {
   Exception::Asynchronous::localIrqUnmask(); // Enable interrupts globally
 }
 
-extern "C" void current_elx_irq(uint64_t *context) {
-  if (*TIMER_CS & TIMER_IRQ_1) {
-    *TIMER_CS = TIMER_IRQ_1;        // Clear the interrupt
-    *TIMER_C1 = *TIMER_CLO + 10000; // Schedule next timer IRQ
-  }
+// extern "C" void current_elx_irq(uint64_t *context) {
+//   if (*TIMER_CS & TIMER_IRQ_1) {
+//     *TIMER_CS = TIMER_IRQ_1;        // Clear the interrupt
+//     *TIMER_C1 = *TIMER_CLO + 10000; // Schedule next timer IRQ
+//   }
 
-  Exception::Asynchronous::localIrqUnmask(); // Re-enable interrupts
+//   Exception::Asynchronous::localIrqUnmask(); // Re-enable interrupts
 
-  // Call the schedule, which handles everything including switching
-  taskManager.schedule();
+//   // Call the schedule, which handles everything including switching
+//   taskManager.schedule();
 
-  // No more code here — schedule() does the context switch and never returns
-}
+//   // No more code here — schedule() does the context switch and never returns
+// }
 } // namespace Driver::BSP::BCM

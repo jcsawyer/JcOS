@@ -24,33 +24,19 @@ extern "C" void putchar_(const char c) {
 auto logo = R"""(
     __
    |  |    _____ _____
- __|  |___|     |   __|
-|  |  |  _|  |  |__   |
+   |  |___|     |   __|
+ __|  |  _|  |  |__   |
 |_____|___|_____|_____|
          Version 0.1.0
 
 
 )""";
 
-void inputEchoTask() {
-  info("Echoing input now");
-  Console::Console *console = Console::Console::GetInstance();
-  Driver::BSP::LCD::HD44780U *lcd =
-      Driver::BSP::RaspberryPi::RaspberryPi::getLCD();
-  while (true) {
-    const char c = console->readChar();
-    console->printChar(c);
-
-    const unsigned char printChar[2] = {c, '\0'};
-    lcd->writeString(reinterpret_cast<const char *>(printChar));
-    taskManager.schedule(); // Yield to the scheduler
-  }
-}
-
 void task1() {
   Driver::BSP::LCD::HD44780U *lcd =
       Driver::BSP::RaspberryPi::RaspberryPi::getLCD();
   while (1) {
+    info("Task 1 running...");
     Time::TimeManager *timeManager = Time::TimeManager::GetInstance();
     lcd->setCursor(0, 0);
     lcd->writeString("Task 1");
@@ -63,6 +49,7 @@ void task2() {
   Driver::BSP::LCD::HD44780U *lcd =
       Driver::BSP::RaspberryPi::RaspberryPi::getLCD();
   while (1) {
+    info("Running Task 2");
     Time::TimeManager *timeManager = Time::TimeManager::GetInstance();
     lcd->setCursor(0, 0);
     lcd->writeString("Task 2");
@@ -108,20 +95,20 @@ void task2() {
   lcd->setCursor(1, 0);
   lcd->writeString(">");
 
-  info("Task system initializing...");
-  info("Task system initialized, starting task scheduler...");
-  taskManager.init();
-  taskManager.addTask("Terminal", inputEchoTask);
-  taskManager.addTask("Task 1", task1);
-  taskManager.addTask("Task 2", task2);
+  // info("Task system initializing...");
+  // info("Task system initialized, starting task scheduler...");
+  // taskManager.init();
+  // taskManager.addTask("Task 1", task1);
+  // taskManager.addTask("Task 2", task2);
 
-  timerInit();
+  // timerInit();
 
   taskManager.currentTask = 0;
 
-  while (true) {
-    taskManager.schedule();
-  }
+  // while (true) {
+  //   taskManager.schedule();
+  // }
+  CPU::waitForever();
 }
 
 extern "C" void kernel_init() {

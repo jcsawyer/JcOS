@@ -1,3 +1,7 @@
+#pragma once
+
+#include <memory.h>
+
 template <typename T> class Optional {
 public:
   constexpr Optional() : has_value_(false) {}

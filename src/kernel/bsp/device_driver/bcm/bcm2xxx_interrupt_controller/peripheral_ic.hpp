@@ -34,10 +34,10 @@ private:
     volatile uint32_t *PENDING_2;
 
     RegisterBlock(uint32_t base) {
-      PENDING_1 = reinterpret_cast<volatile uint32_t *>(base + 0x204);
-      PENDING_2 = reinterpret_cast<volatile uint32_t *>(base + 0x208);
-      ENABLE_1 = reinterpret_cast<volatile uint32_t *>(base + 0x210);
-      ENABLE_2 = reinterpret_cast<volatile uint32_t *>(base + 0x214);
+      PENDING_1 = reinterpret_cast<volatile uint32_t *>(base + 0x04);
+      PENDING_2 = reinterpret_cast<volatile uint32_t *>(base + 0x08);
+      ENABLE_1 = reinterpret_cast<volatile uint32_t *>(base + 0x10);
+      ENABLE_2 = reinterpret_cast<volatile uint32_t *>(base + 0x14);
     }
   };
 

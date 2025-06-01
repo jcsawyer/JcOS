@@ -34,6 +34,9 @@ void UART::init() {
 
   *registerBlock.LCRH = 1 << 4 | 0b11 << 5;
 
+  *registerBlock.IFLS = 0b000; // Set TX and RX FIFO levels (one eighth)
+  *registerBlock.IMSC = 1 << 4 | 1 << 6; // Enable RX and TX interrupts
+
   *registerBlock.CR = 1 << 0 | 1 << 8 | 1 << 9;
 }
 
@@ -58,10 +61,16 @@ void UART::putc(const char c) const {
   *registerBlock.DR = c;
 }
 
-char UART::getc() const {
-  // TODO add in blocking mode
-  while (*registerBlock.FR & 0x10) {
-    CPU::nop();
+Optional<char> UART::getc(Console::Console::BlockingMode blockingMode) const {
+  if (*registerBlock.FR & 0x10) {
+    if (blockingMode == Console::Console::BlockingMode::NonBlocking) {
+      return Optional<char>('\0'); // No character available
+    }
+
+    // If blocking mode is set, wait until a character is available
+    while (*registerBlock.FR & 0x10) {
+      CPU::nop(); // Wait for the UART to become ready to receive.
+    }
   }
 
   const char c = *registerBlock.DR;
@@ -102,25 +111,31 @@ void UART::UartConsole::printLine(const char *format, ...) {
   uart->putc('\n');
   va_end(args);
 }
-char UART::UartConsole::readChar() { return uart->getc(); }
+
+Optional<char> UART::UartConsole::readChar(Console::BlockingMode blockingMode) {
+  return uart->getc(blockingMode);
+}
 
 bool UART::handle() {
+
   lock().lock([](UART &inner) {
     auto pending = *inner.registerBlock.MIS;
 
     // Clear all pending IRQs
     *inner.registerBlock.ICR = (1 << 1);
 
-    // Check for any kindof RX interrupt
+    // Check for any kind of RX interrupt
     if (pending & (1 << 4 | 1 << 6)) {
       // Echo any received characters.
       while (true) {
-        // auto opt = inner.read_char_converting(BlockingMode::NonBlocking);
-        // if (!opt.has_value())
-        //   break;
-        // inner.printChar(opt.value());
+        auto opt = inner.getc(Console::Console::BlockingMode::NonBlocking);
+        if (!opt.has_value())
+          return false;
+        inner.putc(opt.value());
       }
     }
+
+    return true;
   });
 }
 } // namespace Driver::BSP::BCM

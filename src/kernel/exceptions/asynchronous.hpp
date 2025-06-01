@@ -35,7 +35,7 @@ struct IRQHandlerDescriptor {
 
 struct IRQContext {
 public:
-  IRQContext create();
+  static IRQContext create();
 
 private:
   IRQContext() = default;

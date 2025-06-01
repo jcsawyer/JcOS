@@ -1,4 +1,5 @@
 #include "qemu_console.hpp"
+#include <optional.hpp>
 #include <stdarg.h>
 #include <stdio/printf.h>
 
@@ -31,9 +32,10 @@ void QemuConsole::printLine(const char *format, ...) {
   va_end(args);
 }
 
-char QemuConsole::readChar() {
+Optional<char> QemuConsole::readChar(Console::BlockingMode blockingMode) {
   const auto uartAddress = reinterpret_cast<volatile char *>(0x3F201000);
-  return *uartAddress; // Read character from UART
+  return Optional<char>(
+      static_cast<char>(*uartAddress)); // Read character from UART
 }
 
 } // namespace Console

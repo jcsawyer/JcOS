@@ -4,6 +4,7 @@
 #include "../../../driver/driver.hpp"
 #include <bsp/exception/asynchronous.hpp>
 #include <exceptions/asynchronous.hpp>
+#include <optional.hpp>
 #include <stdint.h>
 #include <synchronization.hpp>
 
@@ -17,7 +18,7 @@ public:
   void registerAndEnableIrqHandler(
       ::BSP::Exception::Asynchronous::IRQNumber *irqNumber) override;
   void putc(const char c) const;
-  char getc() const;
+  Optional<char> getc(Console::Console::BlockingMode blockingMode) const;
   void flush() const;
   bool handle() override;
   Syncrhonization::IRQSafeNullLock<UART> lock() {
@@ -31,7 +32,7 @@ public:
     void print(const char *s, ...);
     void printChar(char c);
     void printLine(const char *s, ...);
-    char readChar();
+    Optional<char> readChar(Console::Console::BlockingMode blockingMode);
 
   private:
     UART *uart;
@@ -46,6 +47,7 @@ private:
     volatile uint32_t *FBRD;
     volatile uint32_t *LCRH;
     volatile uint32_t *CR;
+    volatile uint32_t *IFLS;
     volatile uint32_t *IMSC;
     volatile uint32_t *MIS;
     volatile uint32_t *ICR;
@@ -60,6 +62,7 @@ private:
       FBRD = reinterpret_cast<volatile uint32_t *>(mmio_start_addr + 0x28);
       LCRH = reinterpret_cast<volatile uint32_t *>(mmio_start_addr + 0x2C);
       CR = reinterpret_cast<volatile uint32_t *>(mmio_start_addr + 0x30);
+      IFLS = reinterpret_cast<volatile uint32_t *>(mmio_start_addr + 0x34);
       IMSC = reinterpret_cast<volatile uint32_t *>(mmio_start_addr + 0x38);
       MIS = reinterpret_cast<volatile uint32_t *>(mmio_start_addr + 0x40);
       ICR = reinterpret_cast<volatile uint32_t *>(mmio_start_addr + 0x44);
@@ -70,16 +73,5 @@ private:
   };
   RegisterBlock registerBlock;
 };
-
-static Exceptions::Asynchronous::IRQHandlerDescriptor descriptor;
-
-static void
-setDescriptor(Exceptions::Asynchronous::IRQHandlerDescriptor newDescriptor) {
-  descriptor = newDescriptor;
-}
-
-static Exceptions::Asynchronous::IRQHandlerDescriptor getDescriptor() {
-  return descriptor;
-}
 
 } // namespace Driver::BSP::BCM
