@@ -58,7 +58,7 @@ public:
   virtual void noAutoScroll() = 0;
   virtual void setCursor(unsigned char row, unsigned char col) = 0;
   virtual void writeChar(char c) = 0;
-  virtual void writeString(const char *str) = 0;
+  virtual void writeString(const char *fmt, ...) = 0;
   virtual void command(unsigned char cmd) = 0;
 
 protected:

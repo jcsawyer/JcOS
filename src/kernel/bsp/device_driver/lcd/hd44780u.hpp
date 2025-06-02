@@ -29,7 +29,7 @@ public:
   void noAutoScroll() override;
   void setCursor(unsigned char row, unsigned char col) override;
   void writeChar(char c) override;
-  void writeString(const char *str) override;
+  void writeString(const char *fmt, ...) override;
   void command(unsigned char cmd) override;
 
 private:

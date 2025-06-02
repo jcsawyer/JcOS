@@ -1,5 +1,6 @@
 #include "hd44780u.hpp"
 #include <lcd/lcd.hpp>
+#include <stdio/printf.h>
 #include <time.hpp>
 #include <time/duration.hpp>
 
@@ -97,9 +98,16 @@ void HD44780U::setCursor(unsigned char row, unsigned char col) {
 
 void HD44780U::writeChar(char c) { sendData(static_cast<unsigned char>(c)); }
 
-void HD44780U::writeString(const char *str) {
-  while (*str) {
-    writeChar(*str++);
+void HD44780U::writeString(const char *fmt, ...) {
+  va_list args;
+  va_start(args, fmt);
+  char buffer[256];
+  vsnprintf_(buffer, sizeof(buffer), fmt, args);
+  va_end(args);
+
+  const char *buffer_ptr = buffer;
+  while (*buffer_ptr) {
+    writeChar(*buffer_ptr++);
   }
 }
 
