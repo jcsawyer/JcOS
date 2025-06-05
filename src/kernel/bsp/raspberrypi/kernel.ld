@@ -55,7 +55,7 @@ SECTIONS
     {
         KEEP(*(.text._start))
         *(.text._start_arguments) /* Constants (or statics in Rust speak) read by _start(). */
-        *(.text._start_zig)      /* The Rust entry point */
+        *(.text._start_cpp)      /* The Rust entry point */
         *(.text*)                 /* Everything else */
     } :segment_code
 

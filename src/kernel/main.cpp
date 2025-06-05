@@ -127,7 +127,8 @@ extern "C" void kernel_init() {
   // Unamask interrupts on boot CPU core.
   Exception::Asynchronous::localIrqUnmask();
 
-  State::state_manager().transition_to_single_core_main();
+  // TODO figure out why not working on real hardware...
+  // State::state_manager().transition_to_single_core_main();
 
   kernel_main();
 }

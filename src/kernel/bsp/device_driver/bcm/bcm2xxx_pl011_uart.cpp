@@ -64,7 +64,7 @@ void UART::putc(const char c) const {
 Optional<char> UART::getc(Console::Console::BlockingMode blockingMode) const {
   if (*registerBlock.FR & 0x10) {
     if (blockingMode == Console::Console::BlockingMode::NonBlocking) {
-      return Optional<char>('\0'); // No character available
+      return Optional<char>(); // No character available
     }
 
     // If blocking mode is set, wait until a character is available
@@ -130,7 +130,7 @@ bool UART::handle() {
       while (true) {
         auto opt = inner.getc(Console::Console::BlockingMode::NonBlocking);
         if (!opt.has_value())
-          return false;
+          continue; // No character available, break the loop
         inner.putc(opt.value());
       }
     }

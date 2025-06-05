@@ -58,12 +58,12 @@ _start:
 
 .L_bss_init_loop:
 	cmp	x0, x1
-	b.eq	.L_prepare_zig
+	b.eq	.L_prepare_cpp
 	stp	xzr, xzr, [x0], #16
 	b	.L_bss_init_loop
 
-	// Prepare the jump to Zig code.
-.L_prepare_zig:
+	// Prepare the jump to cpp code.
+.L_prepare_cpp:
 	// Set the stack pointer.
 	ADR_REL	x0, __boot_core_stack_end_exclusive
 	mov	sp, x0
@@ -76,7 +76,7 @@ _start:
 	b.eq	.L_parking_loop
 	str	w2, [x1]
 
-	// Jump to Zig code.
+	// Jump to cpp code.
 	b	_start_cpp
 
 	// Infinitely wait for events (aka "park the core").

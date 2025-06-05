@@ -102,6 +102,11 @@ clean:
 run:
 	@qemu-system-aarch64 -M $(QEMU_DEVICE) -kernel bin/kernel8.elf -serial stdio -display none
 
+deploy:
+	@echo "Deploying to $(BOARD)..."
+	@dotnet run --project ./src/tools/JcOS.RaspBootCom -- /dev/tty.usbserial-0001 /Volumes/Data/Development/JcOS/bin/kernel8.img
+
+
 check-args:
 ifeq ($(BOARD), bsp_rpi3)
 	@echo "Building for Raspberry Pi 3\n"
