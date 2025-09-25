@@ -2,7 +2,10 @@
 #include "../../exception.hpp"
 #include <exceptions/asynchronous.hpp>
 #include <panic.hpp>
+#include <print.hpp>
 #include <stdint.h>
+#include <syscall.hpp>
+#include <userland/syscall.hpp>
 
 namespace Exception {
 // default exception handler
@@ -31,6 +34,22 @@ extern "C" void current_elx_synchronous(ExceptionContext *context) {
     // get the value of FAR_EL1
     uint64_t far = 0;
     asm volatile("mrs %0, far_el1" : "=r"(far));
+
+    if ((context->esr_el1.get() >> 26) == 0b010101) {
+      uint64_t nr = context->gpr[8];
+      uint64_t a0 = context->gpr[0];
+      uint64_t a1 = context->gpr[1];
+      uint64_t a2 = context->gpr[2];
+      uint64_t a3 = context->gpr[3];
+      uint64_t a4 = context->gpr[4];
+      uint64_t a5 = context->gpr[5];
+
+      uint64_t ret = Syscall::dispatch(nr, a0, a1, a2, a3);
+
+      asm volatile("mov x0, %0" ::"r"(ret));
+      asm volatile("msr elr_el1, %0" ::"r"(context->elr_el1 + 4));
+      return;
+    }
   }
 
   defaultExceptionHandler(context);

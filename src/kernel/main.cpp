@@ -13,6 +13,7 @@
 
 #include <state.hpp>
 #include <synchronization.hpp>
+#include <syscall.hpp>
 
 extern void timerInit();
 
@@ -32,16 +33,38 @@ auto logo = R"""(
 
 )""";
 
+void utoa(unsigned int value, char *buffer) {
+  int i = 0;
+  if (value == 0) {
+    buffer[i++] = '0';
+  } else {
+    while (value > 0) {
+      buffer[i++] = '0' + (value % 10);
+      value /= 10;
+    }
+  }
+  buffer[i] = '\0';
+}
+
 void task1() {
   Driver::BSP::LCD::HD44780U *lcd =
       Driver::BSP::RaspberryPi::RaspberryPi::getLCD();
   while (1) {
     info("Task 1 running...");
+    Syscall::write("Hello from syscall::write!!\n");
+    // Syscall::exit(0);
     Time::TimeManager *timeManager = Time::TimeManager::GetInstance();
-    lcd->setCursor(0, 0);
-    lcd->writeString("Task 1");
-    timeManager->spinFor(Time::Duration::from_secs(0.5));
-    taskManager.schedule(); // Yield to the scheduler
+
+    char buffer[10];
+    for (int i = 0; i < 10; i++) {
+      lcd->setCursor(0, 0);
+      lcd->writeString("Task 1 (");
+      utoa(i, buffer);
+      lcd->writeString(buffer);
+      lcd->writeString(")");
+      taskManager.schedule(); // Yield to the scheduler
+      timeManager->spinFor(Time::Duration::from_millis(100));
+    }
   }
 }
 
@@ -51,10 +74,16 @@ void task2() {
   while (1) {
     info("Running Task 2");
     Time::TimeManager *timeManager = Time::TimeManager::GetInstance();
-    lcd->setCursor(0, 0);
-    lcd->writeString("Task 2");
-    timeManager->spinFor(Time::Duration::from_secs(0.5));
-    taskManager.schedule(); // Yield to the scheduler
+    char buffer[10];
+    for (int i = 0; i < 10; i++) {
+      lcd->setCursor(1, 0);
+      lcd->writeString("Task 2 (");
+      utoa(i, buffer);
+      lcd->writeString(buffer);
+      lcd->writeString(")");
+      taskManager.schedule(); // Yield to the scheduler
+      timeManager->spinFor(Time::Duration::from_millis(100));
+    }
   }
 }
 
@@ -95,19 +124,19 @@ void task2() {
   lcd->setCursor(1, 0);
   lcd->writeString(">");
 
-  // info("Task system initializing...");
-  // info("Task system initialized, starting task scheduler...");
-  // taskManager.init();
-  // taskManager.addTask("Task 1", task1);
-  // taskManager.addTask("Task 2", task2);
+  info("Task system initializing...");
+  info("Task system initialized, starting task scheduler...");
+  taskManager.init();
+  taskManager.addTask("Task 1", task1);
+  taskManager.addTask("Task 2", task2);
 
-  // timerInit();
+  timerInit();
 
   taskManager.currentTask = 0;
 
-  // while (true) {
-  //   taskManager.schedule();
-  // }
+  while (true) {
+    taskManager.schedule();
+  }
   CPU::waitForever();
 }
 

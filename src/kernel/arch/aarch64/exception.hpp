@@ -69,6 +69,7 @@ struct ExceptionContext {
     case 0b100101: // DataAbortCurrentEL:
     case 0b110100: // WatchpointLowerEL:
     case 0b110101: // WatchpointCurrentEL:
+    case 0b010101: // SVC:
       return true;
 
     default:
