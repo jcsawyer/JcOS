@@ -1,9 +1,19 @@
 #include "mmu.hpp"
 #include "../../../memory/mmu.hpp"
 #include "../memory.hpp"
+#include <arch/aarch64/memory/mmu/translation_table.hpp>
 #include <panic.hpp>
 
 namespace Memory {
+extern "C" {
+KernelTranslationTable KERNEL_TABLES
+    __attribute__((section(".data"), aligned(65536))) = {};
+
+uint64_t PHYS_KERNEL_TABLES_BASE_ADDR
+    __attribute__((section(".text._start_arguments"), used)) =
+        0xCCCCAAAAFFFFEEEEULL;
+}
+
 namespace {
 const size_t KERNEL_GRANULE_SIZE = 64 * 1024;
 const size_t MAX_MMIO_MAPPINGS = 32;
@@ -36,11 +46,19 @@ void printDivider() {
   info("      %s", divider);
 }
 
-void formatAddress(char *out, size_t outLen, size_t addr) {
+void formatVirtualAddress(char *out, size_t outLen, size_t addr) {
   uint64_t value = static_cast<uint64_t>(addr);
-  snprintf_(out, outLen, "0x%04lX_%04lX_%04lX_%04lX",
+  snprintf_(out, outLen, "0x%04lx_%04lx_%04lx_%04lx",
             static_cast<size_t>((value >> 48) & 0xFFFF),
             static_cast<size_t>((value >> 32) & 0xFFFF),
+            static_cast<size_t>((value >> 16) & 0xFFFF),
+            static_cast<size_t>(value & 0xFFFF));
+}
+
+void formatPhysicalAddress(char *out, size_t outLen, size_t addr) {
+  uint64_t value = static_cast<uint64_t>(addr);
+  snprintf_(out, outLen, "0x%02lx_%04lx_%04lx",
+            static_cast<size_t>((value >> 32) & 0xFF),
             static_cast<size_t>((value >> 16) & 0xFFFF),
             static_cast<size_t>(value & 0xFFFF));
 }
@@ -66,10 +84,10 @@ void printMappedRow(size_t virtStart, size_t virtEndInclusive, size_t physStart,
   char physEndStr[24];
   char sizeStr[16];
 
-  formatAddress(virtStartStr, sizeof(virtStartStr), virtStart);
-  formatAddress(virtEndStr, sizeof(virtEndStr), virtEndInclusive);
-  formatAddress(physStartStr, sizeof(physStartStr), physStart);
-  formatAddress(physEndStr, sizeof(physEndStr), physEndInclusive);
+  formatVirtualAddress(virtStartStr, sizeof(virtStartStr), virtStart);
+  formatVirtualAddress(virtEndStr, sizeof(virtEndStr), virtEndInclusive);
+  formatPhysicalAddress(physStartStr, sizeof(physStartStr), physStart);
+  formatPhysicalAddress(physEndStr, sizeof(physEndStr), physEndInclusive);
   formatSize(sizeStr, sizeof(sizeStr), bytes);
 
   info("      %s..%s --> %s..%s | %7s | %-10s | %s", virtStartStr, virtEndStr,

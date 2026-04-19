@@ -1,4 +1,5 @@
 #include <main.hpp>
+#include <memory/mmu.hpp>
 #include <stdint.h>
 
 void prepare_el2_to_el1_transition(
@@ -43,13 +44,15 @@ void prepare_el2_to_el1_transition(
   asm volatile("mrs %0, SP_EL1" : "=r"(sp_el1));
 }
 
-extern "C" void _start_cpp(uint64_t phys_boot_core_stack_end_exclusive_addr) {
+extern "C" void _start_cpp(uint64_t phys_kernel_tables_base_addr,
+                           uint64_t phys_boot_core_stack_end_exclusive_addr) {
   uint64_t current_el = 0;
   asm volatile("mrs %0, CurrentEL" : "=r"(current_el));
   current_el &= 0b1100;
 
   if (current_el == 0b1000) {
     prepare_el2_to_el1_transition(phys_boot_core_stack_end_exclusive_addr);
+    Memory::MMU()->enableMMUAndCaching(phys_kernel_tables_base_addr);
     asm volatile("eret");
   }
 
@@ -57,6 +60,7 @@ extern "C" void _start_cpp(uint64_t phys_boot_core_stack_end_exclusive_addr) {
     asm volatile("mov sp, %0"
                  :
                  : "r"(phys_boot_core_stack_end_exclusive_addr));
+    Memory::MMU()->enableMMUAndCaching(phys_kernel_tables_base_addr);
     kernel_init();
   }
 

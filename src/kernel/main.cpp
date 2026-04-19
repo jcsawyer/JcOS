@@ -108,7 +108,7 @@ void task2() {
   info("Drivers loaded:");
   Driver::driverManager().printDrivers();
 
-  info("Registered IRQ handlers...");
+  info("Registered IRQ handlers:");
   Exceptions::Asynchronous::IRQManager *irqManager =
       Exceptions::Asynchronous::irq_manager();
   irqManager->printHandler();
@@ -142,9 +142,7 @@ void task2() {
 }
 
 extern "C" void kernel_init() {
-  const Memory::MemoryManagementUnit *mmu = Memory::MMU();
   Exception::handlingInit();
-  mmu->enableMMUAndCaching();
 
   Time::TimeManager::GetInstance()->init();
 

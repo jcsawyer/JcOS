@@ -14,7 +14,7 @@ enum MMUEnableError { AlreadyEnabled, Other };
 class MemoryManagementUnit {
 public:
   static bool isEnabled();
-  static void enableMMUAndCaching();
+  static void enableMMUAndCaching(uint64_t physKernelTablesBaseAddr);
 
   enum MAIR : uint64_t {
     DEVICE = 0,

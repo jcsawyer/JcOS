@@ -128,6 +128,7 @@ $(CHAINLOADER_OBJ_DIR)/%.o: %.cpp
 kernel8.img: $(ASM_OBJS) $(C_OBJS)
 	@mkdir -p $(@D)
 	@$(LD) $(LDFLAGS) $(ASM_OBJS) $(C_OBJS) -T ./src/kernel/bsp/raspberrypi/kernel.ld -o ./bin/kernel8.elf
+	@dotnet run --project ./src/tools/Jc.OS.RaspBootPreCompute -- ./bin/kernel8.elf $(BOARD)
 	@$(OBJCOPY) -O binary ./bin/kernel8.elf ./bin/kernel8.img
 
 chainloader8.img: $(CHAINLOADER_ASM_OBJS) $(CHAINLOADER_C_OBJS)

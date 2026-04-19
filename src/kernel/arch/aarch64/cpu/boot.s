@@ -64,19 +64,22 @@ _start:
 
 	// Prepare the jump to cpp code.
 .L_prepare_cpp:
+	// Load the base address of the kernel's translation tables.
+	ldr	x0, PHYS_KERNEL_TABLES_BASE_ADDR // patched post-link
+
 	// Set the stack pointer.
-	ADR_REL	x0, __boot_core_stack_end_exclusive
-	mov	sp, x0
+	ADR_REL	x1, __boot_core_stack_end_exclusive
+	mov	sp, x1
 
 	// Read the CPU's timer counter frequency and store it in ARCH_TIMER_COUNTER_FREQUENCY.
 	// Abort if the frequency read back as 0.
-	ADR_REL	x1, ARCH_TIMER_COUNTER_FREQUENCY // provided by aarch64/time.rs
-	mrs	x2, CNTFRQ_EL0
-	cmp	x2, xzr
+	ADR_REL	x2, ARCH_TIMER_COUNTER_FREQUENCY // provided by aarch64/time.rs
+	mrs	x3, CNTFRQ_EL0
+	cmp	x3, xzr
 	b.eq	.L_parking_loop
-	str	w2, [x1]
+	str	w3, [x2]
 
-	// Jump to cpp code.
+	// Jump to cpp code. x0 and x1 hold the function arguments for _start_cpp().
 	b	_start_cpp
 
 	// Infinitely wait for events (aka "park the core").

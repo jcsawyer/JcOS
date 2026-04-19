@@ -15,6 +15,7 @@ namespace Memory {
 #define ISB_SY asm volatile("isb sy" ::: "memory")
 
 KernelTranslationTable *kernelTables();
+extern "C" KernelTranslationTable KERNEL_TABLES;
 
 // Configure MAIR_EL1 register
 void setUpMAIR() {
@@ -51,7 +52,8 @@ bool MemoryManagementUnit::isEnabled() {
 }
 
 // Enable MMU and caching
-void MemoryManagementUnit::enableMMUAndCaching() {
+void MemoryManagementUnit::enableMMUAndCaching(
+    uint64_t physKernelTablesBaseAddr) {
   // Check if MMU is already enabled.
   if (isEnabled()) {
     panic("MMU is already enabled");
@@ -67,13 +69,8 @@ void MemoryManagementUnit::enableMMUAndCaching() {
   // Set up MAIR_EL1.
   setUpMAIR();
 
-  // Populate translation tables.
-  // Assuming populateTTEntries() initializes the translation tables.
-  kernelTables()->populateTTEntries();
-
   // Set the Translation Table Base Register (TTBR0_EL1).
-  uint64_t ttbr0_value = kernelTables()->physBaseAddress();
-  WRITE_SYSREG(ttbr0_el1, ttbr0_value);
+  WRITE_SYSREG(ttbr0_el1, physKernelTablesBaseAddr);
 
   // Configure translation control settings.
   configureTranslationControl();
@@ -96,10 +93,7 @@ void MemoryManagementUnit::enableMMUAndCaching() {
   ISB_SY;
 }
 
-KernelTranslationTable *kernelTables() {
-  static auto kernelTables = KernelTranslationTable();
-  return &kernelTables;
-}
+KernelTranslationTable *kernelTables() { return &KERNEL_TABLES; }
 
 MemoryManagementUnit *MMU() {
   static auto mmu = MemoryManagementUnit();
