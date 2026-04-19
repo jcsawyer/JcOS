@@ -1,5 +1,6 @@
 #include "bsp/raspberrypi/raspberrypi.hpp"
 #include <bsp/bsp.hpp>
+#include <bsp/raspberrypi/memory/mmu.hpp>
 #include <console/console.hpp>
 #include <driver/driver.hpp>
 #include <exception.hpp>
@@ -94,8 +95,8 @@ void task2() {
   info("%s version %s", "JcOS", "0.1.0");
   BSP::Board::PrintInfo();
 
-  info("MMU online. Special regions:");
-  Memory::virtMemLayout()->printLayout();
+  info("MMU online:");
+  Memory::kernelPrintMappings();
 
   const char *privilegeLevel;
   Exception::current_privilege_level(&privilegeLevel);

@@ -1,11 +1,26 @@
 #include "mailbox.hpp"
 #include <arch/cpu.hpp>
+#include <bsp/raspberrypi/memory/mmu.hpp>
 #include <memory.h>
 #include <print.hpp>
 #include <stdint.h>
 #include <time.hpp>
 
 namespace Mailbox::RaspberryPi {
+
+RaspberryPiMailbox::RaspberryPiMailbox(Channel channel)
+    : Mailbox(), MAILBOX_BASE(0), MAILBOX_READ(nullptr),
+      MAILBOX_STATUS(nullptr), MAILBOX_WRITE(nullptr), channel(channel) {
+  const size_t mappedMailbox = Memory::kernelMapMMIO(
+      "Raspberry Pi Mailbox",
+      Memory::MMIODescriptor(Memory::Map::getMMIO().VIDEOCORE_MBOX_START,
+                             Memory::Map::VIDEOCORE_MBOX_SIZE));
+
+  MAILBOX_BASE = mappedMailbox;
+  MAILBOX_READ = reinterpret_cast<volatile uint32_t *>(MAILBOX_BASE + 0x0);
+  MAILBOX_STATUS = reinterpret_cast<volatile uint32_t *>(MAILBOX_BASE + 0x18);
+  MAILBOX_WRITE = reinterpret_cast<volatile uint32_t *>(MAILBOX_BASE + 0x20);
+}
 
 bool RaspberryPiMailbox::Call(Request *request, Response *response) {
   // Clear the data buffer
