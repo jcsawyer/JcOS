@@ -1,5 +1,6 @@
 #include "bsp/raspberrypi/raspberrypi.hpp"
 #include <bsp/bsp.hpp>
+#include <bsp/raspberrypi/memory/mmu.hpp>
 #include <console/console.hpp>
 #include <driver/driver.hpp>
 #include <exception.hpp>
@@ -16,6 +17,7 @@
 #include <syscall.hpp>
 
 extern void timerInit();
+extern uint64_t bootPhysKernelTablesBaseAddr;
 
 extern "C" void putchar_(const char c) {
   Console::Console *console = Console::Console::GetInstance();
@@ -94,8 +96,8 @@ void task2() {
   info("%s version %s", "JcOS", "0.1.0");
   BSP::Board::PrintInfo();
 
-  info("MMU online. Special regions:");
-  Memory::virtMemLayout()->printLayout();
+  info("MMU online:");
+  Memory::kernelPrintMappings();
 
   const char *privilegeLevel;
   Exception::current_privilege_level(&privilegeLevel);
@@ -107,7 +109,7 @@ void task2() {
   info("Drivers loaded:");
   Driver::driverManager().printDrivers();
 
-  info("Registered IRQ handlers...");
+  info("Registered IRQ handlers:");
   Exceptions::Asynchronous::IRQManager *irqManager =
       Exceptions::Asynchronous::irq_manager();
   irqManager->printHandler();
@@ -141,9 +143,11 @@ void task2() {
 }
 
 extern "C" void kernel_init() {
-  const Memory::MemoryManagementUnit *mmu = Memory::MMU();
   Exception::handlingInit();
-  mmu->enableMMUAndCaching();
+
+  if (!Memory::MemoryManagementUnit::isEnabled()) {
+    Memory::MMU()->enableMMUAndCaching(bootPhysKernelTablesBaseAddr);
+  }
 
   Time::TimeManager::GetInstance()->init();
 

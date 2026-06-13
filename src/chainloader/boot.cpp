@@ -4,8 +4,7 @@
 
 namespace {
 
-void prepareEl2ToEl1Transition(
-    uint64_t physBootCoreStackEndExclusiveAddress) {
+void prepareEl2ToEl1Transition(uint64_t physBootCoreStackEndExclusiveAddress) {
   asm volatile("msr CNTHCTL_EL2, %[value]" : : [value] "r"(0b11));
   asm volatile("msr CNTVOFF_EL2, %[value]" : : [value] "r"(0));
   asm volatile("msr HCR_EL2, %[value]" : : [value] "r"(0b1ull << 31));

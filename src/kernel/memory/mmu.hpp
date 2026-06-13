@@ -14,7 +14,7 @@ enum MMUEnableError { AlreadyEnabled, Other };
 class MemoryManagementUnit {
 public:
   static bool isEnabled();
-  static void enableMMUAndCaching();
+  static void enableMMUAndCaching(uint64_t physKernelTablesBaseAddr);
 
   enum MAIR : uint64_t {
     DEVICE = 0,
@@ -22,7 +22,7 @@ public:
   };
 };
 MemoryManagementUnit *MMU();
-const size_t NUM_MEM_RANGES = 3;
+const size_t NUM_MEM_RANGES = 2;
 
 struct AttributeFields {
   MemAttributes memAttributes;
@@ -79,6 +79,14 @@ struct TranslationDescriptor {
   size_t virtualRangeEnd;
   TranslationType physicalRangeTranslation;
   AttributeFields attributeFields;
+};
+
+struct MMIODescriptor {
+  size_t startAddr;
+  size_t size;
+
+  constexpr MMIODescriptor(size_t start_addr, size_t size_bytes)
+      : startAddr(start_addr), size(size_bytes) {}
 };
 
 template <size_t GRANULE_SIZE> class TranslationGranule {
@@ -159,5 +167,7 @@ private:
 };
 
 KernelVirtualLayout<NUM_MEM_RANGES> *virtMemLayout();
+size_t kernelMapMMIO(const char *name, const MMIODescriptor &descriptor);
+void kernelPrintMappings();
 
 } // namespace Memory

@@ -16,7 +16,9 @@ public class MiniPush : MiniTerm
     private int _transferAttempt;
     private const int HostWriteChunkSize = 4096;
     private const int HandshakeTimeoutSeconds = 10;
-    private const int TransferTimeoutSeconds = 30;
+    private const int MinimumTransferTimeoutSeconds = 30;
+    private const int TransferTimeoutPaddingSeconds = 15;
+    private const int AssumedMinimumTransferRateBytesPerSecond = 8 * 1024;
 
     public MiniPush(string serialName, string payloadPath) : base(serialName)
     {
@@ -218,9 +220,16 @@ public class MiniPush : MiniTerm
         pb.Finish();
     }
 
-    private static TimeSpan ComputeAttemptTimeout()
+    private TimeSpan ComputeAttemptTimeout()
     {
-        return TimeSpan.FromSeconds(HandshakeTimeoutSeconds + TransferTimeoutSeconds);
+        var estimatedTransferSeconds =
+            (_payloadSize + AssumedMinimumTransferRateBytesPerSecond - 1) /
+            AssumedMinimumTransferRateBytesPerSecond;
+        var transferTimeoutSeconds = Math.Max(
+            MinimumTransferTimeoutSeconds,
+            estimatedTransferSeconds + TransferTimeoutPaddingSeconds);
+
+        return TimeSpan.FromSeconds(HandshakeTimeoutSeconds + transferTimeoutSeconds);
     }
 
     private bool TryTransferOnce()
@@ -254,6 +263,12 @@ public class MiniPush : MiniTerm
         {
             Console.WriteLine();
             Console.WriteLine($"[{_nameShort}] ⏳ No complete handshake yet, retrying on the same serial session");
+            return false;
+        }
+        catch (OperationCanceledException)
+        {
+            Console.WriteLine();
+            Console.WriteLine($"[{_nameShort}] ⏳ Transfer attempt timed out, retrying on the same serial session");
             return false;
         }
         catch (ProtocolError ex)

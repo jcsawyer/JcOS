@@ -21,7 +21,7 @@ enum Channel : char {
 
 class RaspberryPiMailbox : public Mailbox::Mailbox {
 public:
-  RaspberryPiMailbox(Channel channel) : Mailbox(), channel(channel) {}
+  RaspberryPiMailbox(Channel channel);
 
   bool Call(Request *request, Response *response) override;
   bool IsFull() override { return (*MAILBOX_STATUS & MAIL_FULL) != 0; }
@@ -35,12 +35,9 @@ protected:
   uint32_t MAILBOX_RESPONSE = 0x80000000;
 
 private:
-  volatile uint32_t *MAILBOX_READ =
-      reinterpret_cast<volatile uint32_t *>(MAILBOX_BASE + 0x0);
-  volatile uint32_t *MAILBOX_STATUS =
-      reinterpret_cast<volatile uint32_t *>(MAILBOX_BASE + 0x18);
-  volatile uint32_t *MAILBOX_WRITE =
-      reinterpret_cast<volatile uint32_t *>(MAILBOX_BASE + 0x20);
+  volatile uint32_t *MAILBOX_READ;
+  volatile uint32_t *MAILBOX_STATUS;
+  volatile uint32_t *MAILBOX_WRITE;
   Channel channel;
 };
 } // namespace Mailbox::RaspberryPi

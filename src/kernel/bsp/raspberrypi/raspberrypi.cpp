@@ -2,6 +2,7 @@
 #include "../../driver/driver.hpp"
 #include "exception/asynchronous.hpp"
 #include "memory.hpp"
+#include "memory/mmu.hpp"
 
 namespace Driver {
 namespace BSP {
@@ -19,8 +20,13 @@ LCD::HD44780U *RaspberryPi::lcd = nullptr;
 Driver::BSP::BCM::InterruptController *RaspberryPi::getInterruptController() {
 #if BOARD == bsp_rpi3
   if (interruptController == nullptr) {
+    const size_t mappedInterruptController = Memory::kernelMapMMIO(
+        "BCM Interrupt Controller",
+        Memory::MMIODescriptor(Memory::Map::getMMIO().START +
+                                   Memory::Map::INTERRUPT_CONTROLLER_OFFSET,
+                               Memory::Map::INTERRUPT_CONTROLLER_SIZE));
     static Driver::BSP::BCM::InterruptController interruptControllerInstance(
-        0x3F000000 + Memory::Map::INTERRUPT_CONTROLLER_OFFSET);
+        mappedInterruptController);
     interruptController = &interruptControllerInstance;
   }
   return interruptController;
@@ -31,7 +37,10 @@ Driver::BSP::BCM::InterruptController *RaspberryPi::getInterruptController() {
 
 BCM::GPIO *RaspberryPi::getGPIO() {
   if (gpio == nullptr) {
-    static BCM::GPIO gpioInstance(Memory::Map::getMMIO().GPIO_START);
+    const size_t mappedGPIO = Memory::kernelMapMMIO(
+        "BCM GPIO", Memory::MMIODescriptor(Memory::Map::getMMIO().GPIO_START,
+                                           Memory::Map::GPIO_SIZE));
+    static BCM::GPIO gpioInstance(mappedGPIO);
     gpio = &gpioInstance;
   }
   return gpio;
@@ -39,7 +48,11 @@ BCM::GPIO *RaspberryPi::getGPIO() {
 
 BCM::UART *RaspberryPi::getUART() {
   if (uart == nullptr) {
-    static BCM::UART uartInstance(Memory::Map::getMMIO().PL011_UART_START);
+    const size_t mappedUART = Memory::kernelMapMMIO(
+        "BCM PL011 UART",
+        Memory::MMIODescriptor(Memory::Map::getMMIO().PL011_UART_START,
+                               Memory::Map::UART_SIZE));
+    static BCM::UART uartInstance(mappedUART);
     uart = &uartInstance;
   }
   return uart;
@@ -47,7 +60,10 @@ BCM::UART *RaspberryPi::getUART() {
 
 BCM::RNG *RaspberryPi::getRNG() {
   if (rng == nullptr) {
-    static BCM::RNG rngInstance(Memory::Map::getMMIO().RNG_START);
+    const size_t mappedRNG = Memory::kernelMapMMIO(
+        "BCM RNG", Memory::MMIODescriptor(Memory::Map::getMMIO().RNG_START,
+                                          Memory::Map::RNG_SIZE));
+    static BCM::RNG rngInstance(mappedRNG);
     rng = &rngInstance;
   }
   return rng;
@@ -63,14 +79,21 @@ BCM::UART::UartConsole *RaspberryPi::getUartConsole() {
 
 LCD::HD44780U *RaspberryPi::getLCD() {
   if (lcd == nullptr) {
-    static LCD::HD44780U lcdInstance(Memory::Map::getMMIO().GPIO_START);
+    const size_t mappedGPIO = Memory::kernelMapMMIO(
+        "HD44780U GPIO",
+        Memory::MMIODescriptor(Memory::Map::getMMIO().GPIO_START,
+                               Memory::Map::GPIO_SIZE));
+    static LCD::HD44780U lcdInstance(mappedGPIO);
     lcd = &lcdInstance;
   }
   return lcd;
 }
 
 BCM::Timer *RaspberryPi::getTimer() {
-  static BCM::Timer timerInstance(Memory::Map::getMMIO().TIMER_START);
+  const size_t mappedTimer = Memory::kernelMapMMIO(
+      "BCM Timer", Memory::MMIODescriptor(Memory::Map::getMMIO().TIMER_START,
+                                          Memory::Map::TIMER_SIZE));
+  static BCM::Timer timerInstance(mappedTimer);
   return &timerInstance;
 }
 
