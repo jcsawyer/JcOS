@@ -122,9 +122,9 @@ void task2() {
       Driver::BSP::RaspberryPi::RaspberryPi::getLCD();
   lcd->clear();
   lcd->setCursor(0, 0);
-  lcd->writeString("JcOS v0.1.0");
-  lcd->setCursor(1, 0);
-  lcd->writeString(">");
+  // lcd->writeString("JcOS v0.1.0");
+  // lcd->setCursor(1, 0);
+  // lcd->writeString(">");
 
   info("Task system initializing...");
   info("Task system initialized, starting task scheduler...");
