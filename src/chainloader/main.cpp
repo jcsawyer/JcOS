@@ -52,15 +52,14 @@ uint32_t readPayloadSize(Chainloader::Uart &uart) {
 [[noreturn]] void relocateAndJump(Chainloader::BootDisplay &display,
                                   uint8_t *payload, uint32_t payloadSize) {
   char jumpLine[17];
-  snprintf_(jumpLine, sizeof(jumpLine), "0x%08X",
-            static_cast<unsigned int>(
-                Chainloader::Board::PAYLOAD_ENTRY_ADDRESS));
+  snprintf_(
+      jumpLine, sizeof(jumpLine), "0x%08X",
+      static_cast<unsigned int>(Chainloader::Board::PAYLOAD_ENTRY_ADDRESS));
   display.showStage("JUMP", jumpLine);
 
   alignas(16) uint8_t trampoline[128] = {};
-  const size_t trampolineSize =
-      static_cast<size_t>(&chainloader_relocator_end -
-                          &chainloader_relocator_start);
+  const size_t trampolineSize = static_cast<size_t>(
+      &chainloader_relocator_end - &chainloader_relocator_start);
   if (trampolineSize == 0 || trampolineSize > sizeof(trampoline)) {
     fatal(display, "JUMP", "TRAMP");
   }
@@ -102,7 +101,8 @@ extern "C" void chainloader_init() {
     uart.writeByte(0x03);
 
     const uint32_t payloadSize = readPayloadSize(uart);
-    if (payloadSize == 0 || payloadSize > Chainloader::Board::MAX_PAYLOAD_SIZE) {
+    if (payloadSize == 0 ||
+        payloadSize > Chainloader::Board::MAX_PAYLOAD_SIZE) {
       display.showError("SIZE", "REJECT");
       uart.writeByte('S');
       uart.writeByte('E');

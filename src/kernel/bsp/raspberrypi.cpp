@@ -128,8 +128,7 @@ void BSP::Board::PrintInfo() {
     return;
   }
 
-  info("      Board serial:    %08X%08X",
-       boardSerialResponse->Serial().High,
+  info("      Board serial:    %08X%08X", boardSerialResponse->Serial().High,
        boardSerialResponse->Serial().Low);
 
   Mailbox::RaspberryPi::Messages::BoardRevisionRequest boardRevisionRequest;

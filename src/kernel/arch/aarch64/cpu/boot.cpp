@@ -2,6 +2,8 @@
 #include <memory/mmu.hpp>
 #include <stdint.h>
 
+uint64_t bootPhysKernelTablesBaseAddr = 0;
+
 void prepare_el2_to_el1_transition(
     uint64_t phys_boot_core_stack_end_exclusive_addr) {
   // Enable timer counter registers for EL1
@@ -46,6 +48,7 @@ void prepare_el2_to_el1_transition(
 
 extern "C" void _start_cpp(uint64_t phys_kernel_tables_base_addr,
                            uint64_t phys_boot_core_stack_end_exclusive_addr) {
+  bootPhysKernelTablesBaseAddr = phys_kernel_tables_base_addr;
   uint64_t current_el = 0;
   asm volatile("mrs %0, CurrentEL" : "=r"(current_el));
   current_el &= 0b1100;
@@ -57,10 +60,7 @@ extern "C" void _start_cpp(uint64_t phys_kernel_tables_base_addr,
   }
 
   if (current_el == 0b0100) {
-    asm volatile("mov sp, %0"
-                 :
-                 : "r"(phys_boot_core_stack_end_exclusive_addr));
-    Memory::MMU()->enableMMUAndCaching(phys_kernel_tables_base_addr);
+    asm volatile("mov sp, %0" : : "r"(phys_boot_core_stack_end_exclusive_addr));
     kernel_init();
   }
 

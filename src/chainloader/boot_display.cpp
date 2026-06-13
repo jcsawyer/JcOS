@@ -2,8 +2,8 @@
 
 #include "board_config.hpp"
 
-#include <stdio/printf.h>
 #include <stdarg.h>
+#include <stdio/printf.h>
 
 namespace Chainloader {
 
