@@ -1,4 +1,8 @@
 BOARD	?=	bsp_rpi3
+CROSS_COMPILE ?= aarch64-elf
+CC	:= $(CROSS_COMPILE)-gcc
+LD	:= $(CROSS_COMPILE)-ld
+OBJCOPY	:= $(CROSS_COMPILE)-objcopy
 
 ifeq ($(BOARD), bsp_rpi3)
 	ARCH		= aarch64
@@ -14,6 +18,21 @@ endif
 LIBC_SRC	:=	$(wildcard src/libc/*.cpp) \
 				$(wildcard src/libc/stdio/*.cpp)
 LIBC_INC	:=	-isystem ./src/libc
+
+CHAINLOADER_SRC	:=	src/chainloader/boot.cpp \
+				src/chainloader/boot_core.cpp \
+				src/chainloader/boot_display.cpp \
+				src/chainloader/gpio.cpp \
+				src/chainloader/lcd.cpp \
+				src/chainloader/main.cpp \
+				src/chainloader/timer.cpp \
+				src/chainloader/uart.cpp \
+				src/libc/memory.cpp \
+				src/libc/minimal_runtime.cpp \
+				src/libc/stdio/printf.cpp \
+				src/kernel/arch/aarch64/cpu.cpp
+CHAINLOADER_ASM	:=	src/kernel/arch/aarch64/cpu/boot.s
+CHAINLOADER_ASM_CPP := src/chainloader/relocator.S
 
 # src/kernel
 KERNEL_SRC	:=	$(wildcard src/kernel/*.cpp) \
@@ -51,6 +70,9 @@ BSP_RPI_SRCS:=	$(wildcard src/kernel/bsp/device_driver/bcm/*.cpp) \
 BIN_DIR		:= bin
 OBJ_DIR		:= $(BIN_DIR)/objects
 ASM_OBJ_DIR	:= $(BIN_DIR)/asm_objects
+CHAINLOADER_BIN_DIR := $(BIN_DIR)/chainloader
+CHAINLOADER_OBJ_DIR := $(CHAINLOADER_BIN_DIR)/objects
+CHAINLOADER_ASM_OBJ_DIR := $(CHAINLOADER_BIN_DIR)/asm_objects
 SRCS		= $(KERNEL_SRC) $(LIBC_SRC)
 ASM_SRCS	=
 
@@ -68,7 +90,11 @@ endif
 
 C_OBJS		:= $(SRCS:%.cpp=$(OBJ_DIR)/%.o)
 ASM_OBJS	:= $(ASM_SRCS:%.s=$(ASM_OBJ_DIR)/%.o)
+CHAINLOADER_C_OBJS := $(CHAINLOADER_SRC:%.cpp=$(CHAINLOADER_OBJ_DIR)/%.o)
+CHAINLOADER_ASM_OBJS := $(CHAINLOADER_ASM:%.s=$(CHAINLOADER_ASM_OBJ_DIR)/%.o) \
+				$(CHAINLOADER_ASM_CPP:%.S=$(CHAINLOADER_ASM_OBJ_DIR)/%.o)
 INCLUDES	:= $(KERNEL_INC) $(LIBC_INC)
+CHAINLOADER_INC	:=	-isystem ./src/chainloader $(KERNEL_INC) $(LIBC_INC)
 DEFINES		:= -DARCH=$(ARCH) -DBOARD=$(BOARD)
 CFLAGS		:= -Wall -O0 -mgeneral-regs-only -g -ffreestanding -nostdinc -nostdlib -nostartfiles -fno-rtti -fno-exceptions -fno-threadsafe-statics -fno-use-cxa-atexit -mno-outline-atomics
 LDFLAGS		:= -nostdlib -g
@@ -77,17 +103,37 @@ all: check-args clean format kernel8.img run
 $(ASM_OBJ_DIR)/%.o: %.s
 	@echo "  AS\t$<\t\t->\t$@"
 	@mkdir -p $(@D)
-	@aarch64-elf-gcc $(DEFINES) -c $< -o $@
+	@$(CC) $(DEFINES) -c $< -o $@
+
+$(CHAINLOADER_ASM_OBJ_DIR)/%.o: %.s
+	@echo "  AS\t$<\t\t->\t$@"
+	@mkdir -p $(@D)
+	@$(CC) $(DEFINES) -c $< -o $@
+
+$(CHAINLOADER_ASM_OBJ_DIR)/%.o: %.S
+	@echo "  AS\t$<\t\t->\t$@"
+	@mkdir -p $(@D)
+	@$(CC) $(DEFINES) -c $< -o $@
 
 $(OBJ_DIR)/%.o: %.cpp
 	@echo "  CC\t$<\t\t->\t$@"
 	@mkdir -p $(@D)
-	@aarch64-elf-gcc $(DEFINES) $(CFLAGS) $(INCLUDES) -c $< -o $@ -MMD -MP
+	@$(CC) $(DEFINES) $(CFLAGS) $(INCLUDES) -c $< -o $@ -MMD -MP
+
+$(CHAINLOADER_OBJ_DIR)/%.o: %.cpp
+	@echo "  CC\t$<\t\t->\t$@"
+	@mkdir -p $(@D)
+	@$(CC) $(DEFINES) $(CFLAGS) $(CHAINLOADER_INC) -c $< -o $@ -MMD -MP
 
 kernel8.img: $(ASM_OBJS) $(C_OBJS)
 	@mkdir -p $(@D)
-	@aarch64-elf-ld $(LDFLAGS) $(ASM_OBJS) $(C_OBJS) -T ./src/kernel/bsp/raspberrypi/kernel.ld -o ./bin/kernel8.elf
-	@aarch64-elf-objcopy -O binary ./bin/kernel8.elf ./bin/kernel8.img
+	@$(LD) $(LDFLAGS) $(ASM_OBJS) $(C_OBJS) -T ./src/kernel/bsp/raspberrypi/kernel.ld -o ./bin/kernel8.elf
+	@$(OBJCOPY) -O binary ./bin/kernel8.elf ./bin/kernel8.img
+
+chainloader8.img: $(CHAINLOADER_ASM_OBJS) $(CHAINLOADER_C_OBJS)
+	@mkdir -p $(CHAINLOADER_BIN_DIR)
+	@$(LD) $(LDFLAGS) $(CHAINLOADER_ASM_OBJS) $(CHAINLOADER_C_OBJS) -T ./src/chainloader/chainloader.ld -o ./$(CHAINLOADER_BIN_DIR)/chainloader8.elf
+	@$(OBJCOPY) -O binary ./$(CHAINLOADER_BIN_DIR)/chainloader8.elf ./$(CHAINLOADER_BIN_DIR)/chainloader8.img
 
 format:
 	@find ./ -name '*.cpp' | xargs clang-format -i
@@ -107,6 +153,13 @@ deploy:
 	@echo "Deploying to $(BOARD)..."
 	@dotnet run --project ./src/tools/JcOS.RaspBootCom -- /dev/tty.usbserial-0001 /Volumes/Data/Development/JcOS/bin/kernel8.img
 
+run-chainloader: chainloader8.img
+	@qemu-system-aarch64 -M $(QEMU_DEVICE) -kernel ./$(CHAINLOADER_BIN_DIR)/chainloader8.elf -serial stdio -display none
+
+deploy-chainloader: chainloader8.img
+	@echo "Deploying chainloader to $(BOARD)..."
+	@dotnet run --project ./src/tools/JcOS.RaspBootCom -- /dev/tty.usbserial-0001 /Volumes/Data/Development/JcOS/bin/chainloader/chainloader8.img
+
 
 check-args:
 ifeq ($(BOARD), bsp_rpi3)
@@ -122,4 +175,4 @@ ifeq ($(ARCH), )
 	@echo "ARCH is not set"
 	@exit 1
 endif
-.PHONY : all format analyze clean run check-args
+.PHONY : all format analyze clean run check-args chainloader8.img run-chainloader deploy-chainloader
