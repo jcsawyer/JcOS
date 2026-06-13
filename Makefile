@@ -31,7 +31,7 @@ CHAINLOADER_SRC	:=	src/chainloader/boot.cpp \
 				src/libc/minimal_runtime.cpp \
 				src/libc/stdio/printf.cpp \
 				src/kernel/arch/aarch64/cpu.cpp
-CHAINLOADER_ASM	:=	src/kernel/arch/aarch64/cpu/boot.s
+CHAINLOADER_ASM	:=	src/chainloader/boot.s
 CHAINLOADER_ASM_CPP := src/chainloader/relocator.S
 
 # src/kernel
