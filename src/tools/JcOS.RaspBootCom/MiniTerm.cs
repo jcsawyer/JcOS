@@ -9,7 +9,7 @@ public class ConnectionError : Exception
 
 public class MiniTerm
 {
-    protected const int BaudRate = 115_200;
+    protected const int BaudRate = 921_600;
     protected string _nameShort = "MT";
     protected string _targetSerialName;
     protected SerialPort? _targetSerial;

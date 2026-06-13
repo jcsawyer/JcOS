@@ -30,8 +30,8 @@ inline constexpr unsigned char LCD_D5_PIN = 5;
 inline constexpr unsigned char LCD_D6_PIN = 6;
 inline constexpr unsigned char LCD_D7_PIN = 7;
 
-inline constexpr uint32_t UART_BAUD_RATE = 115200;
-inline constexpr uint32_t UART_IBRD = 26;
-inline constexpr uint32_t UART_FBRD = 3;
+inline constexpr uint32_t UART_BAUD_RATE = 921600;
+inline constexpr uint32_t UART_IBRD = 3;
+inline constexpr uint32_t UART_FBRD = 16;
 
 } // namespace Chainloader::Board
