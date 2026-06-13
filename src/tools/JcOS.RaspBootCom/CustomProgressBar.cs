@@ -4,35 +4,35 @@ namespace JcOS.RaspBootCom;
 
 class CustomProgressBar
 {
-    private readonly int _totalKiB;
+    private readonly int _totalBytes;
     private readonly Stopwatch _timer;
     private readonly string _processName;
-    private int _currentKiB;
+    private int _currentBytes;
 
-    public CustomProgressBar(int totalKiB, string processName)
+    public CustomProgressBar(int totalBytes, string processName)
     {
-        _totalKiB = totalKiB;
+        _totalBytes = totalBytes;
         _timer = new Stopwatch();
         _processName = processName;
     }
 
     public void Start()
     {
-        _currentKiB = 0;
+        _currentBytes = 0;
         _timer.Restart();
         Render();
     }
 
-    public void Report(int kiB)
+    public void Report(int bytes)
     {
-        _currentKiB = Math.Min(kiB, _totalKiB);
+        _currentBytes = Math.Min(bytes, _totalBytes);
         Render();
     }
 
     public void Finish()
     {
         _timer.Stop();
-        _currentKiB = _totalKiB;
+        _currentBytes = _totalBytes;
         Render();
         Console.WriteLine();
     }
@@ -42,7 +42,7 @@ class CustomProgressBar
         Console.CursorLeft = 0;
 
         int totalBlocks = 35;
-        int position = (int)((_currentKiB / (double)_totalKiB) * totalBlocks);
+        int position = (int)((_currentBytes / (double)_totalBytes) * totalBlocks);
         position = Math.Min(position, totalBlocks - 1);
 
         string bar = "";
@@ -55,13 +55,15 @@ class CustomProgressBar
                 bar += (i < position ? "=" : "-");
         }
 
-        double percent = (_currentKiB / (double)_totalKiB) * 100;
+        double percent = (_currentBytes / (double)_totalBytes) * 100;
         double elapsedSec = _timer.Elapsed.TotalSeconds;
+        double currentKiB = _currentBytes / 1024.0;
+        double totalKiB = _totalBytes / 1024.0;
         string speed = elapsedSec > 0
-            ? $"{(_currentKiB / elapsedSec):0} KiB/s"
+            ? $"{(currentKiB / elapsedSec):0.0} KiB/s"
             : "0 KiB/s";
         string time = _timer.Elapsed.ToString(@"hh\:mm\:ss");
 
-        Console.Write($"{_processName} {_totalKiB} KiB {bar} {percent,3:0}% {speed} Time: {time}");
+        Console.Write($"{_processName} {totalKiB:0.0} KiB {bar} {percent,3:0}% {speed} Time: {time}");
     }
 }

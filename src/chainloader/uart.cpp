@@ -43,6 +43,12 @@ void Uart::writeBuffer(const void *buffer, size_t length) const {
   }
 }
 
+void Uart::waitForTxIdle() const {
+  while ((*fr_ & 0x08u) != 0) {
+    CPU::nop();
+  }
+}
+
 bool Uart::readByte(char &value) const {
   if ((*fr_ & 0x10u) != 0) {
     return false;

@@ -30,12 +30,8 @@ inline constexpr unsigned char LCD_D5_PIN = 5;
 inline constexpr unsigned char LCD_D6_PIN = 6;
 inline constexpr unsigned char LCD_D7_PIN = 7;
 
-inline constexpr uint32_t UART_IBRD = 3;
-inline constexpr uint32_t UART_FBRD = 16;
-
-inline constexpr uint64_t HOST_REQUEST_TIMEOUT_US = 250000;
-inline constexpr uint64_t HOST_RETRY_DELAY_US = 250000;
-inline constexpr uint64_t PAYLOAD_IO_TIMEOUT_US = 2000000;
-inline constexpr uint64_t RETRY_NOTICE_DELAY_MS = 1000;
+inline constexpr uint32_t UART_BAUD_RATE = 115200;
+inline constexpr uint32_t UART_IBRD = 26;
+inline constexpr uint32_t UART_FBRD = 3;
 
 } // namespace Chainloader::Board

@@ -10,37 +10,83 @@ public class ProtocolError : Exception
 
 public class MiniPush : MiniTerm
 {
-    private readonly string _nameShort = "MP";
     private readonly string _payloadPath;
-    private byte[] _payloadData;
+    private byte[] _payloadData = [];
     private int _payloadSize;
+    private int _transferAttempt;
+    private const int HostWriteChunkSize = 4096;
+    private const int HandshakeTimeoutSeconds = 10;
+    private const int TransferTimeoutSeconds = 30;
 
     public MiniPush(string serialName, string payloadPath) : base(serialName)
     {
+        _nameShort = "MP";
         _payloadPath = payloadPath;
     }
 
-    private void WaitForPayloadRequest()
+    private static bool IsPrintable(byte value)
     {
-        Console.WriteLine($"[{_nameShort}] 🔌 Please power the target now");
+        return value is >= 0x20 and <= 0x7E || value is (byte)'\r' or (byte)'\n' or (byte)'\t';
+    }
 
+    private void DrainSerialInput()
+    {
+        if (_targetSerial == null)
+            throw new InvalidOperationException("Serial port not initialized");
+
+        while (true)
+        {
+            try
+            {
+                if (_targetSerial.BytesToRead == 0)
+                    break;
+
+                _targetSerial.ReadByte();
+            }
+            catch (TimeoutException)
+            {
+                break;
+            }
+        }
+    }
+
+    private void PrintConsoleByte(byte value)
+    {
+        if (value == (byte)'\r')
+        {
+            Console.Write("\r\n");
+            return;
+        }
+
+        if (value == (byte)'\n')
+            return;
+
+        if (IsPrintable(value))
+            Console.Write((char)value);
+    }
+
+    private void WaitForPayloadRequest(CancellationToken token)
+    {
         var buffer = new byte[4096];
         int count = 0;
 
         if (_targetSerial == null)
             throw new InvalidOperationException("Serial port not initialized");
 
-        using var timeoutCts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
-        var token = timeoutCts.Token;
-
         while (true)
         {
             if (token.IsCancellationRequested)
                 throw new TimeoutException();
 
-            int bytesRead = _targetSerial.Read(buffer, 0, buffer.Length);
-            if (bytesRead == 0)
+            int bytesRead;
+            try
+            {
+                bytesRead = _targetSerial.Read(buffer, 0, buffer.Length);
+            }
+            catch (TimeoutException)
+            {
                 continue;
+            }
 
             for (int i = 0; i < bytesRead; i++)
             {
@@ -54,7 +100,7 @@ public class MiniPush : MiniTerm
                 else
                 {
                     count = 0;
-                    Console.Write((char)buffer[i]);
+                    PrintConsoleByte(buffer[i]);
                 }
             }
         }
@@ -62,48 +108,169 @@ public class MiniPush : MiniTerm
 
     private void LoadPayload()
     {
+        if (!File.Exists(_payloadPath))
+            throw new FileNotFoundException($"Payload image not found: {_payloadPath}", _payloadPath);
+
         _payloadData = File.ReadAllBytes(_payloadPath);
         _payloadSize = _payloadData.Length;
     }
 
-    private void SendSize()
+    private byte[] ReadExact(int length, CancellationToken token)
     {
+        if (_targetSerial == null)
+            throw new InvalidOperationException("Serial port not initialized");
+
+        var buffer = new byte[length];
+        int offset = 0;
+
+        while (offset < length)
+        {
+            token.ThrowIfCancellationRequested();
+
+            try
+            {
+                int read = _targetSerial.Read(buffer, offset, length - offset);
+                if (read == 0)
+                    continue;
+
+                offset += read;
+            }
+            catch (TimeoutException)
+            {
+            }
+        }
+
+        return buffer;
+    }
+
+    private byte ReadControlByte(CancellationToken token, ReadOnlySpan<byte> echoedBytes, params byte[] allowedValues)
+    {
+        var echoIndex = 0;
+
+        while (true)
+        {
+            var response = ReadExact(1, token)[0];
+
+            // Ignore extra ready-handshake bytes that were already in flight
+            // when the host transitioned into the size/payload phases.
+            if (response == 0x03)
+                continue;
+
+            // Some USB serial paths echo outbound writes back to RX. Ignore
+            // those bytes while waiting for protocol control responses.
+            if (echoIndex < echoedBytes.Length && response == echoedBytes[echoIndex])
+            {
+                echoIndex++;
+                continue;
+            }
+
+            if (allowedValues.Contains(response))
+                return response;
+
+            throw new ProtocolError($"Unexpected control byte 0x{response:X2}");
+        }
+    }
+
+    private bool SendSize(CancellationToken token)
+    {
+        if (_targetSerial == null)
+            throw new InvalidOperationException("Serial port not initialized");
+
+        Console.WriteLine($"[{_nameShort}] 📏 Sending payload size: {_payloadSize} bytes");
         var sizeBytes = BitConverter.GetBytes(_payloadSize);
         if (!BitConverter.IsLittleEndian)
             Array.Reverse(sizeBytes);
 
         _targetSerial.Write(sizeBytes, 0, 4);
 
-        var response = new byte[2];
-        int read = _targetSerial.Read(response, 0, 2);
-        if (read != 2 || Encoding.ASCII.GetString(response) != "OK")
-            throw new ProtocolError("Expected 'OK' after size send");
+        var first = ReadControlByte(token, sizeBytes, (byte)'O', (byte)'S');
+        var second = ReadControlByte(token, [], (byte)'K', (byte)'E');
+        if (first == 'O' && second == 'K')
+            return true;
+
+        if (first == 'S' && second == 'E')
+            return false;
+
+        throw new ProtocolError($"Unexpected size response '{(char)first}{(char)second}'");
     }
 
-    private void SendPayload()
+    private void SendPayload(CancellationToken token)
     {
+        if (_targetSerial == null)
+            throw new InvalidOperationException("Serial port not initialized");
+
+        Console.WriteLine($"[{_nameShort}] 🚀 Streaming payload");
         var pb = new CustomProgressBar(_payloadSize, $"[{_nameShort}] ⏩ Pushing");
+        pb.Start();
+        var written = 0;
 
-        int progress = 0;
-
-        while (progress < _payloadSize)
+        while (written < _payloadSize)
         {
-            int chunkSize = Math.Min(512, _payloadSize - progress);
-            _targetSerial.Write(_payloadData, progress, chunkSize);
-            progress += chunkSize;
-            pb.Report(progress);
+            token.ThrowIfCancellationRequested();
+
+            var chunkSize = Math.Min(HostWriteChunkSize, _payloadSize - written);
+            _targetSerial.Write(_payloadData, written, chunkSize);
+            written += chunkSize;
+            pb.Report(written);
         }
 
+        _targetSerial.BaseStream.Flush();
         pb.Finish();
     }
 
-    protected override void HandleReconnect(Exception ex)
+    private static TimeSpan ComputeAttemptTimeout()
+    {
+        return TimeSpan.FromSeconds(HandshakeTimeoutSeconds + TransferTimeoutSeconds);
+    }
+
+    private bool TryTransferOnce()
+    {
+        if (_targetSerial == null)
+            throw new InvalidOperationException("Serial port not initialized");
+
+        _transferAttempt++;
+        Console.WriteLine($"[{_nameShort}] 🔄 Waiting for chainloader (attempt {_transferAttempt})");
+        DrainSerialInput();
+
+        using var attemptCts = new CancellationTokenSource(ComputeAttemptTimeout());
+
+        try
+        {
+            WaitForPayloadRequest(attemptCts.Token);
+            Console.WriteLine();
+            Console.WriteLine($"[{_nameShort}] 🤝 Chainloader ready");
+            if (!SendSize(attemptCts.Token))
+            {
+                Console.WriteLine($"[{_nameShort}] 📦 Chainloader rejected payload size, waiting for next request");
+                return false;
+            }
+
+            SendPayload(attemptCts.Token);
+            Console.WriteLine();
+            Console.WriteLine($"[{_nameShort}] ✅ Payload transferred");
+            return true;
+        }
+        catch (TimeoutException)
+        {
+            Console.WriteLine();
+            Console.WriteLine($"[{_nameShort}] ⏳ No complete handshake yet, retrying on the same serial session");
+            return false;
+        }
+        catch (ProtocolError ex)
+        {
+            Console.WriteLine();
+            Console.WriteLine($"[{_nameShort}] ⚠️ Protocol mismatch: {ex.Message}");
+            return false;
+        }
+    }
+
+    protected override void HandleReconnect(Exception? ex)
     {
         ConnectionReset();
 
         Console.WriteLine();
         Console.WriteLine(
-            $"[{_nameShort}] ⚡ Connection or protocol error: Remove power and USB serial. Reinsert serial first, then power.");
+            $"[{_nameShort}] ⚡ Serial connection lost. Waiting for the target serial device to come back.");
         while (SerialConnected())
         {
             Thread.Sleep(1000);
@@ -115,11 +282,22 @@ public class MiniPush : MiniTerm
         try
         {
             OpenSerial();
-            WaitForPayloadRequest();
             LoadPayload();
-            SendSize();
-            SendPayload();
+
+            while (!TryTransferOnce())
+            {
+            }
+
             Terminal();
+        }
+        catch (FileNotFoundException ex)
+        {
+            ConnectionReset();
+            Console.WriteLine();
+            Console.ForegroundColor = ConsoleColor.Yellow;
+            Console.WriteLine($"[{_nameShort}] ⚠️ Payload image missing: {ex.FileName ?? _payloadPath}");
+            Console.WriteLine($"[{_nameShort}] Build JcOS first so the image exists before starting MiniPush.");
+            Console.ResetColor();
         }
         catch (IOException)
         {
@@ -146,23 +324,5 @@ public class MiniPush : MiniTerm
             Console.WriteLine();
             Console.WriteLine($"[{_nameShort}] Bye 👋");
         }
-    }
-
-    public static void Main(string[] args)
-    {
-        Console.ForegroundColor = ConsoleColor.Cyan;
-        Console.WriteLine("\nMinipush 1.0\n");
-        Console.ResetColor();
-
-        Console.CancelKeyPress += (_, _) => Environment.Exit(0);
-
-        if (args.Length < 2)
-        {
-            Console.WriteLine("Usage: MiniPush <serialPort> <payloadFile>");
-            return;
-        }
-
-        var miniPush = new MiniPush(args[0], args[1]);
-        miniPush.Run();
     }
 }

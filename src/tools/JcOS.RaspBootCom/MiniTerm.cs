@@ -9,9 +9,10 @@ public class ConnectionError : Exception
 
 public class MiniTerm
 {
+    protected const int BaudRate = 115_200;
     protected string _nameShort = "MT";
     protected string _targetSerialName;
-    protected SerialPort _targetSerial;
+    protected SerialPort? _targetSerial;
 
     public MiniTerm(string serialName)
     {
@@ -40,7 +41,9 @@ public class MiniTerm
         {
             WaitForSerial();
 
-            _targetSerial = new SerialPort(_targetSerialName, 921_600, Parity.None, 8, StopBits.One);
+            _targetSerial = new SerialPort(_targetSerialName, BaudRate, Parity.None, 8, StopBits.One);
+            _targetSerial.ReadTimeout = 250;
+            _targetSerial.WriteTimeout = SerialPort.InfiniteTimeout;
             _targetSerial.Open();
 
             Console.WriteLine($"[{_nameShort}] ✅ Serial connected");
@@ -55,14 +58,16 @@ public class MiniTerm
     protected void Terminal()
     {
         Console.TreatControlCAsInput = true;
+        var disconnected = false;
+        Exception? receiveError = null;
 
         var receiveThread = new Thread(() =>
         {
-            try
+            while (!disconnected)
             {
-                while (true)
+                try
                 {
-                    int b = _targetSerial.ReadByte();
+                    int b = _targetSerial!.ReadByte();
                     if (b == -1)
                         throw new ConnectionError();
 
@@ -81,27 +86,43 @@ public class MiniTerm
                         Console.Write(c);
                     }
                 }
-            }
-            catch
-            {
-                throw new ConnectionError();
+                catch (TimeoutException)
+                {
+                    continue;
+                }
+                catch (Exception ex)
+                {
+                    receiveError = ex;
+                    disconnected = true;
+                }
             }
         });
 
         receiveThread.IsBackground = true;
         receiveThread.Start();
 
-        while (true)
+        while (!disconnected)
         {
+            if (!Console.KeyAvailable)
+            {
+                Thread.Sleep(25);
+                continue;
+            }
+
             var key = Console.ReadKey(intercept: true);
             if (key.Key == ConsoleKey.C && key.Modifiers.HasFlag(ConsoleModifiers.Control))
             {
-                receiveThread.Interrupt();
+                disconnected = true;
                 break;
             }
 
-            _targetSerial.Write(key.KeyChar.ToString());
+            _targetSerial!.Write(key.KeyChar.ToString());
         }
+
+        receiveThread.Join(500);
+
+        if (receiveError is not null)
+            throw new ConnectionError(receiveError.Message);
     }
 
     protected void ConnectionReset()
@@ -118,7 +139,7 @@ public class MiniTerm
         Console.TreatControlCAsInput = false;
     }
 
-    protected virtual void HandleReconnect(Exception _)
+    protected virtual void HandleReconnect(Exception? _)
     {
         ConnectionReset();
 
@@ -165,23 +186,5 @@ public class MiniTerm
             Console.WriteLine();
             Console.WriteLine($"[{_nameShort}] Bye 👋");
         }
-    }
-
-    public static void Main(string[] args)
-    {
-        Console.ForegroundColor = ConsoleColor.Cyan;
-        Console.WriteLine("\nMiniterm 1.0\n");
-        Console.ResetColor();
-
-        Console.CancelKeyPress += (_, _) => Environment.Exit(0);
-
-        if (args.Length < 1)
-        {
-            Console.WriteLine("Usage: MiniTerm <serialPortPath>");
-            return;
-        }
-
-        var miniTerm = new MiniTerm(args[0]);
-        miniTerm.Run();
     }
 }

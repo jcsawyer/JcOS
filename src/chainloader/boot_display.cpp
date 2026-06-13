@@ -51,11 +51,4 @@ void BootDisplay::showError(const char *code, const char *detail) {
   showStage("ERR", secondLine);
 }
 
-void BootDisplay::showProgress(size_t receivedBytes, size_t totalBytes) {
-  char line[Board::LCD_COLUMNS + 1];
-  formatLine(line, "%u/%u", static_cast<unsigned int>(receivedBytes),
-             static_cast<unsigned int>(totalBytes));
-  showStage("RX", line);
-}
-
 } // namespace Chainloader

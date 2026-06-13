@@ -12,6 +12,7 @@ public:
   void init();
   void writeByte(char value) const;
   void writeBuffer(const void *buffer, size_t length) const;
+  void waitForTxIdle() const;
   bool readByte(char &value) const;
   void clearRx() const;
 
