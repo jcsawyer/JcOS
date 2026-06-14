@@ -9,9 +9,22 @@ namespace Driver::BSP::LCD {
 
 class HD44780U : public LCD {
 public:
-  HD44780U(uintptr_t mmio_start_addr) : registerBlock(mmio_start_addr) {};
+  struct PinConfig {
+    unsigned char registerSelect;
+    unsigned char enable;
+    unsigned char d4;
+    unsigned char d5;
+    unsigned char d6;
+    unsigned char d7;
+  };
+
+  HD44780U(uintptr_t mmio_start_addr, const PinConfig &pinConfig)
+      : pinConfig(pinConfig), registerBlock(mmio_start_addr) {};
   const char *compatible() { return "HD44780U LCD"; }
-  void init() { initLcd(11, 10, 255, 255, 255, 255, 4, 5, 6, 7); };
+  void init() {
+    initLcd(pinConfig.registerSelect, pinConfig.enable, 255, 255, 255, 255,
+            pinConfig.d4, pinConfig.d5, pinConfig.d6, pinConfig.d7);
+  };
   void registerAndEnableIrqHandler(
       ::BSP::Exception::Asynchronous::IRQNumber *irqNumber) override;
   void initLcd(unsigned char registerSelect, unsigned char enable,
@@ -46,6 +59,7 @@ private:
   void delayMilliseconds(unsigned int ms) const;
 
 private:
+  PinConfig pinConfig;
   unsigned char rs = 0;
   unsigned char en = 0;
   unsigned char dataPins[8] = {};

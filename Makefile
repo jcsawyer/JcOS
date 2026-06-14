@@ -59,6 +59,7 @@ AARCH64_ASM	:=	$(wildcard src/kernel/arch/aarch64/*.s) \
 
 BSP_RPI_SRCS:=	$(wildcard src/kernel/bsp/device_driver/bcm/*.cpp) \
 				$(wildcard src/kernel/bsp/device_driver/bcm/bcm2xxx_interrupt_controller/*.cpp) \
+				$(wildcard src/kernel/bsp/device_driver/display/*.cpp) \
 				$(wildcard src/kernel/bsp/device_driver/lcd/*.cpp) \
 				$(wildcard src/kernel/bsp/exception/*.cpp) \
 				$(wildcard src/kernel/bsp/raspberrypi.cpp) \

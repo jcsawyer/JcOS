@@ -1,6 +1,7 @@
 #include "bsp/raspberrypi/raspberrypi.hpp"
 #include <bsp/bsp.hpp>
 #include <bsp/raspberrypi/memory/mmu.hpp>
+#include <common.hpp>
 #include <console/console.hpp>
 #include <driver/driver.hpp>
 #include <exception.hpp>
@@ -8,18 +9,81 @@
 #include <main.hpp>
 #include <memory/heap.hpp>
 #include <memory/mmu.hpp>
+#include <display/display.hpp>
 #include <task.hpp>
 #include <time/duration.hpp>
 
 #include <bsp/device_driver/bcm/bcm2xxx_interrupt_controller/peripheral_ic.hpp>
 
 #include <state.hpp>
+#include <stdio/printf.h>
 #include <synchronization.hpp>
 #include <syscall.hpp>
 
-extern void timerInit();
+namespace {
 
-namespace {} // namespace
+constexpr unsigned int kLcdColumns = 16;
+
+void writePaddedLcdLine(Driver::BSP::LCD::HD44780U &lcd, unsigned char row,
+                        const char *text) {
+  char line[kLcdColumns + 1];
+  unsigned int i = 0;
+
+  for (; i < kLcdColumns && text[i] != '\0'; ++i) {
+    line[i] = text[i];
+  }
+
+  for (; i < kLcdColumns; ++i) {
+    line[i] = ' ';
+  }
+
+  line[kLcdColumns] = '\0';
+  lcd.setCursor(row, 0);
+  lcd.writeString("%s", line);
+}
+
+void formatHeapSize(char *buffer, size_t bufferSize, size_t bytes) {
+  if (bytes >= MiB) {
+    snprintf_(buffer, bufferSize, "%luM", div_ceil(bytes, MiB));
+    return;
+  }
+
+  if (bytes >= KiB) {
+    snprintf_(buffer, bufferSize, "%luK", div_ceil(bytes, KiB));
+    return;
+  }
+
+  snprintf_(buffer, bufferSize, "%luB", bytes);
+}
+
+void renderHeapUsageOnLcd() {
+  auto &heap = Memory::kernel_heap_allocator();
+  if (!heap.isInitialized()) {
+    return;
+  }
+
+  Driver::BSP::LCD::HD44780U *lcd =
+      Driver::BSP::RaspberryPi::RaspberryPi::getLCD();
+
+  char used[6];
+  char total[6];
+  char free[6];
+  char line[kLcdColumns + 1];
+
+  formatHeapSize(used, sizeof(used), heap.usedBytesCount());
+  formatHeapSize(total, sizeof(total), heap.totalBytes());
+  formatHeapSize(free, sizeof(free), heap.freeBytesCount());
+
+  snprintf_(line, sizeof(line), "Heap %s/%s", used, total);
+  writePaddedLcdLine(*lcd, 0, line);
+
+  snprintf_(line, sizeof(line), "Free %s", free);
+  writePaddedLcdLine(*lcd, 1, line);
+}
+
+} // namespace
+
+extern void timerInit();
 
 extern "C" void putchar_(const char c) {
   Console::Console *console = Console::Console::GetInstance();
@@ -82,8 +146,6 @@ void utoa(unsigned int value, char *buffer) {
 }
 
 void task1() {
-  Driver::BSP::LCD::HD44780U *lcd =
-      Driver::BSP::RaspberryPi::RaspberryPi::getLCD();
   while (1) {
     info("Task 1 running...");
     Syscall::write("Hello from syscall::write!!\n");
@@ -95,13 +157,8 @@ void task1() {
     // Syscall::exit(0);
     Time::TimeManager *timeManager = Time::TimeManager::GetInstance();
 
-    char buffer[10];
     for (int i = 0; i < 10; i++) {
-      lcd->setCursor(0, 0);
-      lcd->writeString("Task 1 (");
-      utoa(i, buffer);
-      lcd->writeString(buffer);
-      lcd->writeString(")");
+      renderHeapUsageOnLcd();
       taskManager.schedule(); // Yield to the scheduler
       timeManager->spinFor(Time::Duration::from_millis(100));
     }
@@ -109,18 +166,11 @@ void task1() {
 }
 
 void task2() {
-  Driver::BSP::LCD::HD44780U *lcd =
-      Driver::BSP::RaspberryPi::RaspberryPi::getLCD();
   while (1) {
     info("Running Task 2");
     Time::TimeManager *timeManager = Time::TimeManager::GetInstance();
-    char buffer[10];
     for (int i = 0; i < 10; i++) {
-      lcd->setCursor(1, 0);
-      lcd->writeString("Task 2 (");
-      utoa(i, buffer);
-      lcd->writeString(buffer);
-      lcd->writeString(")");
+      renderHeapUsageOnLcd();
       taskManager.schedule(); // Yield to the scheduler
       timeManager->spinFor(Time::Duration::from_millis(100));
     }
@@ -170,10 +220,14 @@ void task2() {
   Driver::BSP::LCD::HD44780U *lcd =
       Driver::BSP::RaspberryPi::RaspberryPi::getLCD();
   lcd->clear();
-  lcd->setCursor(0, 0);
-  // lcd->writeString("JcOS v0.1.0");
-  // lcd->setCursor(1, 0);
-  // lcd->writeString(">");
+  renderHeapUsageOnLcd();
+
+  Driver::BSP::Display::SPITFTDisplay *tft =
+      Driver::BSP::RaspberryPi::RaspberryPi::getTftDisplay();
+  tft->fillScreen(0x001F);
+  tft->fillRect(16, 16, 48, 48, 0xF800);
+  tft->fillRect(72, 16, 48, 48, 0x07E0);
+  tft->fillRect(128, 16, 48, 48, 0xFFFF);
 
   info("Task system initializing...");
   info("Task system initialized, starting task scheduler...");

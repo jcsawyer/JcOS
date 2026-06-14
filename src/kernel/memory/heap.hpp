@@ -11,6 +11,9 @@ public:
   void deallocate(void *ptr) noexcept;
   void printUsage() const;
   bool isInitialized() const { return initialized; }
+  size_t totalBytes() const { return heapSize; }
+  size_t usedBytesCount() const { return usedBytes; }
+  size_t freeBytesCount() const { return heapSize - usedBytes; }
 
 private:
   struct FreeBlock {

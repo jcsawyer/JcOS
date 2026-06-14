@@ -3,19 +3,32 @@
 #include "exception/asynchronous.hpp"
 #include "memory.hpp"
 #include "memory/mmu.hpp"
+#include <print.hpp>
 
 namespace Driver {
 namespace BSP {
 namespace RaspberryPi {
 
+namespace {
+const BoardPins kBoardPins = {
+    {16, 17, 18, 19, 20, 21},
+    {24, 25},
+    {2, 3, 22, 23},
+};
+}
+
 Driver::BSP::BCM::InterruptController *RaspberryPi::interruptController =
     nullptr;
 BCM::GPIO *RaspberryPi::gpio = nullptr;
+BCM::SPI *RaspberryPi::spi = nullptr;
 BCM::UART *RaspberryPi::uart = nullptr;
 BCM::RNG *RaspberryPi::rng = nullptr;
 BCM::UART::UartConsole *RaspberryPi::uartConsole = nullptr;
 BCM::Timer *RaspberryPi::timer = nullptr;
 LCD::HD44780U *RaspberryPi::lcd = nullptr;
+Display::SPITFTDisplay *RaspberryPi::tftDisplay = nullptr;
+
+const BoardPins &RaspberryPi::boardPins() { return kBoardPins; }
 
 Driver::BSP::BCM::InterruptController *RaspberryPi::getInterruptController() {
 #if BOARD == bsp_rpi3
@@ -44,6 +57,17 @@ BCM::GPIO *RaspberryPi::getGPIO() {
     gpio = &gpioInstance;
   }
   return gpio;
+}
+
+BCM::SPI *RaspberryPi::getSPI() {
+  if (spi == nullptr) {
+    const size_t mappedSPI = Memory::kernelMapMMIO(
+        "BCM SPI0", Memory::MMIODescriptor(Memory::Map::getMMIO().SPI0_START,
+                                           Memory::Map::SPI0_SIZE));
+    static BCM::SPI spiInstance(mappedSPI);
+    spi = &spiInstance;
+  }
+  return spi;
 }
 
 BCM::UART *RaspberryPi::getUART() {
@@ -83,10 +107,46 @@ LCD::HD44780U *RaspberryPi::getLCD() {
         "HD44780U GPIO",
         Memory::MMIODescriptor(Memory::Map::getMMIO().GPIO_START,
                                Memory::Map::GPIO_SIZE));
-    static LCD::HD44780U lcdInstance(mappedGPIO);
+    const auto &pins = boardPins().lcd;
+    static const LCD::HD44780U::PinConfig lcdPinConfig = {
+        pins.registerSelect, pins.enable, pins.d4, pins.d5, pins.d6, pins.d7};
+    static LCD::HD44780U lcdInstance(mappedGPIO, lcdPinConfig);
     lcd = &lcdInstance;
   }
   return lcd;
+}
+
+Display::SPITFTDisplay *RaspberryPi::getTftDisplay() {
+  if (tftDisplay == nullptr) {
+    static const uint8_t pixelFormatData[] = {0x55};
+    static const uint8_t memoryAccessData[] = {0x48};
+    static const Display::TftPanelInitCommand ili9341InitCommands[] = {
+        {0x01, nullptr, 0, 5},       {0x28, nullptr, 0, 0},
+        {0x3A, pixelFormatData, 1, 0},
+        {0x36, memoryAccessData, 1, 0},
+        {0x11, nullptr, 0, 120},     {0x29, nullptr, 0, 20},
+    };
+
+    static const Display::TftPanelConfig ili9341PanelConfig = {
+        240, 320, 0, 0, true, ili9341InitCommands,
+        sizeof(ili9341InitCommands) / sizeof(ili9341InitCommands[0])};
+    static const ::Driver::SPI::DeviceConfig ili9341SpiConfig = {
+        ::Driver::SPI::Mode::Mode0, 32, ::Driver::SPI::ChipSelect::CS0,
+        ::Driver::SPI::ChipSelectPolicy::Hardware};
+    const auto &pins = boardPins().tft;
+    static const ::Driver::SPI::ControlPins ili9341ControlPins = {
+        ::Driver::SPI::ControlPin::none(),
+        ::Driver::SPI::ControlPin::gpio(pins.dataCommand),
+        ::Driver::SPI::ControlPin::gpio(pins.reset),
+        ::Driver::SPI::ControlPin::none()};
+
+    static Display::SPITFTDisplay tftDisplayInstance(
+        getSPI(), getGPIO(), ili9341SpiConfig, ili9341ControlPins,
+        ili9341PanelConfig);
+    tftDisplay = &tftDisplayInstance;
+  }
+
+  return tftDisplay;
 }
 
 BCM::Timer *RaspberryPi::getTimer() {
@@ -103,6 +163,9 @@ void RaspberryPi::init() {
       getUART(), &postInitUart, Driver::BSP::RaspberryPi::PL011_UART()));
   driverManager().addDriver(DeviceDriverDescriptor(getLCD(), &postInitLCD));
   driverManager().addDriver(DeviceDriverDescriptor(getRNG(), &postInitRng));
+  driverManager().addDriver(DeviceDriverDescriptor(getSPI(), &postInitSpi));
+  driverManager().addDriver(
+      DeviceDriverDescriptor(getTftDisplay(), &postInitTftDisplay));
   // driverManager().addDriver(DeviceDriverDescriptor(getTimer(),
   // &postInitTimer));
   driverManager().addDriver(DeviceDriverDescriptor(
@@ -119,6 +182,8 @@ void RaspberryPi::postInitUart() {
 
 void RaspberryPi::postInitGpio() { getGPIO()->mapPl011Uart(); }
 
+void RaspberryPi::postInitSpi() { getGPIO()->mapSpi0(); }
+
 void RaspberryPi::postInitRng() {
   lcd->clear();
   lcd->setCursor(0, 0);
@@ -129,6 +194,10 @@ void RaspberryPi::postInitLCD() {
   lcd->clear();
   lcd->setCursor(0, 0);
   lcd->writeString("Initializing LCD...");
+}
+
+void RaspberryPi::postInitTftDisplay() {
+  info("SPI TFT display initialized");
 }
 
 void RaspberryPi::postInitTimer() {

@@ -47,16 +47,19 @@ struct MMIO {
   size_t VIDEOCORE_MBOX_START;
   size_t RNG_START;
   size_t GPIO_START;
+  size_t SPI0_START;
   size_t PL011_UART_START;
   size_t TIMER_START;
   size_t END_INCLUSIVE;
 
   MMIO(size_t start, size_t videocore_mbox_start, size_t rng_start,
-       size_t gpio_start, size_t uart_start, size_t timer_start,
+       size_t gpio_start, size_t spi0_start, size_t uart_start,
+       size_t timer_start,
        size_t end_inclusive)
       : START(start), VIDEOCORE_MBOX_START(videocore_mbox_start),
         RNG_START(rng_start), GPIO_START(gpio_start),
-        PL011_UART_START(uart_start), TIMER_START(timer_start),
+        SPI0_START(spi0_start), PL011_UART_START(uart_start),
+        TIMER_START(timer_start),
         END_INCLUSIVE(end_inclusive) {}
 };
 struct Map {
@@ -72,6 +75,8 @@ struct Map {
   static const size_t RNG_SIZE = 0x14;
   static const size_t GPIO_OFFSET = 0x00200000;
   static const size_t GPIO_SIZE = 0xE8;
+  static const size_t SPI0_OFFSET = 0x00204000;
+  static const size_t SPI0_SIZE = 0x18;
   static const size_t UART_OFFSET = 0x00201000;
   static const size_t UART_SIZE = 0x48;
   static const size_t TIMER_OFFSET = 0x00003000;
@@ -84,12 +89,14 @@ struct Map {
 #if BOARD == bsp_rpi3
     return MMIO(0x3F000000, 0x3F000000 + VIDEOCORE_MBOX_OFFSET,
                 0x3F000000 + RNG_OFFSET, 0x3F000000 + GPIO_OFFSET,
-                0x3F000000 + UART_OFFSET, 0x3F000000 + TIMER_OFFSET,
+                0x3F000000 + SPI0_OFFSET, 0x3F000000 + UART_OFFSET,
+                0x3F000000 + TIMER_OFFSET,
                 0x4000FFFF);
 #elif BOARD == bsp_rpi4
     return MMIO(0xFE000000, 0xFE000000 + VIDEOCORE_MBOX_OFFSET,
                 0xFE000000 + RNG_OFFSET, 0xFE000000 + GPIO_OFFSET,
-                0xFE000000 + UART_OFFSET, 0xFE000000 + TIMER_OFFSET,
+                0xFE000000 + SPI0_OFFSET, 0xFE000000 + UART_OFFSET,
+                0xFE000000 + TIMER_OFFSET,
                 0xFF84FFFF);
 #else
 #error Unknown board

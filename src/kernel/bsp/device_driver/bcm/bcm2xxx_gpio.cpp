@@ -34,4 +34,33 @@ void GPIO::mapPl011Uart() const {
 #endif
 }
 
+void GPIO::mapSpi0() const {
+  for (unsigned int pin = 7; pin <= 11; ++pin) {
+    setFunction(pin, GPIOFunction::Alt0);
+  }
+}
+
+void GPIO::setFunction(unsigned int pin, GPIOFunction function) const {
+  volatile unsigned int *gpfsel =
+      registerBlock.GPFSEL0 + (pin / 10); // each GPFSEL controls 10 pins
+  const int shift = (pin % 10) * 3;
+  unsigned int value = *gpfsel;
+  value &= ~(0b111u << shift);
+  value |= (static_cast<unsigned int>(function) << shift);
+  *gpfsel = value;
+}
+
+void GPIO::setOutput(unsigned int pin) const {
+  setFunction(pin, GPIOFunction::Output);
+}
+
+void GPIO::write(unsigned int pin, bool high) const {
+  if (high) {
+    *(registerBlock.GPSET + (pin / 32)) = (1u << (pin % 32));
+    return;
+  }
+
+  *(registerBlock.GPCLR + (pin / 32)) = (1u << (pin % 32));
+}
+
 } // namespace Driver::BSP::BCM
