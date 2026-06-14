@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Globalization;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Text.RegularExpressions;
 
@@ -8,6 +9,15 @@ public static class PreCompute
     private const ulong KernelGranuleSize = 64 * 1024;
     private const ulong L2SpanSize = 512UL * 1024 * 1024;
     private const int L3Entries = 8192;
+    private const string KernelSymbolsSectionName = ".kernel_symbols";
+    private const string NumKernelSymbolsName = "NUM_KERNEL_SYMBOLS";
+
+    [StructLayout(LayoutKind.Sequential, Pack = 1)]
+    private readonly record struct KernelSymbolEntry(ulong Start, ulong Size, ulong NamePointer);
+
+    private sealed record SymbolSection(ulong VirtualAddress, ulong FileOffset, ulong Size);
+    private sealed record ElfSymbol(ulong Address, ulong Size, string Name);
+    private sealed record LoadSegment(ulong VirtualAddress, ulong FileOffset, ulong FileSize, ulong MemorySize);
 
     public static int Main(string[] args)
     {
@@ -48,6 +58,7 @@ public static class PreCompute
             ulong physCodeStart = SymbolAddr(elf, "__phys_code_start");
             ulong physDataStart = SymbolAddr(elf, "__phys_data_start");
             ulong physBootCoreStackStart = SymbolAddr(elf, "__phys_boot_core_stack_start");
+            ulong numKernelSymbolsVirt = SymbolAddr(elf, NumKernelSymbolsName);
 
             int numL2Tables = checked((int)(kernelVirtAddrSpaceSize / L2SpanSize));
             if ((kernelVirtAddrSpaceSize % L2SpanSize) != 0 || numL2Tables <= 0)
@@ -56,6 +67,8 @@ public static class PreCompute
             ulong kernelTablesVirt = SymbolAddr(elf, "KERNEL_TABLES");
             ulong physArgAddr = SymbolAddr(elf, "PHYS_KERNEL_TABLES_BASE_ADDR");
             ulong kernelTablesPhys = physDataStart + (kernelTablesVirt - dataStart);
+            SymbolSection kernelSymbolsSection = ReadSection(elf, KernelSymbolsSectionName);
+            ulong numKernelSymbolsOffset = VirtualAddressToFileOffset(elf, numKernelSymbolsVirt);
 
             string tempDir = Path.Combine(Path.GetTempPath(), "jcos-precompute-" + Guid.NewGuid().ToString("N"));
             Directory.CreateDirectory(tempDir);
@@ -64,11 +77,13 @@ public static class PreCompute
             {
                 string dataBin = Path.Combine(tempDir, "data.bin");
                 string textBin = Path.Combine(tempDir, "text.bin");
+                string kernelSymbolsBin = Path.Combine(tempDir, "kernel_symbols.bin");
 
-                Run("aarch64-elf-objcopy", $"--dump-section .data={Quote(dataBin)} --dump-section .text={Quote(textBin)} {Quote(elf)}");
+                Run("aarch64-elf-objcopy", $"--dump-section .data={Quote(dataBin)} --dump-section .text={Quote(textBin)} --dump-section {KernelSymbolsSectionName}={Quote(kernelSymbolsBin)} {Quote(elf)}");
 
                 byte[] dataBytes = File.ReadAllBytes(dataBin);
                 byte[] textBytes = File.ReadAllBytes(textBin);
+                byte[] kernelSymbolsBytes = File.ReadAllBytes(kernelSymbolsBin);
 
                 byte[] tableBytes = BuildTranslationTables(
                     kernelVirtStart,
@@ -107,10 +122,21 @@ public static class PreCompute
 
                 Buffer.BlockCopy(physTablesBaseBytes, 0, textBytes, (int)textOffset, 8);
 
+                IReadOnlyList<ElfSymbol> symbols = ReadKernelSymbols(elf);
+                byte[] symbolBlob = BuildKernelSymbolBlob(symbols, kernelSymbolsSection);
+                if ((ulong)symbolBlob.Length > kernelSymbolsSection.Size)
+                    throw new InvalidOperationException(
+                        $"kernel symbols section too small: need {symbolBlob.Length} bytes, have {kernelSymbolsSection.Size}");
+
+                Array.Clear(kernelSymbolsBytes, 0, kernelSymbolsBytes.Length);
+                Buffer.BlockCopy(symbolBlob, 0, kernelSymbolsBytes, 0, symbolBlob.Length);
+
                 File.WriteAllBytes(dataBin, dataBytes);
                 File.WriteAllBytes(textBin, textBytes);
+                File.WriteAllBytes(kernelSymbolsBin, kernelSymbolsBytes);
 
-                Run("aarch64-elf-objcopy", $"--update-section .data={Quote(dataBin)} --update-section .text={Quote(textBin)} {Quote(elf)}");
+                Run("aarch64-elf-objcopy", $"--update-section .data={Quote(dataBin)} --update-section .text={Quote(textBin)} --update-section {KernelSymbolsSectionName}={Quote(kernelSymbolsBin)} {Quote(elf)}");
+                PatchU64(elf, numKernelSymbolsOffset, checked((ulong)symbols.Count));
             }
             finally
             {
@@ -118,7 +144,7 @@ public static class PreCompute
                     Directory.Delete(tempDir, true);
             }
 
-            Console.WriteLine($"Patched precomputed translation tables into {elf}");
+            Console.WriteLine($"Patched precomputed translation tables and kernel symbols into {elf}");
             return 0;
         }
         catch (Exception ex)
@@ -205,6 +231,44 @@ public static class PreCompute
         return (shifted << 16) | (1UL << 10) | 0b11UL | attr;
     }
 
+    private static byte[] BuildKernelSymbolBlob(IReadOnlyList<ElfSymbol> symbols, SymbolSection section)
+    {
+        int entrySize = Marshal.SizeOf<KernelSymbolEntry>();
+        ulong descriptorBytes = checked((ulong)entrySize * (ulong)symbols.Count);
+        ulong stringTableVirtStart = section.VirtualAddress + descriptorBytes;
+
+        var stringBytes = new List<byte>();
+        var entries = new List<KernelSymbolEntry>(symbols.Count);
+
+        foreach (ElfSymbol symbol in symbols)
+        {
+            ulong namePointer = stringTableVirtStart + checked((ulong)stringBytes.Count);
+            byte[] encodedName = Encoding.ASCII.GetBytes(symbol.Name);
+            stringBytes.AddRange(encodedName);
+            stringBytes.Add(0);
+
+            entries.Add(new KernelSymbolEntry(symbol.Address, symbol.Size, namePointer));
+        }
+
+        ulong totalSize = descriptorBytes + checked((ulong)stringBytes.Count);
+        if (totalSize > section.Size)
+            throw new InvalidOperationException(
+                $"kernel symbols section too small: need {totalSize} bytes, have {section.Size}");
+
+        using var ms = new MemoryStream(checked((int)totalSize));
+        using var bw = new BinaryWriter(ms);
+
+        foreach (KernelSymbolEntry entry in entries)
+        {
+            bw.Write(entry.Start);
+            bw.Write(entry.Size);
+            bw.Write(entry.NamePointer);
+        }
+
+        bw.Write(stringBytes.ToArray());
+        return ms.ToArray();
+    }
+
     private static ulong AttrBits(bool isCache, bool readOnly, bool pxn)
     {
         ulong desc = 0;
@@ -224,6 +288,36 @@ public static class PreCompute
         return desc;
     }
 
+    private static IReadOnlyList<ElfSymbol> ReadKernelSymbols(string elf)
+    {
+        string output = Run("aarch64-elf-nm", $"-n -S --defined-only {Quote(elf)}");
+        var symbols = new List<ElfSymbol>();
+
+        foreach (string rawLine in output.Split('\n', StringSplitOptions.RemoveEmptyEntries))
+        {
+            string line = rawLine.Trim();
+            Match match = Regex.Match(line, @"^(?<addr>[0-9A-Fa-f]+)\s+(?<size>[0-9A-Fa-f]+)\s+\S\s+(?<name>.+)$");
+            if (!match.Success)
+                continue;
+
+            ulong size = ParseNum(match.Groups["size"].Value);
+            if (size == 0)
+                continue;
+
+            ulong address = ParseNum(match.Groups["addr"].Value);
+            string demangled = Demangle(match.Groups["name"].Value);
+            symbols.Add(new ElfSymbol(address, size, demangled));
+        }
+
+        return symbols;
+    }
+
+    private static string Demangle(string symbolName)
+    {
+        string output = Run("c++filt", Quote(symbolName));
+        return output.TrimEnd('\r', '\n');
+    }
+
     private static ulong SymbolAddr(string elf, string symbolName)
     {
         string output = Run("aarch64-elf-nm", $"-n {Quote(elf)}");
@@ -239,6 +333,85 @@ public static class PreCompute
         }
 
         throw new InvalidOperationException($"Missing symbol: {symbolName}");
+    }
+
+    private static SymbolSection ReadSection(string elf, string sectionName)
+    {
+        string output = Run("aarch64-elf-readelf", $"-W -S {Quote(elf)}");
+        string[] lines = output.Split('\n', StringSplitOptions.RemoveEmptyEntries);
+
+        foreach (string rawLine in lines)
+        {
+            string line = rawLine.Trim();
+            if (!line.Contains($"] {sectionName} "))
+                continue;
+
+            Match match = Regex.Match(
+                line,
+                @"^\[\s*\d+\]\s+\S+\s+\S+\s+(?<addr>[0-9A-Fa-f]+)\s+(?<off>[0-9A-Fa-f]+)\s+(?<size>[0-9A-Fa-f]+)\s+");
+            if (!match.Success)
+                break;
+
+            return new SymbolSection(
+                ParseNum(match.Groups["addr"].Value),
+                ParseNum(match.Groups["off"].Value),
+                ParseNum(match.Groups["size"].Value));
+        }
+
+        throw new InvalidOperationException($"Missing section: {sectionName}");
+    }
+
+    private static ulong VirtualAddressToFileOffset(string elf, ulong virtualAddress)
+    {
+        foreach (LoadSegment segment in ReadLoadSegments(elf))
+        {
+            ulong segmentEnd = segment.VirtualAddress + segment.MemorySize;
+            if (virtualAddress >= segment.VirtualAddress && virtualAddress < segmentEnd)
+            {
+                ulong relative = virtualAddress - segment.VirtualAddress;
+                if (relative >= segment.FileSize)
+                    throw new InvalidOperationException($"Virtual address 0x{virtualAddress:X} is not backed by file data");
+
+                return segment.FileOffset + relative;
+            }
+        }
+
+        throw new InvalidOperationException($"No load segment contains virtual address 0x{virtualAddress:X}");
+    }
+
+    private static IReadOnlyList<LoadSegment> ReadLoadSegments(string elf)
+    {
+        string output = Run("aarch64-elf-readelf", $"-W -l {Quote(elf)}");
+        var segments = new List<LoadSegment>();
+
+        foreach (string rawLine in output.Split('\n', StringSplitOptions.RemoveEmptyEntries))
+        {
+            string line = rawLine.Trim();
+            Match match = Regex.Match(
+                line,
+                @"^LOAD\s+0x(?<off>[0-9A-Fa-f]+)\s+0x(?<virt>[0-9A-Fa-f]+)\s+0x[0-9A-Fa-f]+\s+0x(?<filesz>[0-9A-Fa-f]+)\s+0x(?<memsz>[0-9A-Fa-f]+)\s+");
+            if (!match.Success)
+                continue;
+
+            segments.Add(new LoadSegment(
+                ParseNum(match.Groups["virt"].Value),
+                ParseNum(match.Groups["off"].Value),
+                ParseNum(match.Groups["filesz"].Value),
+                ParseNum(match.Groups["memsz"].Value)));
+        }
+
+        return segments;
+    }
+
+    private static void PatchU64(string path, ulong fileOffset, ulong value)
+    {
+        byte[] bytes = BitConverter.GetBytes(value);
+        if (!BitConverter.IsLittleEndian)
+            Array.Reverse(bytes);
+
+        using var stream = new FileStream(path, FileMode.Open, FileAccess.Write, FileShare.None);
+        stream.Position = checked((long)fileOffset);
+        stream.Write(bytes, 0, bytes.Length);
     }
 
     private static ulong ParseNum(string value)

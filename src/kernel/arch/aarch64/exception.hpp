@@ -6,6 +6,7 @@
 #include <memory/memory_register.hpp>
 #include <panic.hpp>
 #include <stdio/printf.h>
+#include <symbols.hpp>
 
 namespace Exception {
 namespace CurrentEL {
@@ -49,6 +50,9 @@ struct ExceptionContext {
       printf_("FAR_EL1: 0x%018lX\n", far);
     }
     spsr_el1.print();
+    printf_("ELR_EL1: 0x%018lX\n", elr_el1);
+    const Symbols::KernelSymbol *symbol = Symbols::lookupSymbol(elr_el1);
+    printf_("      Symbol: %s\n", symbol ? symbol->name : "Symbol not found");
     printf_("\n");
     printf_("General purpose register:\n");
     for (uint32_t i = 0; i < 30; i++) {

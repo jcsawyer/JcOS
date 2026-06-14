@@ -18,8 +18,7 @@
 
 extern void timerInit();
 
-namespace {
-} // namespace
+namespace {} // namespace
 
 extern "C" void putchar_(const char c) {
   Console::Console *console = Console::Console::GetInstance();
@@ -119,6 +118,10 @@ void task2() {
   Time::TimeManager *timeManager = Time::TimeManager::GetInstance();
   info("Timer test, spinning for 1 second...");
   timeManager->spinFor(Time::Duration::from_secs(1));
+
+  // Uncomment to trigger a synchronous data abort and verify that the
+  // exception dump prints the demangled symbol for this call site.
+  // *reinterpret_cast<volatile uint64_t *>(0x1) = 0;
 
   Driver::BSP::LCD::HD44780U *lcd =
       Driver::BSP::RaspberryPi::RaspberryPi::getLCD();

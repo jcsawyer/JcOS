@@ -15,7 +15,7 @@
 //! |                                       | code_start @ 0xffff_ffff_c000_0000
 //! | .text                                 |
 //! | .rodata                               |
-//! | .got                                  |
+//! | .kernel_symbols                       |
 //! |                                       |
 //! +---------------------------------------+
 //! |                                       | code_end_exclusive

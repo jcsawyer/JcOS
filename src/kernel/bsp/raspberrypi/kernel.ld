@@ -51,6 +51,13 @@ SECTIONS
     } :segment_code
 
     .rodata : ALIGN(8) { *(.rodata*) } :segment_code
+    .kernel_symbols : ALIGN(8)
+    {
+        __kernel_symbols_start = .;
+        BYTE(0);
+        . += (96 * 1024) - 1;
+        __kernel_symbols_end_exclusive = .;
+    } :segment_code
 
     . = ALIGN(PAGE_SIZE);
     __code_end_exclusive = .;
