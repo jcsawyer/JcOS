@@ -15,10 +15,8 @@ template <class... Args> void info(const char *format, Args... args) {
 }
 
 template <class... Args> void debug(const char *format, Args... args) {
+#ifdef DEBUG_PRINTS
   Console::Console *console = Console::Console::GetInstance();
-  // if (!console->isDebugMode) {
-  // return;
-  // }
   Time::TimeManager *timeManager = Time::TimeManager::GetInstance();
 
   Time::Duration uptime = timeManager->uptime();
@@ -26,6 +24,10 @@ template <class... Args> void debug(const char *format, Args... args) {
   console->print("[D%03d.%06d ] ", uptime.as_secs(), uptime.subsec_micros());
   console->print(format, args...);
   console->print("\n");
+#else
+  (void)format;
+  (void)sizeof...(args);
+#endif
 }
 
 template <class... Args> void warn(const char *format, Args... args) {

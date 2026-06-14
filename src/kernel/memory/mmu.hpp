@@ -22,7 +22,7 @@ public:
   };
 };
 MemoryManagementUnit *MMU();
-const size_t NUM_MEM_RANGES = 4;
+const size_t NUM_MEM_RANGES = 5;
 
 struct AttributeFields {
   MemAttributes memAttributes;

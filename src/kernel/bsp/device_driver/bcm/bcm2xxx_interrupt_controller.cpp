@@ -2,6 +2,8 @@
 
 namespace Driver::BSP::BCM {
 
+void InterruptController::init() { periph.init(); }
+
 void InterruptController::registerHandler(
     const Exceptions::Asynchronous::IRQHandlerDescriptor
         &irq_handler_descriptor) {

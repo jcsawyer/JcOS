@@ -51,12 +51,15 @@ public static class PreCompute
             ulong codeEndExclusive = SymbolAddr(elf, "__code_end_exclusive");
             ulong dataStart = SymbolAddr(elf, "__data_start");
             ulong dataEndExclusive = SymbolAddr(elf, "__data_end_exclusive");
+            ulong heapStart = SymbolAddr(elf, "__heap_start");
+            ulong heapEndExclusive = SymbolAddr(elf, "__heap_end_exclusive");
             ulong mmioRemapStart = SymbolAddr(elf, "__mmio_remap_start");
             ulong mmioRemapEndExclusive = SymbolAddr(elf, "__mmio_remap_end_exclusive");
             ulong bootCoreStackStart = SymbolAddr(elf, "__boot_core_stack_start");
             ulong bootCoreStackEndExclusive = SymbolAddr(elf, "__boot_core_stack_end_exclusive");
             ulong physCodeStart = SymbolAddr(elf, "__phys_code_start");
             ulong physDataStart = SymbolAddr(elf, "__phys_data_start");
+            ulong physHeapStart = SymbolAddr(elf, "__phys_heap_start");
             ulong physBootCoreStackStart = SymbolAddr(elf, "__phys_boot_core_stack_start");
             ulong numKernelSymbolsVirt = SymbolAddr(elf, NumKernelSymbolsName);
 
@@ -96,6 +99,9 @@ public static class PreCompute
                     dataStart,
                     dataEndExclusive,
                     physDataStart,
+                    heapStart,
+                    heapEndExclusive,
+                    physHeapStart,
                     mmioRemapStart,
                     mmioRemapEndExclusive,
                     physMmioStart,
@@ -165,6 +171,9 @@ public static class PreCompute
         ulong dataStart,
         ulong dataEndExclusive,
         ulong physDataStart,
+        ulong heapStart,
+        ulong heapEndExclusive,
+        ulong physHeapStart,
         ulong mmioRemapStart,
         ulong mmioRemapEndExclusive,
         ulong physMmioStart,
@@ -194,6 +203,11 @@ public static class PreCompute
                 else if (virt >= dataStart && virt < dataEndExclusive)
                 {
                     ulong phys = physDataStart + (virt - dataStart);
+                    pageDesc = BuildPageDescriptor(phys, attrDram);
+                }
+                else if (virt >= heapStart && virt < heapEndExclusive)
+                {
+                    ulong phys = physHeapStart + (virt - heapStart);
                     pageDesc = BuildPageDescriptor(phys, attrDram);
                 }
                 else if (virt >= mmioRemapStart && virt < mmioRemapEndExclusive)

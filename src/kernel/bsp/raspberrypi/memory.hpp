@@ -23,6 +23,10 @@
 //! | .bss                                  |
 //! |                                       |
 //! +---------------------------------------+
+//! |                                       | heap_start
+//! | Kernel Heap                           |
+//! |                                       |
+//! +---------------------------------------+
 //! | MMIO remap reserved                   |
 //! |                                       |
 //! +---------------------------------------+
@@ -100,6 +104,8 @@ extern size_t __code_start;
 extern size_t __code_end_exclusive;
 extern size_t __data_start;
 extern size_t __data_end_exclusive;
+extern size_t __heap_start;
+extern size_t __heap_end_exclusive;
 extern size_t __mmio_remap_start;
 extern size_t __mmio_remap_end_exclusive;
 extern size_t __boot_core_stack_start;
@@ -107,6 +113,7 @@ extern size_t __bss_end_exclusive;
 extern size_t __boot_core_stack_end_exclusive;
 extern size_t __phys_code_start;
 extern size_t __phys_data_start;
+extern size_t __phys_heap_start;
 extern size_t __phys_boot_core_stack_start;
 
 inline static size_t kernelVirtStart() {
@@ -132,6 +139,14 @@ inline static size_t dataEndExclusive() {
   return reinterpret_cast<size_t>(&__data_end_exclusive);
 }
 
+inline static size_t heapStart() {
+  return reinterpret_cast<size_t>(&__heap_start);
+}
+
+inline static size_t heapEndExclusive() {
+  return reinterpret_cast<size_t>(&__heap_end_exclusive);
+}
+
 inline static size_t mmioRemapStart() {
   return reinterpret_cast<size_t>(&__mmio_remap_start);
 }
@@ -154,6 +169,10 @@ inline static size_t physCodeStart() {
 
 inline static size_t physDataStart() {
   return reinterpret_cast<size_t>(&__phys_data_start);
+}
+
+inline static size_t physHeapStart() {
+  return reinterpret_cast<size_t>(&__phys_heap_start);
 }
 
 inline static size_t physBootCoreStackStart() {

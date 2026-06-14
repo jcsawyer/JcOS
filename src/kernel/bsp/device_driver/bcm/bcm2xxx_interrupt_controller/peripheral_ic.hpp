@@ -1,6 +1,7 @@
 #pragma once
 
 #include <bsp/exception/asynchronous.hpp>
+#include <container/vector.hpp>
 #include <exceptions/asynchronous.hpp>
 #include <stdint.h>
 #include <synchronization.hpp>
@@ -9,12 +10,9 @@ namespace Driver::BSP::BCM2XXX {
 
 class PeripheralIC : public Exceptions::Asynchronous::IRQManager {
 public:
-  PeripheralIC(uintptr_t mmio_start_addr) : registerBlock(mmio_start_addr) {
-    for (int i = 0; i < MAX_IRQS; ++i) {
-      handlerTable[i] = nullptr;
-    }
-  }
+  PeripheralIC(uintptr_t mmio_start_addr) : registerBlock(mmio_start_addr) {}
   virtual ~PeripheralIC() = default;
+  void init();
   void registerHandler(
       const Exceptions::Asynchronous::IRQHandlerDescriptor &handler) override;
 
@@ -42,7 +40,8 @@ private:
   };
 
   RegisterBlock registerBlock;
-  Exceptions::Asynchronous::IRQHandlerDescriptor *handlerTable[MAX_IRQS];
+  Container::Vector<Exceptions::Asynchronous::IRQHandlerDescriptor *>
+      handlerTable;
 };
 
 } // namespace Driver::BSP::BCM2XXX

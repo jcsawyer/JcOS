@@ -6,6 +6,7 @@
 #include <exception.hpp>
 #include <exceptions/asynchronous.hpp>
 #include <main.hpp>
+#include <memory/heap.hpp>
 #include <memory/mmu.hpp>
 #include <task.hpp>
 #include <time/duration.hpp>
@@ -151,6 +152,13 @@ void task2() {
       Exceptions::Asynchronous::irq_manager();
   irqManager->printHandler();
 
+  int *heapSmoke = new int(42);
+  info("Kernel heap smoke test value: %d", *heapSmoke);
+  delete heapSmoke;
+
+  info("Kernel heap:");
+  Memory::kernel_heap_allocator().printUsage();
+
   Time::TimeManager *timeManager = Time::TimeManager::GetInstance();
   info("Timer test, spinning for 1 second...");
   timeManager->spinFor(Time::Duration::from_secs(1));
@@ -186,6 +194,8 @@ void task2() {
 extern "C" void kernel_init() {
   Exception::handlingInit();
   Time::TimeManager::GetInstance()->init();
+  Memory::kernel_init_heap_allocator();
+  info("Kernel heap online");
 
   // Initialize the BSP driver subsystem
   BSP::Board::init();

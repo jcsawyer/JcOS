@@ -2,6 +2,7 @@
 
 #include "../print.hpp"
 #include <bsp/exception/asynchronous.hpp>
+#include <container/vector.hpp>
 #include <memory.h>
 #include <stddef.h>
 
@@ -54,27 +55,26 @@ private:
 class DriverManager {
 public:
   void addDriver(const DeviceDriverDescriptor &descriptor) {
-    if (nextIndex >= NUM_DRIVERS) {
+    if (drivers.size() >= NUM_DRIVERS) {
       return;
     }
-    drivers[nextIndex++] = descriptor;
+    drivers.pushBack(descriptor);
   }
 
   void initDriversAndIrqs() const;
 
   void printDrivers() {
-    for (int i = 0; i < nextIndex; ++i) {
+    for (size_t i = 0; i < drivers.size(); ++i) {
       DeviceDriver *driver = drivers[i].getDriver();
       if (driver) {
         const char *compatible = driver->compatible();
-        info("      %d: %s", i + 1, compatible);
+        info("      %lu: %s", i + 1, compatible);
       }
     }
   }
 
 private:
-  DeviceDriverDescriptor drivers[NUM_DRIVERS];
-  int nextIndex;
+  Container::Vector<DeviceDriverDescriptor> drivers;
 };
 
 DriverManager &driverManager();

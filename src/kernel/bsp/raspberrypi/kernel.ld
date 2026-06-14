@@ -29,6 +29,7 @@ PHDRS
 {
     segment_code            PT_LOAD FLAGS(5);
     segment_data            PT_LOAD FLAGS(6);
+    segment_heap            PT_LOAD FLAGS(6);
     segment_boot_core_stack PT_LOAD FLAGS(6);
 }
 
@@ -81,6 +82,18 @@ SECTIONS
     __data_end_exclusive = .;
 
     /***********************************************************************************************
+    * Heap
+    ***********************************************************************************************/
+    __heap_start = .;
+    .heap (NOLOAD) :
+    {
+        . += 16 * 1024 * 1024;
+    } :segment_heap
+    __heap_end_exclusive = .;
+
+    ASSERT((. & PAGE_MASK) == 0, "Heap is not page aligned")
+
+    /***********************************************************************************************
     * MMIO Remap Reserved
     ***********************************************************************************************/
     __mmio_remap_start = .;
@@ -118,5 +131,6 @@ SECTIONS
 
     __phys_code_start = LOADADDR(.text);
     __phys_data_start = LOADADDR(.data);
+    __phys_heap_start = __phys_data_start + (__heap_start - __data_start);
     __phys_boot_core_stack_start = LOADADDR(.boot_core_stack);
 }

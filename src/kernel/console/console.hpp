@@ -20,6 +20,7 @@ public:
   virtual void printChar(char character) = 0;
   virtual void printLine(const char *format, ...) = 0;
   virtual Optional<char> readChar(Console::BlockingMode blockingMode) = 0;
+  virtual void dumpTo(Console &target) { (void)target; }
 
 protected:
   Console() = default;

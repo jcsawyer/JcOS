@@ -1,9 +1,10 @@
 #include "mmu.hpp"
 #include "../../../memory/mmu.hpp"
 #include "../memory.hpp"
-#include <task.hpp>
 #include <arch/aarch64/memory/mmu/translation_table.hpp>
+#include <container/vector.hpp>
 #include <panic.hpp>
+#include <task.hpp>
 
 namespace Memory {
 extern "C" {
@@ -17,20 +18,16 @@ uint64_t PHYS_KERNEL_TABLES_BASE_ADDR
 
 namespace {
 const size_t KERNEL_GRANULE_SIZE = 64 * 1024;
-const size_t MAX_MMIO_MAPPINGS = 32;
-const size_t MAX_MMIO_ALIASES = 8;
 const size_t TABLE_WIDTH = 139;
 
 struct MMIORecord {
   size_t physPageStart;
   size_t virtPageStart;
   size_t numPages;
-  const char *entities[MAX_MMIO_ALIASES];
-  size_t entityCount;
+  Container::Vector<const char *> entities;
 };
 
-MMIORecord mmioRecords[MAX_MMIO_MAPPINGS] = {};
-size_t mmioRecordCount = 0;
+Container::Vector<MMIORecord> mmioRecords;
 
 size_t alignDownToGranule(size_t value) {
   return value & ~(KERNEL_GRANULE_SIZE - 1);
@@ -141,6 +138,13 @@ TranslationDescriptor *getDescriptors() {
           {CacheableDRAM, ReadWrite, true},
       },
       {
+          "Kernel heap",
+          heapStart(),
+          heapEndExclusive() - 1,
+          TranslationType::Offset(physHeapStart()),
+          {CacheableDRAM, ReadWrite, true},
+      },
+      {
           "Remapped Device MMIO",
           mmioRemapStart(),
           mmioRemapEndExclusive() - 1,
@@ -192,28 +196,22 @@ size_t kernelMapMMIO(const char *name, const MMIODescriptor &descriptor) {
   const size_t numPages =
       div_ceil(offsetIntoPage + descriptor.size, KERNEL_GRANULE_SIZE);
 
-  for (size_t i = 0; i < mmioRecordCount; i++) {
+  for (size_t i = 0; i < mmioRecords.size(); i++) {
     if (mmioRecords[i].physPageStart == physPageStart &&
         mmioRecords[i].numPages == numPages) {
-      if (mmioRecords[i].entityCount < MAX_MMIO_ALIASES) {
-        bool duplicate = false;
-        for (size_t entityIdx = 0; entityIdx < mmioRecords[i].entityCount;
-             entityIdx++) {
-          if (mmioRecords[i].entities[entityIdx] == name) {
-            duplicate = true;
-            break;
-          }
+      bool duplicate = false;
+      for (size_t entityIdx = 0; entityIdx < mmioRecords[i].entities.size();
+           entityIdx++) {
+        if (mmioRecords[i].entities[entityIdx] == name) {
+          duplicate = true;
+          break;
         }
-        if (!duplicate) {
-          mmioRecords[i].entities[mmioRecords[i].entityCount++] = name;
-        }
+      }
+      if (!duplicate) {
+        mmioRecords[i].entities.pushBack(name);
       }
       return mmioRecords[i].virtPageStart + offsetIntoPage;
     }
-  }
-
-  if (mmioRecordCount >= MAX_MMIO_MAPPINGS) {
-    panic("Exceeded max MMIO mappings");
   }
 
   const size_t physMmioStart = Map::getMMIO().START;
@@ -235,15 +233,12 @@ size_t kernelMapMMIO(const char *name, const MMIODescriptor &descriptor) {
     panic("MMIO remap region exhausted");
   }
 
-  MMIORecord &record = mmioRecords[mmioRecordCount++];
+  MMIORecord record{};
   record.physPageStart = physPageStart;
   record.virtPageStart = virtPageStart;
   record.numPages = numPages;
-  record.entityCount = 1;
-  record.entities[0] = name;
-  for (size_t i = 1; i < MAX_MMIO_ALIASES; i++) {
-    record.entities[i] = nullptr;
-  }
+  record.entities.pushBack(name);
+  mmioRecords.pushBack(static_cast<MMIORecord &&>(record));
 
   return virtPageStart + offsetIntoPage;
 }
@@ -252,6 +247,10 @@ void kernelPrintMappings() {
   const size_t dataVirtEndExclusive =
       dataStart() +
       div_ceil(dataEndExclusive() - dataStart(), KERNEL_GRANULE_SIZE) *
+          KERNEL_GRANULE_SIZE;
+  const size_t heapVirtEndExclusive =
+      heapStart() +
+      div_ceil(heapEndExclusive() - heapStart(), KERNEL_GRANULE_SIZE) *
           KERNEL_GRANULE_SIZE;
   const size_t bootStackVirtEndExclusive =
       bootCoreStackStart() +
@@ -271,6 +270,10 @@ void kernelPrintMappings() {
                  physDataStart() + (dataVirtEndExclusive - dataStart()) - 1,
                  dataVirtEndExclusive - dataStart(), "C   RW XN",
                  "Kernel data and bss");
+  printMappedRow(heapStart(), heapVirtEndExclusive - 1, physHeapStart(),
+                 physHeapStart() + (heapVirtEndExclusive - heapStart()) - 1,
+                 heapVirtEndExclusive - heapStart(), "C   RW XN",
+                 "Kernel heap");
   printMappedRow(bootCoreStackStart(), bootStackVirtEndExclusive - 1,
                  physBootCoreStackStart(),
                  physBootCoreStackStart() +
@@ -278,7 +281,7 @@ void kernelPrintMappings() {
                  bootStackVirtEndExclusive - bootCoreStackStart(), "C   RW XN",
                  "Kernel boot-core stack");
 
-  for (size_t i = 0; i < mmioRecordCount; i++) {
+  for (size_t i = 0; i < mmioRecords.size(); i++) {
     const size_t virtStart = mmioRecords[i].virtPageStart;
     const size_t virtEndInclusive =
         virtStart + mmioRecords[i].numPages * KERNEL_GRANULE_SIZE - 1;
@@ -288,7 +291,7 @@ void kernelPrintMappings() {
     printMappedRow(virtStart, virtEndInclusive, physStart, physEndInclusive,
                    mmioRecords[i].numPages * KERNEL_GRANULE_SIZE, "Dev RW XN",
                    mmioRecords[i].entities[0]);
-    for (size_t aliasIdx = 1; aliasIdx < mmioRecords[i].entityCount;
+    for (size_t aliasIdx = 1; aliasIdx < mmioRecords[i].entities.size();
          aliasIdx++) {
       printEntityContinuation(mmioRecords[i].entities[aliasIdx]);
     }
@@ -301,7 +304,8 @@ bool isValidCodeAddress(size_t address) {
 }
 
 bool isValidCurrentStackAddress(size_t address) {
-  if (address >= bootCoreStackStart() && address < bootCoreStackEndExclusive()) {
+  if (address >= bootCoreStackStart() &&
+      address < bootCoreStackEndExclusive()) {
     return true;
   }
 

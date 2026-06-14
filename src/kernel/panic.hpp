@@ -1,7 +1,7 @@
 #pragma once
 
-#include "backtrace.hpp"
 #include "arch/cpu.hpp"
+#include "backtrace.hpp"
 #include "console/console.hpp"
 #include <print.hpp>
 

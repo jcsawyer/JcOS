@@ -4,7 +4,7 @@ namespace Driver {
 static auto _driverManager = DriverManager();
 
 void DriverManager::initDriversAndIrqs() const {
-  for (int i = 0; i < nextIndex; ++i) {
+  for (size_t i = 0; i < drivers.size(); ++i) {
     DeviceDriverDescriptor descriptor = drivers[i];
     DeviceDriver *driver = descriptor.getDriver();
 
@@ -21,7 +21,7 @@ void DriverManager::initDriversAndIrqs() const {
   }
 
   // 3. Register and enable IRQ handlers for all drivers
-  for (int i = 0; i < nextIndex; ++i) {
+  for (size_t i = 0; i < drivers.size(); ++i) {
     DeviceDriverDescriptor descriptor = drivers[i];
     DeviceDriver *driver = descriptor.getDriver();
 

@@ -17,9 +17,7 @@ public:
 
   const char *compatible() override { return "BCM Interrupt Controller"; }
 
-  void init() override {
-    // No-op for now
-  }
+  void init() override;
 
   void registerAndEnableIrqHandler(
       ::BSP::Exception::Asynchronous::IRQNumber *irqNumber) override {}

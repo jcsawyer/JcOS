@@ -8,6 +8,8 @@ namespace Driver::BSP::BCM2XXX {
 using IRQHandlerDescriptor = Exceptions::Asynchronous::IRQHandlerDescriptor;
 using IRQNumber = ::BSP::Exception::Asynchronous::IRQNumber;
 
+void PeripheralIC::init() { handlerTable.resize(MAX_IRQS, nullptr); }
+
 void PeripheralIC::registerHandler(const IRQHandlerDescriptor &handler) {
   unsigned long irq_num = handler.number.peripheral.get();
 

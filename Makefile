@@ -37,6 +37,7 @@ CHAINLOADER_ASM_CPP := src/chainloader/relocator.S
 # src/kernel
 KERNEL_SRC	:=	$(wildcard src/kernel/*.cpp) \
 				$(wildcard src/kernel/arch/*.cpp) \
+				$(wildcard src/kernel/memory/*.cpp) \
 				$(wildcard src/kernel/time/*.cpp) \
 				$(wildcard src/kernel/bsp/device_driver/*.cpp) \
 				$(wildcard src/kernel/bsp/bsp.cpp) \
@@ -96,6 +97,9 @@ CHAINLOADER_ASM_OBJS := $(CHAINLOADER_ASM:%.s=$(CHAINLOADER_ASM_OBJ_DIR)/%.o) \
 INCLUDES	:= $(KERNEL_INC) $(LIBC_INC)
 CHAINLOADER_INC	:=	-isystem ./src/chainloader $(KERNEL_INC) $(LIBC_INC)
 DEFINES		:= -DARCH=$(ARCH) -DBOARD=$(BOARD)
+ifdef DEBUG_PRINTS
+DEFINES		+= -DDEBUG_PRINTS=1
+endif
 CFLAGS		:= -Wall -O0 -mgeneral-regs-only -g -ffreestanding -nostdinc -nostdlib -nostartfiles -fno-rtti -fno-exceptions -fno-threadsafe-statics -fno-use-cxa-atexit -mno-outline-atomics
 KERNEL_CFLAGS	:= $(CFLAGS) -fno-omit-frame-pointer -mno-omit-leaf-frame-pointer
 CHAINLOADER_CFLAGS := $(CFLAGS)
