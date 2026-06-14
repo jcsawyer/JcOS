@@ -33,7 +33,7 @@ bool RaspberryPiMailbox::Call(Request *request, Response *response) {
   }
 
   const uint32_t mask = 0x0F;
-  uintptr_t ptr = reinterpret_cast<uint64_t>(&Data);
+  uintptr_t ptr = Memory::kernelVirtToPhys(reinterpret_cast<uintptr_t>(&Data));
   uintptr_t r = (ptr & ~mask) | (channel & 0xF);
 
   const auto timeout = Time::Duration::from_secs(2);
@@ -61,11 +61,9 @@ bool RaspberryPiMailbox::Call(Request *request, Response *response) {
     if (r == *MAILBOX_READ) {
       if (Data[1] == MAILBOX_RESPONSE) {
         const size_t responseSize = request->ResponseSize();
-        uint32_t responseData[responseSize];
         for (uint32_t i = 0; i < responseSize; i++) {
-          responseData[i] = Data[i + 5];
+          response->Data[i] = Data[i + 5];
         }
-        response->Data = responseData;
         return true;
       }
     }

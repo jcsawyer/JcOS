@@ -5,10 +5,9 @@ using System.Text.RegularExpressions;
 
 public static class PreCompute
 {
-    private const ulong MmioRemapStart = 0x1FC00000UL;
-    private const ulong MmioRemapEndInclusive = 0x1FFFFFFFUL;
+    private const ulong KernelGranuleSize = 64 * 1024;
+    private const ulong L2SpanSize = 512UL * 1024 * 1024;
     private const int L3Entries = 8192;
-    private const int NumL2Tables = 8;
 
     public static int Main(string[] args)
     {
@@ -36,13 +35,27 @@ public static class PreCompute
                 _ => throw new InvalidOperationException($"Unsupported board: {board}")
             };
 
-            ulong dataVma = SectionVma(elf, ".data");
-            ulong textVma = SectionVma(elf, ".text");
-
-            ulong kernelTablesAddr = SymbolAddr(elf, "KERNEL_TABLES");
-            ulong physArgAddr = SymbolAddr(elf, "PHYS_KERNEL_TABLES_BASE_ADDR");
+            ulong kernelVirtAddrSpaceSize = SymbolAddr(elf, "__kernel_virt_addr_space_size");
+            ulong kernelVirtStart = SymbolAddr(elf, "__kernel_virt_start_addr");
             ulong codeStart = SymbolAddr(elf, "__code_start");
             ulong codeEndExclusive = SymbolAddr(elf, "__code_end_exclusive");
+            ulong dataStart = SymbolAddr(elf, "__data_start");
+            ulong dataEndExclusive = SymbolAddr(elf, "__data_end_exclusive");
+            ulong mmioRemapStart = SymbolAddr(elf, "__mmio_remap_start");
+            ulong mmioRemapEndExclusive = SymbolAddr(elf, "__mmio_remap_end_exclusive");
+            ulong bootCoreStackStart = SymbolAddr(elf, "__boot_core_stack_start");
+            ulong bootCoreStackEndExclusive = SymbolAddr(elf, "__boot_core_stack_end_exclusive");
+            ulong physCodeStart = SymbolAddr(elf, "__phys_code_start");
+            ulong physDataStart = SymbolAddr(elf, "__phys_data_start");
+            ulong physBootCoreStackStart = SymbolAddr(elf, "__phys_boot_core_stack_start");
+
+            int numL2Tables = checked((int)(kernelVirtAddrSpaceSize / L2SpanSize));
+            if ((kernelVirtAddrSpaceSize % L2SpanSize) != 0 || numL2Tables <= 0)
+                throw new InvalidOperationException("Unsupported kernel virtual address space size");
+
+            ulong kernelTablesVirt = SymbolAddr(elf, "KERNEL_TABLES");
+            ulong physArgAddr = SymbolAddr(elf, "PHYS_KERNEL_TABLES_BASE_ADDR");
+            ulong kernelTablesPhys = physDataStart + (kernelTablesVirt - dataStart);
 
             string tempDir = Path.Combine(Path.GetTempPath(), "jcos-precompute-" + Guid.NewGuid().ToString("N"));
             Directory.CreateDirectory(tempDir);
@@ -57,18 +70,34 @@ public static class PreCompute
                 byte[] dataBytes = File.ReadAllBytes(dataBin);
                 byte[] textBytes = File.ReadAllBytes(textBin);
 
-                byte[] tableBytes = BuildTranslationTables(kernelTablesAddr, codeStart, codeEndExclusive, physMmioStart);
+                byte[] tableBytes = BuildTranslationTables(
+                    kernelVirtStart,
+                    kernelVirtAddrSpaceSize,
+                    numL2Tables,
+                    kernelTablesPhys,
+                    codeStart,
+                    codeEndExclusive,
+                    physCodeStart,
+                    dataStart,
+                    dataEndExclusive,
+                    physDataStart,
+                    mmioRemapStart,
+                    mmioRemapEndExclusive,
+                    physMmioStart,
+                    bootCoreStackStart,
+                    bootCoreStackEndExclusive,
+                    physBootCoreStackStart);
 
-                long dataOffset = checked((long)(kernelTablesAddr - dataVma));
+                long dataOffset = checked((long)(kernelTablesVirt - dataStart));
                 if (dataOffset < 0 || dataOffset + tableBytes.Length > dataBytes.Length)
                     throw new InvalidOperationException("table patch out of range");
 
                 Buffer.BlockCopy(tableBytes, 0, dataBytes, (int)dataOffset, tableBytes.Length);
 
-                ulong l3Bytes = (ulong)(NumL2Tables * L3Entries * 8);
-                ulong physTablesBaseAddr = kernelTablesAddr + l3Bytes;
+                ulong l3Bytes = (ulong)(numL2Tables * L3Entries * sizeof(ulong));
+                ulong physTablesBaseAddr = kernelTablesPhys + l3Bytes;
 
-                long textOffset = checked((long)(physArgAddr - textVma));
+                long textOffset = checked((long)(physArgAddr - codeStart));
                 if (textOffset < 0 || textOffset + 8 > textBytes.Length)
                     throw new InvalidOperationException("arg patch out of range");
 
@@ -99,7 +128,23 @@ public static class PreCompute
         }
     }
 
-    private static byte[] BuildTranslationTables(ulong kernelTablesAddr, ulong codeStart, ulong codeEndExclusive, ulong physMmioStart)
+    private static byte[] BuildTranslationTables(
+        ulong kernelVirtStart,
+        ulong kernelVirtAddrSpaceSize,
+        int numL2Tables,
+        ulong kernelTablesPhys,
+        ulong codeStart,
+        ulong codeEndExclusive,
+        ulong physCodeStart,
+        ulong dataStart,
+        ulong dataEndExclusive,
+        ulong physDataStart,
+        ulong mmioRemapStart,
+        ulong mmioRemapEndExclusive,
+        ulong physMmioStart,
+        ulong bootCoreStackStart,
+        ulong bootCoreStackEndExclusive,
+        ulong physBootCoreStackStart)
     {
         using var ms = new MemoryStream();
         using var bw = new BinaryWriter(ms);
@@ -108,39 +153,56 @@ public static class PreCompute
         ulong attrDram = AttrBits(isCache: true, readOnly: false, pxn: true);
         ulong attrDev = AttrBits(isCache: false, readOnly: false, pxn: true);
 
-        for (ulong l2 = 0; l2 < NumL2Tables; l2++)
+        for (ulong l2 = 0; l2 < (ulong)numL2Tables; l2++)
         {
             for (ulong l3 = 0; l3 < L3Entries; l3++)
             {
-                ulong virt = (l2 << 29) + (l3 << 16);
-                ulong phys = virt;
-                ulong attr = attrDram;
+                ulong virt = kernelVirtStart + (l2 << 29) + (l3 << 16);
 
+                ulong pageDesc = 0;
                 if (virt >= codeStart && virt < codeEndExclusive)
                 {
-                    attr = attrCode;
+                    ulong phys = physCodeStart + (virt - codeStart);
+                    pageDesc = BuildPageDescriptor(phys, attrCode);
                 }
-                else if (virt >= MmioRemapStart && virt <= MmioRemapEndInclusive)
+                else if (virt >= dataStart && virt < dataEndExclusive)
                 {
-                    phys = physMmioStart + (virt - MmioRemapStart);
-                    attr = attrDev;
+                    ulong phys = physDataStart + (virt - dataStart);
+                    pageDesc = BuildPageDescriptor(phys, attrDram);
                 }
-
-                ulong shifted = (phys >> 16) & 0xFFFFFFFFFFFUL;
-                ulong pageDesc = (shifted << 16) | (1UL << 10) | 0b11UL | attr;
+                else if (virt >= mmioRemapStart && virt < mmioRemapEndExclusive)
+                {
+                    ulong phys = physMmioStart + (virt - mmioRemapStart);
+                    pageDesc = BuildPageDescriptor(phys, attrDev);
+                }
+                else if (virt >= bootCoreStackStart && virt < bootCoreStackEndExclusive)
+                {
+                    ulong phys = physBootCoreStackStart + (virt - bootCoreStackStart);
+                    pageDesc = BuildPageDescriptor(phys, attrDram);
+                }
                 bw.Write(pageDesc);
             }
         }
 
-        for (ulong l2 = 0; l2 < NumL2Tables; l2++)
+        ulong coveredVirtSpace = (ulong)numL2Tables * L2SpanSize;
+        if (coveredVirtSpace != kernelVirtAddrSpaceSize)
+            throw new InvalidOperationException("Translation table coverage does not match kernel VA size");
+
+        for (ulong l2 = 0; l2 < (ulong)numL2Tables; l2++)
         {
-            ulong lvl3Phys = kernelTablesAddr + (l2 * (ulong)L3Entries * 8UL);
+            ulong lvl3Phys = kernelTablesPhys + (l2 * (ulong)L3Entries * sizeof(ulong));
             ulong shifted = (lvl3Phys >> 16) & 0xFFFFFFFFFFFUL;
             ulong tableDesc = (shifted << 16) | 0b11UL;
             bw.Write(tableDesc);
         }
 
         return ms.ToArray();
+    }
+
+    private static ulong BuildPageDescriptor(ulong phys, ulong attr)
+    {
+        ulong shifted = (phys >> 16) & 0xFFFFFFFFFFFUL;
+        return (shifted << 16) | (1UL << 10) | 0b11UL | attr;
     }
 
     private static ulong AttrBits(bool isCache, bool readOnly, bool pxn)
@@ -160,25 +222,6 @@ public static class PreCompute
 
         desc |= (1UL << 54);
         return desc;
-    }
-
-    private static ulong SectionVma(string elf, string sectionName)
-    {
-        string output = Run("aarch64-elf-readelf", $"-W -S {Quote(elf)}");
-
-        foreach (string line in output.Split('\n', StringSplitOptions.RemoveEmptyEntries))
-        {
-            Match m = Regex.Match(line,
-                @"^\s*\[\s*\d+\]\s+(?<name>\S+)\s+\S+\s+(?<addr>[0-9A-Fa-f]+)");
-
-            if (!m.Success)
-                continue;
-
-            if (m.Groups["name"].Value == sectionName)
-                return ulong.Parse(m.Groups["addr"].Value, NumberStyles.HexNumber, CultureInfo.InvariantCulture);
-        }
-
-        throw new InvalidOperationException($"Missing section: {sectionName}");
     }
 
     private static ulong SymbolAddr(string elf, string symbolName)

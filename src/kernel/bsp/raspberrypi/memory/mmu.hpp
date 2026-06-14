@@ -4,5 +4,5 @@
 #include "../memory.hpp"
 
 namespace Memory {
-using KernelAddrSpace = AddressSpace<Memory::Map::END_INCLUSIVE + 1>;
+using KernelAddrSpace = AddressSpace<Memory::Map::KERNEL_VIRT_ADDR_SPACE_SIZE>;
 } // namespace Memory

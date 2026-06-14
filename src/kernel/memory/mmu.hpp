@@ -22,7 +22,7 @@ public:
   };
 };
 MemoryManagementUnit *MMU();
-const size_t NUM_MEM_RANGES = 2;
+const size_t NUM_MEM_RANGES = 4;
 
 struct AttributeFields {
   MemAttributes memAttributes;
@@ -167,6 +167,7 @@ private:
 };
 
 KernelVirtualLayout<NUM_MEM_RANGES> *virtMemLayout();
+size_t kernelVirtToPhys(size_t virtAddr);
 size_t kernelMapMMIO(const char *name, const MMIODescriptor &descriptor);
 void kernelPrintMappings();
 

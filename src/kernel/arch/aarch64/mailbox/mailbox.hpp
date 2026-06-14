@@ -14,7 +14,7 @@ public:
 protected:
   Mailbox() = default;
   ~Mailbox() = default;
-  uint32_t MAILBOX_BASE;
+  uintptr_t MAILBOX_BASE;
   uint32_t MAIL_FULL;
   uint32_t MAIL_EMPTY;
 };

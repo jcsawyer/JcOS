@@ -18,6 +18,14 @@
 	add	\register, \register, #:lo12:\symbol
 .endm
 
+// Load the address of a symbol into a register, absolute.
+.macro ADR_ABS register, symbol
+	movz	\register, #:abs_g3:\symbol
+	movk	\register, #:abs_g2_nc:\symbol
+	movk	\register, #:abs_g1_nc:\symbol
+	movk	\register, #:abs_g0_nc:\symbol
+.endm
+
 //--------------------------------------------------------------------------------------------------
 // Public Code
 //--------------------------------------------------------------------------------------------------
@@ -67,19 +75,23 @@ _start:
 	// Load the base address of the kernel's translation tables.
 	ldr	x0, PHYS_KERNEL_TABLES_BASE_ADDR // patched post-link
 
-	// Set the stack pointer.
-	ADR_REL	x1, __boot_core_stack_end_exclusive
-	mov	sp, x1
+	// Load the linked virtual addresses for EL1.
+	ADR_ABS	x1, __boot_core_stack_end_exclusive
+	ADR_ABS	x2, kernel_init
+
+	// Keep using the PC-relative physical stack while still running with the MMU off.
+	ADR_REL	x3, __boot_core_stack_end_exclusive
+	mov	sp, x3
 
 	// Read the CPU's timer counter frequency and store it in ARCH_TIMER_COUNTER_FREQUENCY.
 	// Abort if the frequency read back as 0.
-	ADR_REL	x2, ARCH_TIMER_COUNTER_FREQUENCY // provided by aarch64/time.rs
-	mrs	x3, CNTFRQ_EL0
-	cmp	x3, xzr
+	ADR_REL	x4, ARCH_TIMER_COUNTER_FREQUENCY // provided by aarch64/time.rs
+	mrs	x5, CNTFRQ_EL0
+	cmp	x5, xzr
 	b.eq	.L_parking_loop
-	str	w3, [x2]
+	str	w5, [x4]
 
-	// Jump to cpp code. x0 and x1 hold the function arguments for _start_cpp().
+	// Jump to cpp code. x0, x1 and x2 hold the function arguments for _start_cpp().
 	b	_start_cpp
 
 	// Infinitely wait for events (aka "park the core").

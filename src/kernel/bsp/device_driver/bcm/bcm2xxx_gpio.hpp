@@ -10,7 +10,7 @@ namespace BSP {
 namespace BCM {
 class GPIO : public Driver::DeviceDriver {
 public:
-  GPIO(unsigned int mmio_start_addr) : registerBlock(mmio_start_addr) {};
+  GPIO(uintptr_t mmio_start_addr) : registerBlock(mmio_start_addr) {};
   const char *compatible() override { return "BCM GPIO"; }
   void init() override;
   void registerAndEnableIrqHandler(
@@ -25,7 +25,7 @@ private:
     volatile unsigned int *GPPUDCLK0;
     volatile unsigned int *GPIO_PUP_PDN_CNTRL_REG0;
 
-    RegisterBlock(unsigned int mmio_start_addr) {
+    RegisterBlock(uintptr_t mmio_start_addr) {
       GPFSEL1 =
           reinterpret_cast<volatile unsigned int *>(mmio_start_addr + 0x04);
       GPPUD = reinterpret_cast<volatile unsigned int *>(mmio_start_addr + 0x94);

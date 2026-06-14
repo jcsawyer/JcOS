@@ -121,29 +121,27 @@ void BSP::Board::PrintInfo() {
       Mailbox::RaspberryPi::Channel::Property);
 
   Mailbox::RaspberryPi::Messages::BoardSerialRequest boardSerialRequset;
-  Mailbox::RaspberryPi::Messages::BoardSerialResponse *boardSerialResponse =
-      nullptr;
-  if (!mailbox.Call(&boardSerialRequset, boardSerialResponse)) {
+  uint32_t boardSerialData[2] = {};
+  Mailbox::RaspberryPi::Messages::BoardSerialResponse boardSerialResponse(
+      boardSerialData);
+  if (!mailbox.Call(&boardSerialRequset, &boardSerialResponse)) {
     warn("Failed to get board serial");
     return;
   }
 
-  info("      Board serial:    %08X%08X", boardSerialResponse->Serial().High,
-       boardSerialResponse->Serial().Low);
+  info("      Board serial:    %08X%08X", boardSerialResponse.Serial().High,
+       boardSerialResponse.Serial().Low);
 
   Mailbox::RaspberryPi::Messages::BoardRevisionRequest boardRevisionRequest;
-  Mailbox::RaspberryPi::Messages::BoardRevisionResponse *boardRevisionResponse =
-      nullptr;
-  if (!mailbox.Call(&boardRevisionRequest, boardRevisionResponse)) {
+  uint32_t boardRevisionData[1] = {};
+  Mailbox::RaspberryPi::Messages::BoardRevisionResponse boardRevisionResponse(
+      boardRevisionData);
+  if (!mailbox.Call(&boardRevisionRequest, &boardRevisionResponse)) {
     warn("Failed to get board revision");
     return;
   }
 
-  Mailbox::RaspberryPi::Messages::BoardRevisionResponse *boardRevision;
-  boardRevision =
-      static_cast<Mailbox::RaspberryPi::Messages::BoardRevisionResponse *>(
-          boardRevisionResponse);
-  uint32_t revision = boardRevision->BoardRevision();
+  uint32_t revision = boardRevisionResponse.BoardRevision();
   info("Board revision: 0x%X", revision);
 
   info("      Overvoltage:     %s",

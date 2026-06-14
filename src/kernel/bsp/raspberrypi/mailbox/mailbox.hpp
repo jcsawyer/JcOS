@@ -29,7 +29,7 @@ public:
   alignas(16) volatile uint32_t Data[36];
 
 protected:
-  uint32_t MAILBOX_BASE = Memory::Map::getMMIO().VIDEOCORE_MBOX_START;
+  uintptr_t MAILBOX_BASE = Memory::Map::getMMIO().VIDEOCORE_MBOX_START;
   uint32_t MAIL_FULL = 0x80000000;
   uint32_t MAIL_EMPTY = 0x40000000;
   uint32_t MAILBOX_RESPONSE = 0x80000000;

@@ -9,7 +9,7 @@ namespace Driver::BSP::BCM2XXX {
 
 class PeripheralIC : public Exceptions::Asynchronous::IRQManager {
 public:
-  PeripheralIC(uint32_t mmio_start_addr) : registerBlock(mmio_start_addr) {
+  PeripheralIC(uintptr_t mmio_start_addr) : registerBlock(mmio_start_addr) {
     for (int i = 0; i < MAX_IRQS; ++i) {
       handlerTable[i] = nullptr;
     }
@@ -33,7 +33,7 @@ private:
     volatile uint32_t *PENDING_1;
     volatile uint32_t *PENDING_2;
 
-    RegisterBlock(uint32_t base) {
+    RegisterBlock(uintptr_t base) {
       PENDING_1 = reinterpret_cast<volatile uint32_t *>(base + 0x04);
       PENDING_2 = reinterpret_cast<volatile uint32_t *>(base + 0x08);
       ENABLE_1 = reinterpret_cast<volatile uint32_t *>(base + 0x10);

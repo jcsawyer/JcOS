@@ -30,6 +30,6 @@ public:
 
 private:
   static const uint32_t TAG = 0x00000001;
-  alignas(16) uint32_t *_data;
+  alignas(16) uint32_t _data[6];
 };
 } // namespace Mailbox::RaspberryPi::Messages

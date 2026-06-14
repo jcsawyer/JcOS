@@ -1,5 +1,6 @@
 #include "mmu.hpp"
 #include "mmu/translation_table.hpp"
+#include <bsp/raspberrypi/memory.hpp>
 
 namespace Memory {
 
@@ -28,19 +29,19 @@ void setUpMAIR() {
 
 // Configure the translation control register
 void configureTranslationControl() {
-  uint64_t t0sz = 64 - KernelAddrSpace::shift;
+  uint64_t t1sz = 64 - KernelAddrSpace::shift;
 
   uint64_t tcr_value =
-      0b0ULL << 37     // TBIO Used
+      0b0ULL << 38     // TBI1 Used
       | 0b010ULL << 32 // IPS 40-bit physical address size
-      | 0b01ULL << 14  // TG0 64 KiB granule
-      | 0b11ULL << 12  // SH0 Inner Shareable
-      | 0b01ULL << 10  // ORGN0 Write-back, Read-allocate, Cacheable
-      | 0b01ULL << 8   // IRGN0 Write-back, Read-allocate, Cacheable
-      | 0b0ULL << 7    // EPD0 Enable TTBR0 walks
-      | 0b0ULL << 22   // A1 Use TTBR0
-      | 0b1ULL << 23   // EPD1 Disable TTBR1Walks
-      | t0sz << 0;     // T0SZ Address size for TTBR0
+      | 0b11ULL << 30  // TG1 64 KiB granule
+      | 0b11ULL << 28  // SH1 Inner Shareable
+      | 0b01ULL << 26  // ORGN1 Write-back, Read-allocate, Cacheable
+      | 0b01ULL << 24  // IRGN1 Write-back, Read-allocate, Cacheable
+      | 0b0ULL << 23   // EPD1 Enable TTBR1 walks
+      | 0b1ULL << 22   // A1 Use TTBR1
+      | 0b1ULL << 7    // EPD0 Disable TTBR0 walks
+      | t1sz << 16;    // T1SZ Address size for TTBR1
 
   WRITE_SYSREG(tcr_el1, tcr_value);
 }
@@ -69,8 +70,8 @@ void MemoryManagementUnit::enableMMUAndCaching(
   // Set up MAIR_EL1.
   setUpMAIR();
 
-  // Set the Translation Table Base Register (TTBR0_EL1).
-  WRITE_SYSREG(ttbr0_el1, physKernelTablesBaseAddr);
+  // Set the Translation Table Base Register (TTBR1_EL1).
+  WRITE_SYSREG(ttbr1_el1, physKernelTablesBaseAddr);
 
   // Configure translation control settings.
   configureTranslationControl();

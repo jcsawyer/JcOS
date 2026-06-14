@@ -1,9 +1,17 @@
 #include "qemu_console.hpp"
+#include "../memory.hpp"
 #include <optional.hpp>
 #include <stdarg.h>
 #include <stdio/printf.h>
 
 namespace Console {
+namespace {
+volatile char *qemuUartAddress() {
+  return reinterpret_cast<volatile char *>(Memory::mmioRemapStart() +
+                                           Memory::Map::UART_OFFSET);
+}
+} // namespace
+
 void QemuConsole::flush() {}
 
 void QemuConsole::clearRx() {}
@@ -18,7 +26,7 @@ void QemuConsole::print(const char *format, ...) {
 }
 
 void QemuConsole::printChar(const char character) {
-  const auto address = reinterpret_cast<volatile char *>(0x3F201000);
+  const auto address = qemuUartAddress();
   *address = static_cast<char>(character);
 }
 
@@ -33,7 +41,7 @@ void QemuConsole::printLine(const char *format, ...) {
 }
 
 Optional<char> QemuConsole::readChar(Console::BlockingMode blockingMode) {
-  const auto uartAddress = reinterpret_cast<volatile char *>(0x3F201000);
+  const auto uartAddress = qemuUartAddress();
   return Optional<char>(
       static_cast<char>(*uartAddress)); // Read character from UART
 }

@@ -6,6 +6,9 @@
 PAGE_SIZE = 64K;
 PAGE_MASK = PAGE_SIZE - 1;
 
+__kernel_virt_addr_space_size = 0x40000000;
+__kernel_virt_start_addr = ((0xffffffffffffffff - __kernel_virt_addr_space_size) + 1);
+
 __rpi_phys_dram_start_addr = 0;
 
 /* The physical address at which the the kernel binary will be loaded by the Raspberry's firmware */
@@ -24,34 +27,22 @@ ENTRY(__rpi_phys_binary_load_addr)
  */
 PHDRS
 {
-    segment_boot_core_stack PT_LOAD FLAGS(6);
     segment_code            PT_LOAD FLAGS(5);
     segment_data            PT_LOAD FLAGS(6);
+    segment_boot_core_stack PT_LOAD FLAGS(6);
 }
 
 SECTIONS
 {
-    . =  __rpi_phys_dram_start_addr;
+    . =  __kernel_virt_start_addr;
 
-    /***********************************************************************************************
-    * Boot Core Stack
-    ***********************************************************************************************/
-    .boot_core_stack (NOLOAD) :
-    {
-                                             /*   ^             */
-                                             /*   | stack       */
-        . += __rpi_phys_binary_load_addr;    /*   | growth      */
-                                             /*   | direction   */
-        __boot_core_stack_end_exclusive = .; /*   |             */
-    } :segment_boot_core_stack
-
-    ASSERT((. & PAGE_MASK) == 0, "End of boot core stack is not page aligned")
+    ASSERT((. & PAGE_MASK) == 0, "Start of address space is not page aligned")
 
     /***********************************************************************************************
     * Code + RO Data + Global Offset Table
     ***********************************************************************************************/
     __code_start = .;
-    .text :
+    .text : AT(__rpi_phys_binary_load_addr)
     {
         KEEP(*(.text._start))
         *(.text._start_arguments) /* Constants (or statics in Rust speak) read by _start(). */
@@ -67,6 +58,7 @@ SECTIONS
     /***********************************************************************************************
     * Data + BSS
     ***********************************************************************************************/
+    __data_start = .;
     .data : { *(.data*) } :segment_data
 
     /* Section is zeroed in pairs of u64. Align start and end to 16 bytes */
@@ -78,6 +70,37 @@ SECTIONS
         __bss_end_exclusive = .;
     } :segment_data
 
+    . = ALIGN(PAGE_SIZE);
+    __data_end_exclusive = .;
+
+    /***********************************************************************************************
+    * MMIO Remap Reserved
+    ***********************************************************************************************/
+    __mmio_remap_start = .;
+    . += 8 * 1024 * 1024;
+    __mmio_remap_end_exclusive = .;
+
+    ASSERT((. & PAGE_MASK) == 0, "MMIO remap reservation is not page aligned")
+
+    /***********************************************************************************************
+    * Guard Page
+    ***********************************************************************************************/
+    . += PAGE_SIZE;
+
+    /***********************************************************************************************
+    * Boot Core Stack
+    ***********************************************************************************************/
+    .boot_core_stack (NOLOAD) : AT(__rpi_phys_dram_start_addr)
+    {
+        __boot_core_stack_start = .;         /*   ^             */
+                                             /*   | stack       */
+        . += __rpi_phys_binary_load_addr;    /*   | growth      */
+                                             /*   | direction   */
+        __boot_core_stack_end_exclusive = .; /*   |             */
+    } :segment_boot_core_stack
+
+    ASSERT((. & PAGE_MASK) == 0, "End of boot core stack is not page aligned")
+
     /***********************************************************************************************
     * Misc
     ***********************************************************************************************/
@@ -85,4 +108,8 @@ SECTIONS
     ASSERT(SIZEOF(.got) == 0, "Relocation support not expected")
 
     /DISCARD/ : { *(.comment*) }
+
+    __phys_code_start = LOADADDR(.text);
+    __phys_data_start = LOADADDR(.data);
+    __phys_boot_core_stack_start = LOADADDR(.boot_core_stack);
 }

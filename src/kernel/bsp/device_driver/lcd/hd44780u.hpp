@@ -9,7 +9,7 @@ namespace Driver::BSP::LCD {
 
 class HD44780U : public LCD {
 public:
-  HD44780U(unsigned int mmio_start_addr) : registerBlock(mmio_start_addr) {};
+  HD44780U(uintptr_t mmio_start_addr) : registerBlock(mmio_start_addr) {};
   const char *compatible() { return "HD44780U LCD"; }
   void init() { initLcd(11, 10, 255, 255, 255, 255, 4, 5, 6, 7); };
   void registerAndEnableIrqHandler(
@@ -56,7 +56,7 @@ private:
     volatile unsigned int *GPSET;
     volatile unsigned int *GPCLR;
 
-    RegisterBlock(unsigned int mmio_start_addr) {
+    RegisterBlock(uintptr_t mmio_start_addr) {
       GPFSEL0 = reinterpret_cast<volatile unsigned int *>(mmio_start_addr +
                                                           0x00); // GPFSEL0
       GPFSEL1 =

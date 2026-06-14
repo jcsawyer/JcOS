@@ -5,18 +5,14 @@
 
 //! BSP Memory Management.
 //!
-//! The physical memory layout.
+//! The kernel's higher-half virtual memory layout.
 //!
-//! The Raspberry's firmware copies the kernel binary to 0x8_0000. The preceding
-//! region will be used as the boot core's stack.
+//! The Raspberry's firmware copies the kernel binary to physical address
+//! 0x8_0000, but the kernel executes from the top 1 GiB of the 64-bit virtual
+//! address space.
 //!
 //! +---------------------------------------+
-//! |                                       | 0x0
-//! |                                       |                                ^
-//! | Boot-core Stack                       |                                |
-//! stack |                                       | | growth | | | direction
-//! +---------------------------------------+
-//! |                                       | code_start @ 0x8_0000
+//! |                                       | code_start @ 0xffff_ffff_c000_0000
 //! | .text                                 |
 //! | .rodata                               |
 //! | .got                                  |
@@ -27,6 +23,17 @@
 //! | .bss                                  |
 //! |                                       |
 //! +---------------------------------------+
+//! | MMIO remap reserved                   |
+//! |                                       |
+//! +---------------------------------------+
+//! | Unmapped guard page                   |
+//! +---------------------------------------+
+//! |                                       | boot_core_stack_start
+//! | Boot-core Stack                       |                                ^
+//! |                                       |                                |
+//! stack |                                       | | growth | | | direction
+//! +---------------------------------------+
+//! |                                       | boot_core_stack_end_exclusive
 //! |                                       |
 //! |                                       |
 
@@ -49,24 +56,11 @@ struct MMIO {
         END_INCLUSIVE(end_inclusive) {}
 };
 struct Map {
-  /// The inclusive end address of the memory map.
-  ///
-  /// End address + 1 must be power of two.
-  ///
-  /// # Note
-  ///
-  /// RPi3 and RPi4 boards can have different amounts of RAM. To make our code
-  /// lean for educational purposes, we set the max size of the address space to
-  /// 4 GiB regardless of board. This way, we can map the entire range that we
-  /// need (end of MMIO for RPi4) in one take.
-  ///
-  /// However, making this trade-off has the downside of making it possible for
-  /// the CPU to assert a physical address that is not backed by any DRAM (e.g.
-  /// accessing an address close to 4 GiB on an RPi3 that comes with 1 GiB of
-  /// RAM). This would result in a crash or other kind of error.
-  static const size_t END_INCLUSIVE = 0xFFFFFFFF;
-
   static const size_t BOARD_DEFAULT_LOAD_ADDRESS = 0x80000;
+  static const size_t KERNEL_VIRT_ADDR_SPACE_SIZE = 1ULL << 30;
+  static const size_t KERNEL_VIRT_START =
+      (~(KERNEL_VIRT_ADDR_SPACE_SIZE - 1ULL));
+  static const size_t KERNEL_VIRT_END_INCLUSIVE = ~0ULL;
 
   static const size_t VIDEOCORE_MBOX_OFFSET = 0x0000B880;
   static const size_t VIDEOCORE_MBOX_SIZE = 0x24;
@@ -80,10 +74,7 @@ struct Map {
   static const size_t TIMER_SIZE = 0x14;
   static const size_t INTERRUPT_CONTROLLER_OFFSET = 0x0000B200;
   static const size_t INTERRUPT_CONTROLLER_SIZE = 0x24;
-  static const size_t MMIO_REMAP_START = 0x1FC00000;
-  static const size_t MMIO_REMAP_SIZE = 0x00400000;
-  static const size_t MMIO_REMAP_END_INCLUSIVE =
-      MMIO_REMAP_START + MMIO_REMAP_SIZE - 1;
+  static const size_t MMIO_REMAP_SIZE = 0x00800000;
 
   inline static MMIO getMMIO() {
 #if BOARD == bsp_rpi3
@@ -103,10 +94,24 @@ struct Map {
 };
 
 extern "C" {
+extern size_t __kernel_virt_addr_space_size;
+extern size_t __kernel_virt_start_addr;
 extern size_t __code_start;
 extern size_t __code_end_exclusive;
+extern size_t __data_start;
+extern size_t __data_end_exclusive;
+extern size_t __mmio_remap_start;
+extern size_t __mmio_remap_end_exclusive;
+extern size_t __boot_core_stack_start;
 extern size_t __bss_end_exclusive;
 extern size_t __boot_core_stack_end_exclusive;
+extern size_t __phys_code_start;
+extern size_t __phys_data_start;
+extern size_t __phys_boot_core_stack_start;
+
+inline static size_t kernelVirtStart() {
+  return reinterpret_cast<size_t>(&__kernel_virt_start_addr);
+}
 
 inline static size_t codeStart() {
   // The start address of the code segment is provided by the linker script.
@@ -119,16 +124,40 @@ inline static size_t codeEndExclusive() {
   return reinterpret_cast<size_t>(&__code_end_exclusive);
 }
 
-inline static size_t dataStart() { return codeEndExclusive(); }
-
-inline static size_t dataEndExclusive() {
-  return reinterpret_cast<size_t>(&__bss_end_exclusive);
+inline static size_t dataStart() {
+  return reinterpret_cast<size_t>(&__data_start);
 }
 
-inline static size_t bootCoreStackStart() { return 0; }
+inline static size_t dataEndExclusive() {
+  return reinterpret_cast<size_t>(&__data_end_exclusive);
+}
+
+inline static size_t mmioRemapStart() {
+  return reinterpret_cast<size_t>(&__mmio_remap_start);
+}
+
+inline static size_t mmioRemapEndExclusive() {
+  return reinterpret_cast<size_t>(&__mmio_remap_end_exclusive);
+}
+
+inline static size_t bootCoreStackStart() {
+  return reinterpret_cast<size_t>(&__boot_core_stack_start);
+}
 
 inline static size_t bootCoreStackEndExclusive() {
   return reinterpret_cast<size_t>(&__boot_core_stack_end_exclusive);
+}
+
+inline static size_t physCodeStart() {
+  return reinterpret_cast<size_t>(&__phys_code_start);
+}
+
+inline static size_t physDataStart() {
+  return reinterpret_cast<size_t>(&__phys_data_start);
+}
+
+inline static size_t physBootCoreStackStart() {
+  return reinterpret_cast<size_t>(&__phys_boot_core_stack_start);
 }
 }
 } // namespace Memory

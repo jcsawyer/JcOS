@@ -14,20 +14,30 @@ using Granule64KiB = TranslationGranule<GRANULE_64K>;
 
 const size_t NUM_LVL2_TABLES = KernelAddrSpace::size >> Granule512MiB::shift;
 
-template <size_t NUM_TABLES> struct FixedSizeTranslationTable {
+template <size_t NUM_TABLES, bool START_FROM_TOP>
+struct FixedSizeTranslationTable {
   PageDescriptor lvl3[NUM_TABLES][8192];
   TableDescriptor lvl2[NUM_TABLES];
 
   FixedSizeTranslationTable() : lvl3(), lvl2() {}
 
+  static constexpr uint64_t VIRT_ADDR_SPACE_START =
+      START_FROM_TOP ? static_cast<uint64_t>(Map::KERNEL_VIRT_START) : 0ULL;
+
+  static uint64_t dataVirtToPhys(uint64_t virtAddr) {
+    return static_cast<uint64_t>(physDataStart()) +
+           (virtAddr - static_cast<uint64_t>(dataStart()));
+  }
+
   void populateTTEntries() {
     for (uint64_t l2Idx = 0; l2Idx < NUM_TABLES; ++l2Idx) {
-      lvl2[l2Idx] =
-          TableDescriptor::fromNextLevelTableAddr((uint64_t)&lvl3[l2Idx]);
+      lvl2[l2Idx] = TableDescriptor::fromNextLevelTableAddr(
+          dataVirtToPhys(reinterpret_cast<uint64_t>(&lvl3[l2Idx])));
 
       for (uint64_t l3Idx = 0; l3Idx < 8192; ++l3Idx) {
-        uint64_t virtAddr =
-            (l2Idx << Granule512MiB::shift) + (l3Idx << Granule64KiB::shift);
+        uint64_t virtAddr = VIRT_ADDR_SPACE_START +
+                            (l2Idx << Granule512MiB::shift) +
+                            (l3Idx << Granule64KiB::shift);
 
         uint64_t physAddr;
         AttributeFields attributes;
@@ -43,7 +53,9 @@ template <size_t NUM_TABLES> struct FixedSizeTranslationTable {
     }
   }
 
-  uint64_t physBaseAddress() const { return reinterpret_cast<uint64_t>(lvl2); }
+  uint64_t physBaseAddress() const {
+    return dataVirtToPhys(reinterpret_cast<uint64_t>(lvl2));
+  }
 
   template <typename T, size_t N>
   constexpr size_t phys_start_addr_usize(T (&arr)[N]) {
@@ -51,5 +63,5 @@ template <size_t NUM_TABLES> struct FixedSizeTranslationTable {
   }
 } __attribute__((aligned(65536)));
 
-using KernelTranslationTable = FixedSizeTranslationTable<NUM_LVL2_TABLES>;
+using KernelTranslationTable = FixedSizeTranslationTable<NUM_LVL2_TABLES, true>;
 } // namespace Memory

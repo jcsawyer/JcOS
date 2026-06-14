@@ -12,7 +12,7 @@ namespace BCM {
 
 class Timer : public Driver::DeviceDriver {
 public:
-  Timer(unsigned int mmio_start_addr) : registerBlock(mmio_start_addr) {};
+  Timer(uintptr_t mmio_start_addr) : registerBlock(mmio_start_addr) {};
   const char *compatible() override { return "BCM Timer"; }
   void init() override;
   void registerAndEnableIrqHandler(
@@ -26,7 +26,7 @@ private:
     volatile unsigned int *TIMER_CLO;
     volatile unsigned int *TIMER_C1;
 
-    RegisterBlock(unsigned int mmio_start_addr) {
+    RegisterBlock(uintptr_t mmio_start_addr) {
       TIMER_CS =
           reinterpret_cast<volatile unsigned int *>(mmio_start_addr + 0x00);
       TIMER_CLO =

@@ -12,7 +12,7 @@ namespace Driver::BSP::BCM {
 class UART : public Driver::DeviceDriver,
              public Exceptions::Asynchronous::IRQHandler {
 public:
-  UART(uint32_t mmio_start_addr) : registerBlock(mmio_start_addr) {};
+  UART(uintptr_t mmio_start_addr) : registerBlock(mmio_start_addr) {};
   const char *compatible() override { return "BCM PL011 UART"; }
   void init() override;
   void registerAndEnableIrqHandler(
@@ -55,7 +55,7 @@ private:
     volatile uint32_t *MBOX_STATUS;
     volatile uint32_t *MBOX_WRITE;
 
-    RegisterBlock(unsigned int mmio_start_addr) {
+    RegisterBlock(uintptr_t mmio_start_addr) {
       DR = reinterpret_cast<volatile uint32_t *>(mmio_start_addr + 0x00);
       FR = reinterpret_cast<volatile uint32_t *>(mmio_start_addr + 0x18);
       IBRD = reinterpret_cast<volatile uint32_t *>(mmio_start_addr + 0x24);

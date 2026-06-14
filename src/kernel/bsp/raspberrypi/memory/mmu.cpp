@@ -129,15 +129,29 @@ TranslationDescriptor *getDescriptors() {
           "Kernel code and RO data",
           codeStart(),
           codeEndExclusive() - 1,
-          TranslationType::Identity(),
+          TranslationType::Offset(physCodeStart()),
           {CacheableDRAM, ReadOnly, false},
       },
       {
+          "Kernel data and bss",
+          dataStart(),
+          dataEndExclusive() - 1,
+          TranslationType::Offset(physDataStart()),
+          {CacheableDRAM, ReadWrite, true},
+      },
+      {
           "Remapped Device MMIO",
-          Map::MMIO_REMAP_START,
-          Map::MMIO_REMAP_END_INCLUSIVE,
+          mmioRemapStart(),
+          mmioRemapEndExclusive() - 1,
           TranslationType::Offset(Map::getMMIO().START),
           {Device, ReadWrite, true},
+      },
+      {
+          "Kernel boot-core stack",
+          bootCoreStackStart(),
+          bootCoreStackEndExclusive() - 1,
+          TranslationType::Offset(physBootCoreStackStart()),
+          {CacheableDRAM, ReadWrite, true},
       },
   };
 
@@ -148,12 +162,23 @@ static KernelVirtualLayout<NUM_MEM_RANGES> *kernelVirtualLayout = nullptr;
 
 KernelVirtualLayout<NUM_MEM_RANGES> *virtMemLayout() {
   if (kernelVirtualLayout == nullptr) {
-    static auto kvl = KernelVirtualLayout<NUM_MEM_RANGES>(Map::END_INCLUSIVE,
-                                                          getDescriptors());
+    static auto kvl = KernelVirtualLayout<NUM_MEM_RANGES>(
+        Map::KERNEL_VIRT_END_INCLUSIVE, getDescriptors());
     kernelVirtualLayout = &kvl;
   }
 
   return kernelVirtualLayout;
+}
+
+size_t kernelVirtToPhys(size_t virtAddr) {
+  size_t physAddr;
+  AttributeFields attributes;
+  if (virtMemLayout()->virtAddrProperties(virtAddr, physAddr, attributes) !=
+      0) {
+    panic("Virtual address out of range: 0x%016lX", virtAddr);
+  }
+
+  return physAddr;
 }
 
 size_t kernelMapMMIO(const char *name, const MMIODescriptor &descriptor) {
@@ -201,11 +226,11 @@ size_t kernelMapMMIO(const char *name, const MMIODescriptor &descriptor) {
   }
 
   const size_t virtPageStart =
-      Map::MMIO_REMAP_START + (physPageStart - physMmioStart);
+      mmioRemapStart() + (physPageStart - physMmioStart);
   const size_t virtEndInclusive =
       virtPageStart + numPages * KERNEL_GRANULE_SIZE - 1;
 
-  if (virtEndInclusive > Map::MMIO_REMAP_END_INCLUSIVE) {
+  if (virtEndInclusive >= mmioRemapEndExclusive()) {
     panic("MMIO remap region exhausted");
   }
 
@@ -224,22 +249,33 @@ size_t kernelMapMMIO(const char *name, const MMIODescriptor &descriptor) {
 
 void kernelPrintMappings() {
   const size_t dataVirtEndExclusive =
-      div_ceil(dataEndExclusive(), KERNEL_GRANULE_SIZE) * KERNEL_GRANULE_SIZE;
+      dataStart() +
+      div_ceil(dataEndExclusive() - dataStart(), KERNEL_GRANULE_SIZE) *
+          KERNEL_GRANULE_SIZE;
+  const size_t bootStackVirtEndExclusive =
+      bootCoreStackStart() +
+      div_ceil(bootCoreStackEndExclusive() - bootCoreStackStart(),
+               KERNEL_GRANULE_SIZE) *
+          KERNEL_GRANULE_SIZE;
 
   printDivider();
   info("                        Virtual                                   "
        "Physical               Size       Attr                    Entity");
   printDivider();
-  printMappedRow(bootCoreStackStart(), bootCoreStackEndExclusive() - 1,
-                 bootCoreStackStart(), bootCoreStackEndExclusive() - 1,
-                 bootCoreStackEndExclusive() - bootCoreStackStart(),
-                 "C   RW XN", "Kernel boot-core stack");
-  printMappedRow(codeStart(), codeEndExclusive() - 1, codeStart(),
-                 codeEndExclusive() - 1, codeEndExclusive() - codeStart(),
-                 "C   RO X", "Kernel code and RO data");
-  printMappedRow(dataStart(), dataVirtEndExclusive - 1, dataStart(),
-                 dataVirtEndExclusive - 1, dataVirtEndExclusive - dataStart(),
-                 "C   RW XN", "Kernel data and bss");
+  printMappedRow(codeStart(), codeEndExclusive() - 1, physCodeStart(),
+                 physCodeStart() + (codeEndExclusive() - codeStart()) - 1,
+                 codeEndExclusive() - codeStart(), "C   RO X",
+                 "Kernel code and RO data");
+  printMappedRow(dataStart(), dataVirtEndExclusive - 1, physDataStart(),
+                 physDataStart() + (dataVirtEndExclusive - dataStart()) - 1,
+                 dataVirtEndExclusive - dataStart(), "C   RW XN",
+                 "Kernel data and bss");
+  printMappedRow(bootCoreStackStart(), bootStackVirtEndExclusive - 1,
+                 physBootCoreStackStart(),
+                 physBootCoreStackStart() +
+                     (bootStackVirtEndExclusive - bootCoreStackStart()) - 1,
+                 bootStackVirtEndExclusive - bootCoreStackStart(), "C   RW XN",
+                 "Kernel boot-core stack");
 
   for (size_t i = 0; i < mmioRecordCount; i++) {
     const size_t virtStart = mmioRecords[i].virtPageStart;

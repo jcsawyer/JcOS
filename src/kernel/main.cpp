@@ -17,7 +17,9 @@
 #include <syscall.hpp>
 
 extern void timerInit();
-extern uint64_t bootPhysKernelTablesBaseAddr;
+
+namespace {
+} // namespace
 
 extern "C" void putchar_(const char c) {
   Console::Console *console = Console::Console::GetInstance();
@@ -144,11 +146,6 @@ void task2() {
 
 extern "C" void kernel_init() {
   Exception::handlingInit();
-
-  if (!Memory::MemoryManagementUnit::isEnabled()) {
-    Memory::MMU()->enableMMUAndCaching(bootPhysKernelTablesBaseAddr);
-  }
-
   Time::TimeManager::GetInstance()->init();
 
   // Initialize the BSP driver subsystem

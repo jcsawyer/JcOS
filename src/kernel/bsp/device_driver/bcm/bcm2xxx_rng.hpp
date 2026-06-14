@@ -10,7 +10,7 @@ namespace BSP {
 namespace BCM {
 class RNG : public Driver::DeviceDriver {
 public:
-  RNG(unsigned int mmio_start_addr) : registerBlock(mmio_start_addr) {};
+  RNG(uintptr_t mmio_start_addr) : registerBlock(mmio_start_addr) {};
   const char *compatible() override { return "BCM RNG"; }
   void init() override;
   void registerAndEnableIrqHandler(
@@ -25,7 +25,7 @@ private:
     volatile unsigned int *RNG_DATA;
     volatile unsigned int *RNG_INT_MASK;
 
-    RegisterBlock(unsigned int mmio_start_addr) {
+    RegisterBlock(uintptr_t mmio_start_addr) {
       RNG_CTRL =
           reinterpret_cast<volatile unsigned int *>(mmio_start_addr + 0x00);
       RNG_STATUS =
