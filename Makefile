@@ -97,6 +97,8 @@ INCLUDES	:= $(KERNEL_INC) $(LIBC_INC)
 CHAINLOADER_INC	:=	-isystem ./src/chainloader $(KERNEL_INC) $(LIBC_INC)
 DEFINES		:= -DARCH=$(ARCH) -DBOARD=$(BOARD)
 CFLAGS		:= -Wall -O0 -mgeneral-regs-only -g -ffreestanding -nostdinc -nostdlib -nostartfiles -fno-rtti -fno-exceptions -fno-threadsafe-statics -fno-use-cxa-atexit -mno-outline-atomics
+KERNEL_CFLAGS	:= $(CFLAGS) -fno-omit-frame-pointer -mno-omit-leaf-frame-pointer
+CHAINLOADER_CFLAGS := $(CFLAGS)
 LDFLAGS		:= -nostdlib -g
 
 all: check-args clean format kernel8.img run
@@ -118,12 +120,12 @@ $(CHAINLOADER_ASM_OBJ_DIR)/%.o: %.S
 $(OBJ_DIR)/%.o: %.cpp
 	@echo "  CC\t$<\t\t->\t$@"
 	@mkdir -p $(@D)
-	@$(CC) $(DEFINES) $(CFLAGS) $(INCLUDES) -c $< -o $@ -MMD -MP
+	@$(CC) $(DEFINES) $(KERNEL_CFLAGS) $(INCLUDES) -c $< -o $@ -MMD -MP
 
 $(CHAINLOADER_OBJ_DIR)/%.o: %.cpp
 	@echo "  CC\t$<\t\t->\t$@"
 	@mkdir -p $(@D)
-	@$(CC) $(DEFINES) $(CFLAGS) $(CHAINLOADER_INC) -c $< -o $@ -MMD -MP
+	@$(CC) $(DEFINES) $(CHAINLOADER_CFLAGS) $(CHAINLOADER_INC) -c $< -o $@ -MMD -MP
 
 kernel8.img: $(ASM_OBJS) $(C_OBJS)
 	@mkdir -p $(@D)

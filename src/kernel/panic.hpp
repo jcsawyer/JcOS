@@ -1,5 +1,6 @@
 #pragma once
 
+#include "backtrace.hpp"
 #include "arch/cpu.hpp"
 #include "console/console.hpp"
 #include <print.hpp>
@@ -30,6 +31,7 @@ template <class... Args>
   already_panicking = true;
 
   panicPrint("\n\t!KERNEL PANIC!\n", message, args...);
+  Backtrace::print();
 
   CPU::waitForever();
 }

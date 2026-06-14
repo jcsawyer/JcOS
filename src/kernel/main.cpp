@@ -49,12 +49,48 @@ void utoa(unsigned int value, char *buffer) {
   buffer[i] = '\0';
 }
 
+[[noreturn]] __attribute__((noinline)) void verifyBacktraceFromKernelMain() {
+  // Real-device backtrace smoke test:
+  // 1. Uncomment the call in kernel_main().
+  // 2. Deploy to the board and capture the serial log.
+  // 3. Confirm the panic output includes `Backtrace:` and resolves this
+  //    function plus kernel_main() in the trace.
+  *reinterpret_cast<volatile uint64_t *>(0x1) = 0;
+  while (true) {
+  }
+}
+
+[[noreturn]] __attribute__((noinline)) void verifyBacktraceFromTaskPanic() {
+  // Real-device backtrace smoke test for task stacks:
+  // 1. Uncomment the call in task1().
+  // 2. Deploy to the board and capture the serial log.
+  // 3. Confirm the panic output includes `Backtrace:` and resolves this
+  //    function plus task1() in the trace.
+  panic("Intentional task panic for backtrace verification");
+}
+
+[[noreturn]] __attribute__((noinline)) void verifyBacktraceFromTaskError() {
+  // Real-device backtrace smoke test for task-stack exceptions:
+  // 1. Uncomment the call in task1().
+  // 2. Deploy to the board and capture the serial log.
+  // 3. Confirm the exception dump and panic output include `Backtrace:` and
+  //    resolve this function plus task1() in the trace.
+  *reinterpret_cast<volatile uint64_t *>(0x1) = 0;
+  while (true) {
+  }
+}
+
 void task1() {
   Driver::BSP::LCD::HD44780U *lcd =
       Driver::BSP::RaspberryPi::RaspberryPi::getLCD();
   while (1) {
     info("Task 1 running...");
     Syscall::write("Hello from syscall::write!!\n");
+    // Uncomment to verify backtrace output on a real device from a task stack.
+    // verifyBacktraceFromTaskPanic();
+    // Uncomment to verify task-stack backtrace output for a synchronous
+    // exception on a real device.
+    // verifyBacktraceFromTaskError();
     // Syscall::exit(0);
     Time::TimeManager *timeManager = Time::TimeManager::GetInstance();
 
@@ -119,9 +155,9 @@ void task2() {
   info("Timer test, spinning for 1 second...");
   timeManager->spinFor(Time::Duration::from_secs(1));
 
-  // Uncomment to trigger a synchronous data abort and verify that the
-  // exception dump prints the demangled symbol for this call site.
-  // *reinterpret_cast<volatile uint64_t *>(0x1) = 0;
+  // Uncomment to verify backtrace output on a real device from the boot/kernel
+  // stack. This intentionally triggers a synchronous abort.
+  // verifyBacktraceFromKernelMain();
 
   Driver::BSP::LCD::HD44780U *lcd =
       Driver::BSP::RaspberryPi::RaspberryPi::getLCD();

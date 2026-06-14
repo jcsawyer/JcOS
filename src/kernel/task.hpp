@@ -1,4 +1,5 @@
 #pragma once
+#include <stddef.h>
 #include <stdint.h>
 
 #define MAX_TASKS 3
@@ -17,6 +18,12 @@ struct Task {
   bool hasStarted = false;
   const char *name = nullptr;
   int id = -1; // Unique identifier for the task
+
+  size_t stackStart() const { return reinterpret_cast<size_t>(&stack[0]); }
+
+  size_t stackEndExclusive() const {
+    return reinterpret_cast<size_t>(&stack[STACK_SIZE]);
+  }
 };
 
 class TaskManager {

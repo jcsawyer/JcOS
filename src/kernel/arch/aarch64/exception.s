@@ -8,11 +8,12 @@
 //--------------------------------------------------------------------------------------------------
 
 /// Call the function provided by parameter `\handler` after saving the exception context. Provide
-/// the context as the first parameter to '\handler'.
+/// the context as the first parameter to '\handler' and synthesize a frame record that links the
+/// exception vector into the interrupted frame chain.
 .macro CALL_WITH_CONTEXT handler
 __vector_\handler:
 	// Make room on the stack for the exception context.
-	sub	sp,  sp,  #16 * 17
+	sub	sp,  sp,  #16 * 18
 
 	// Store all general purpose registers on the stack.
 	stp	x0,  x1,  [sp, #16 * 0]
@@ -39,6 +40,13 @@ __vector_\handler:
 
 	stp	lr,  x1,  [sp, #16 * 15]
 	stp	x2,  x3,  [sp, #16 * 16]
+
+	// Build a synthetic frame record for the exception vector:
+	// [0] = interrupted frame pointer (saved x29)
+	// [8] = exception return address (ELR_EL1)
+	ldr	x4,  [sp, #16 * 14 + 8]
+	stp	x4,  x1,  [sp, #16 * 17]
+	add	x29, sp,  #16 * 17
 
 	// x0 is the first argument for the function called through `\handler`.
 	mov	x0,  sp
@@ -148,7 +156,7 @@ __exception_restore_context:
 	ldp	x26, x27, [sp, #16 * 13]
 	ldp	x28, x29, [sp, #16 * 14]
 
-	add	sp,  sp,  #16 * 17
+	add	sp,  sp,  #16 * 18
 
 	eret
 

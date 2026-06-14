@@ -1,6 +1,7 @@
 #include "mmu.hpp"
 #include "../../../memory/mmu.hpp"
 #include "../memory.hpp"
+#include <task.hpp>
 #include <arch/aarch64/memory/mmu/translation_table.hpp>
 #include <panic.hpp>
 
@@ -293,5 +294,23 @@ void kernelPrintMappings() {
     }
   }
   printDivider();
+}
+
+bool isValidCodeAddress(size_t address) {
+  return address >= codeStart() && address < codeEndExclusive();
+}
+
+bool isValidCurrentStackAddress(size_t address) {
+  if (address >= bootCoreStackStart() && address < bootCoreStackEndExclusive()) {
+    return true;
+  }
+
+  Task *currentTask = taskManager.current();
+  if (currentTask == nullptr) {
+    return false;
+  }
+
+  return address >= currentTask->stackStart() &&
+         address < currentTask->stackEndExclusive();
 }
 } // namespace Memory

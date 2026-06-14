@@ -160,4 +160,7 @@ inline static size_t physBootCoreStackStart() {
   return reinterpret_cast<size_t>(&__phys_boot_core_stack_start);
 }
 }
+
+bool isValidCodeAddress(size_t address);
+bool isValidCurrentStackAddress(size_t address);
 } // namespace Memory

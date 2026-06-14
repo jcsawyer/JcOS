@@ -48,6 +48,8 @@ extern "C" void _start_cpp(uint64_t phys_kernel_tables_base_addr,
     prepare_el2_to_el1_transition(virt_boot_core_stack_end_exclusive_addr,
                                   virt_kernel_init_addr);
     Memory::MMU()->enableMMUAndCaching(phys_kernel_tables_base_addr);
+    asm volatile("mov x29, xzr");
+    asm volatile("mov x30, xzr");
     asm volatile("eret");
   }
   while (true) {
