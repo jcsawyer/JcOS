@@ -49,14 +49,16 @@ struct MMIO {
   size_t GPIO_START;
   size_t PL011_UART_START;
   size_t TIMER_START;
+  size_t LOCAL_INTERRUPT_CONTROLLER_START;
   size_t END_INCLUSIVE;
 
   MMIO(size_t start, size_t videocore_mbox_start, size_t rng_start,
        size_t gpio_start, size_t uart_start, size_t timer_start,
-       size_t end_inclusive)
+       size_t local_interrupt_controller_start, size_t end_inclusive)
       : START(start), VIDEOCORE_MBOX_START(videocore_mbox_start),
         RNG_START(rng_start), GPIO_START(gpio_start),
         PL011_UART_START(uart_start), TIMER_START(timer_start),
+        LOCAL_INTERRUPT_CONTROLLER_START(local_interrupt_controller_start),
         END_INCLUSIVE(end_inclusive) {}
 };
 struct Map {
@@ -76,20 +78,22 @@ struct Map {
   static const size_t UART_SIZE = 0x48;
   static const size_t TIMER_OFFSET = 0x00003000;
   static const size_t TIMER_SIZE = 0x14;
+  static const size_t LOCAL_INTERRUPT_CONTROLLER_START = 0x40000000;
+  static const size_t LOCAL_INTERRUPT_CONTROLLER_SIZE = 0x100;
   static const size_t INTERRUPT_CONTROLLER_OFFSET = 0x0000B200;
   static const size_t INTERRUPT_CONTROLLER_SIZE = 0x24;
-  static const size_t MMIO_REMAP_SIZE = 0x00800000;
+  static const size_t MMIO_REMAP_SIZE = 0x02000000;
 
   inline static MMIO getMMIO() {
 #if BOARD == bsp_rpi3
     return MMIO(0x3F000000, 0x3F000000 + VIDEOCORE_MBOX_OFFSET,
                 0x3F000000 + RNG_OFFSET, 0x3F000000 + GPIO_OFFSET,
                 0x3F000000 + UART_OFFSET, 0x3F000000 + TIMER_OFFSET,
-                0x4000FFFF);
+                LOCAL_INTERRUPT_CONTROLLER_START, 0x4000FFFF);
 #elif BOARD == bsp_rpi4
     return MMIO(0xFE000000, 0xFE000000 + VIDEOCORE_MBOX_OFFSET,
                 0xFE000000 + RNG_OFFSET, 0xFE000000 + GPIO_OFFSET,
-                0xFE000000 + UART_OFFSET, 0xFE000000 + TIMER_OFFSET,
+                0xFE000000 + UART_OFFSET, 0xFE000000 + TIMER_OFFSET, 0,
                 0xFF84FFFF);
 #else
 #error Unknown board

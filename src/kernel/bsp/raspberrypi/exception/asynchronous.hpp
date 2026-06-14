@@ -10,6 +10,13 @@ static inline ::BSP::Exception::Asynchronous::IRQNumber *PL011_UART() {
       ::BSP::Exception::Asynchronous::IRQNumber::peripheral_irq(57);
   return &pl011_uart;
 }
+
+static inline ::BSP::Exception::Asynchronous::IRQNumber *
+ARM_NS_PHYSICAL_TIMER() {
+  static ::BSP::Exception::Asynchronous::IRQNumber arm_ns_physical_timer =
+      ::BSP::Exception::Asynchronous::IRQNumber::local_irq(1);
+  return &arm_ns_physical_timer;
+}
 #elif BOARD == bsp_rpi4
 static ::BSP::Exception::Asynchronous::IRQNumber PL011_UART =
     ::BSP::Exception::Asynchronous::IRQNumber::peripheral_irq(153);

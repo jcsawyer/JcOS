@@ -20,13 +20,18 @@ LCD::HD44780U *RaspberryPi::lcd = nullptr;
 Driver::BSP::BCM::InterruptController *RaspberryPi::getInterruptController() {
 #if BOARD == bsp_rpi3
   if (interruptController == nullptr) {
+    const size_t mappedLocalInterruptController = Memory::kernelMapMMIO(
+        "BCM Local Interrupt Controller",
+        Memory::MMIODescriptor(
+            Memory::Map::getMMIO().LOCAL_INTERRUPT_CONTROLLER_START,
+            Memory::Map::LOCAL_INTERRUPT_CONTROLLER_SIZE));
     const size_t mappedInterruptController = Memory::kernelMapMMIO(
         "BCM Interrupt Controller",
         Memory::MMIODescriptor(Memory::Map::getMMIO().START +
                                    Memory::Map::INTERRUPT_CONTROLLER_OFFSET,
                                Memory::Map::INTERRUPT_CONTROLLER_SIZE));
     static Driver::BSP::BCM::InterruptController interruptControllerInstance(
-        mappedInterruptController);
+        mappedLocalInterruptController, mappedInterruptController);
     interruptController = &interruptControllerInstance;
   }
   return interruptController;

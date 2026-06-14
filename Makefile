@@ -104,6 +104,8 @@ CFLAGS		:= -Wall -O0 -mgeneral-regs-only -g -ffreestanding -nostdinc -nostdlib -
 KERNEL_CFLAGS	:= $(CFLAGS) -fno-omit-frame-pointer -mno-omit-leaf-frame-pointer
 CHAINLOADER_CFLAGS := $(CFLAGS)
 LDFLAGS		:= -nostdlib -g
+KERNEL_LD	:= ./src/kernel/bsp/raspberrypi/kernel.ld
+CHAINLOADER_LD	:= ./src/chainloader/chainloader.ld
 
 all: check-args clean format kernel8.img run
 $(ASM_OBJ_DIR)/%.o: %.s
@@ -131,15 +133,15 @@ $(CHAINLOADER_OBJ_DIR)/%.o: %.cpp
 	@mkdir -p $(@D)
 	@$(CC) $(DEFINES) $(CHAINLOADER_CFLAGS) $(CHAINLOADER_INC) -c $< -o $@ -MMD -MP
 
-kernel8.img: $(ASM_OBJS) $(C_OBJS)
+kernel8.img: $(ASM_OBJS) $(C_OBJS) $(KERNEL_LD)
 	@mkdir -p $(@D)
-	@$(LD) $(LDFLAGS) $(ASM_OBJS) $(C_OBJS) -T ./src/kernel/bsp/raspberrypi/kernel.ld -o ./bin/kernel8.elf
+	@$(LD) $(LDFLAGS) $(ASM_OBJS) $(C_OBJS) -T $(KERNEL_LD) -o ./bin/kernel8.elf
 	@dotnet run --project ./src/tools/Jc.OS.RaspBootPreCompute -- ./bin/kernel8.elf $(BOARD)
 	@$(OBJCOPY) -O binary ./bin/kernel8.elf ./bin/kernel8.img
 
-chainloader8.img: $(CHAINLOADER_ASM_OBJS) $(CHAINLOADER_C_OBJS)
+chainloader8.img: $(CHAINLOADER_ASM_OBJS) $(CHAINLOADER_C_OBJS) $(CHAINLOADER_LD)
 	@mkdir -p $(CHAINLOADER_BIN_DIR)
-	@$(LD) $(LDFLAGS) $(CHAINLOADER_ASM_OBJS) $(CHAINLOADER_C_OBJS) -T ./src/chainloader/chainloader.ld -o ./$(CHAINLOADER_BIN_DIR)/chainloader8.elf
+	@$(LD) $(LDFLAGS) $(CHAINLOADER_ASM_OBJS) $(CHAINLOADER_C_OBJS) -T $(CHAINLOADER_LD) -o ./$(CHAINLOADER_BIN_DIR)/chainloader8.elf
 	@$(OBJCOPY) -O binary ./$(CHAINLOADER_BIN_DIR)/chainloader8.elf ./$(CHAINLOADER_BIN_DIR)/chainloader8.img
 
 format:

@@ -1,4 +1,5 @@
 #include "../time.hpp"
+#include "../../bsp/raspberrypi/exception/asynchronous.hpp"
 #include "../../print.hpp"
 #include "../cpu.hpp"
 
@@ -63,12 +64,12 @@ Duration uptime() { return readCntpct().toDuration(); }
 
 void spinFor(const Duration &duration) {
   const GenericTimerCounterValue curr_counter_value = readCntpct();
-  TimeError error;
+  TimeError error = TimeError::None;
 
   const GenericTimerCounterValue counter_value_delta =
       GenericTimerCounterValue::fromDuration(duration, error);
   if (error == TimeError::DurationTooBig) {
-    warn("spinFor: %d. Skipping.");
+    warn("spinFor: duration too big. Skipping.");
     return;
   }
 
@@ -78,6 +79,34 @@ void spinFor(const Duration &duration) {
   while (readCntpct().value < counter_value_target.value) {
     CPU::nop();
   }
+}
+
+::BSP::Exception::Asynchronous::IRQNumber *timeoutIrq() {
+#if BOARD == bsp_rpi3
+  return Driver::BSP::RaspberryPi::ARM_NS_PHYSICAL_TIMER();
+#else
+#error "Tutorial 20 timer callbacks currently support bsp_rpi3 only"
+#endif
+}
+
+void setTimeoutIrq(const Duration &dueTime) {
+  TimeError error = TimeError::None;
+  const GenericTimerCounterValue counter_value_target =
+      GenericTimerCounterValue::fromDuration(dueTime, error);
+
+  if (error == TimeError::DurationTooBig) {
+    warn("setTimeoutIrq: duration too big. Skipping.");
+    return;
+  }
+
+  asm volatile("msr cntp_cval_el0, %0" ::"r"(counter_value_target.value));
+  asm volatile("msr cntp_ctl_el0, %0" ::"r"(1ul));
+  asm volatile("isb");
+}
+
+void concludeTimeoutIrq() {
+  asm volatile("msr cntp_ctl_el0, %0" ::"r"(0ul));
+  asm volatile("isb");
 }
 } // namespace Arch
 } // namespace Time

@@ -97,7 +97,7 @@ SECTIONS
     * MMIO Remap Reserved
     ***********************************************************************************************/
     __mmio_remap_start = .;
-    . += 8 * 1024 * 1024;
+    . += 32 * 1024 * 1024;
     __mmio_remap_end_exclusive = .;
 
     ASSERT((. & PAGE_MASK) == 0, "MMIO remap reservation is not page aligned")

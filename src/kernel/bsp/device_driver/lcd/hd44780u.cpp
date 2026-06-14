@@ -1,7 +1,7 @@
 #include "hd44780u.hpp"
+#include <arch/time.hpp>
 #include <lcd/lcd.hpp>
 #include <stdio/printf.h>
-#include <time.hpp>
 #include <time/duration.hpp>
 
 namespace Driver::BSP::LCD {

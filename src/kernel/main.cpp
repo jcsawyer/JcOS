@@ -17,8 +17,6 @@
 #include <synchronization.hpp>
 #include <syscall.hpp>
 
-extern void timerInit();
-
 namespace {} // namespace
 
 extern "C" void putchar_(const char c) {
@@ -49,6 +47,12 @@ void utoa(unsigned int value, char *buffer) {
   }
   buffer[i] = '\0';
 }
+
+void timeoutPeriodic1s() { info("Periodic 1 sec"); }
+
+void timeoutOnce3s() { info("Once 3"); }
+
+void timeoutOnce5s() { info("Once 5"); }
 
 [[noreturn]] __attribute__((noinline)) void verifyBacktraceFromKernelMain() {
   // Real-device backtrace smoke test:
@@ -175,27 +179,21 @@ void task2() {
   // lcd->setCursor(1, 0);
   // lcd->writeString(">");
 
-  info("Task system initializing...");
-  info("Task system initialized, starting task scheduler...");
-  taskManager.init();
-  taskManager.addTask("Task 1", task1);
-  taskManager.addTask("Task 2", task2);
+  timeManager->setTimeoutOnce(Time::Duration::from_secs(5), timeoutOnce5s);
+  timeManager->setTimeoutOnce(Time::Duration::from_secs(3), timeoutOnce3s);
+  timeManager->setTimeoutPeriodic(Time::Duration::from_secs(1),
+                                  timeoutPeriodic1s);
 
-  timerInit();
-
-  taskManager.currentTask = 0;
-
-  while (true) {
-    taskManager.schedule();
-  }
+  info("Echoing input now");
   CPU::waitForever();
 }
 
 extern "C" void kernel_init() {
   Exception::handlingInit();
-  Time::TimeManager::GetInstance()->init();
+  Time::TimeManager::GetInstance()->earlyInit();
   Memory::kernel_init_heap_allocator();
   info("Kernel heap online");
+  Time::registerTimerDriver();
 
   // Initialize the BSP driver subsystem
   BSP::Board::init();

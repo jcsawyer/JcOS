@@ -1,5 +1,6 @@
 #pragma once
 
+#include "bcm2xxx_interrupt_controller/local_ic.hpp"
 #include <bsp/device_driver/bcm/bcm2xxx_interrupt_controller/peripheral_ic.hpp>
 #include <bsp/device_driver/common.hpp>
 #include <bsp/exception/asynchronous.hpp>
@@ -12,8 +13,9 @@ namespace Driver::BSP::BCM {
 class InterruptController : public Driver::DeviceDriver,
                             public Exceptions::Asynchronous::IRQManager {
 public:
-  explicit InterruptController(uintptr_t peripheral_mmio_start)
-      : periph(peripheral_mmio_start) {}
+  InterruptController(uintptr_t local_mmio_start,
+                      uintptr_t peripheral_mmio_start)
+      : local(local_mmio_start), periph(peripheral_mmio_start) {}
 
   const char *compatible() override { return "BCM Interrupt Controller"; }
 
@@ -28,7 +30,7 @@ public:
   void enable(::BSP::Exception::Asynchronous::IRQNumber *irq) {
     switch (irq->kind) {
     case ::BSP::Exception::Asynchronous::IRQKind::Local:
-      panic("Local IRQs not supported in this BSP.");
+      local.enable(irq);
       break;
 
     case ::BSP::Exception::Asynchronous::IRQKind::Peripheral:
@@ -39,12 +41,17 @@ public:
 
   void
   handlePendingIrqs(const Exceptions::Asynchronous::IRQContext &ctx) override {
+    local.handlePendingIrqs(ctx);
     periph.handlePendingIrqs(ctx);
   }
 
-  void printHandler() override { periph.printHandler(); }
+  void printHandler() override {
+    local.printHandler();
+    periph.printHandler();
+  }
 
 private:
+  Driver::BSP::BCM2XXX::LocalIC local;
   Driver::BSP::BCM2XXX::PeripheralIC periph;
 };
 } // namespace Driver::BSP::BCM

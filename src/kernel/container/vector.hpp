@@ -62,6 +62,17 @@ public:
     ++count;
   }
 
+  T popBack() {
+    if (count == 0) {
+      panic("Vector underflow");
+    }
+
+    --count;
+    T value = Detail::move(elements[count]);
+    elements[count].~T();
+    return value;
+  }
+
   void resize(size_t newSize, const T &value) {
     if (newSize < count) {
       while (count > newSize) {
@@ -81,6 +92,20 @@ public:
   size_t size() const { return count; }
 
   bool empty() const { return count == 0; }
+
+  T &back() {
+    if (count == 0) {
+      panic("Vector is empty");
+    }
+    return elements[count - 1];
+  }
+
+  const T &back() const {
+    if (count == 0) {
+      panic("Vector is empty");
+    }
+    return elements[count - 1];
+  }
 
   T &operator[](size_t index) { return elements[index]; }
 

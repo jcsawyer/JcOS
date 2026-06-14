@@ -23,7 +23,8 @@ struct IRQHandlerDescriptor {
       : kind(BSP::Exception::Asynchronous::IRQKind::Peripheral),
         number(BSP::Exception::Asynchronous::IRQNumber{
             BSP::Exception::Asynchronous::IRQKind::Peripheral,
-            BSP::Exception::Asynchronous::PeripheralIRQ::newBounded(-1)
+            BSP::Exception::Asynchronous::LocalIRQ::newBounded(0).value(),
+            BSP::Exception::Asynchronous::PeripheralIRQ::newBounded(0)
                 .value()}),
         name(nullptr), handler(nullptr) {}
 

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <arch/exception.hpp>
+#include <exceptions/asynchronous.hpp>
 #include <state.hpp>
 
 namespace Syncrhonization {

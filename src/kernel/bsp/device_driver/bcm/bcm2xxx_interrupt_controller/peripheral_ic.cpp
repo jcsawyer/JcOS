@@ -21,7 +21,7 @@ void PeripheralIC::registerHandler(const IRQHandlerDescriptor &handler) {
     panic("PeripheralIC: IRQ handler already registered");
   }
 
-  handlerTable[irq_num] = const_cast<IRQHandlerDescriptor *>(&handler);
+  handlerTable[irq_num] = new IRQHandlerDescriptor(handler);
 }
 
 void PeripheralIC::enable(IRQNumber *number) {

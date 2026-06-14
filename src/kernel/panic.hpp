@@ -10,12 +10,9 @@ static bool already_panicking = false;
 template <class... Args>
 inline void panicPrint(const char *format, const char *message, Args... args) {
   Console::Console *console = Console::Console::GetInstance();
-  Time::TimeManager *timeManager = Time::TimeManager::GetInstance();
-
-  Time::Duration uptime = timeManager->uptime();
 
   console->print("\n");
-  console->print("[P%03d.%06d ] ", uptime.as_secs(), uptime.subsec_micros());
+  console->print("[PANIC] ");
   console->print(message, args...);
 
   console->print(format);

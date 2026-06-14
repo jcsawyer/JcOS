@@ -85,6 +85,11 @@ Duration Duration::operator+(const Duration &other) const {
 Duration Duration::operator+=(const Duration &other) {
   seconds_ += other.seconds_;
   nanoseconds_ += other.nanoseconds_;
+  if (nanoseconds_ >= NANOS_PER_SEC) {
+    seconds_ += nanoseconds_ / NANOS_PER_SEC;
+    nanoseconds_ %= NANOS_PER_SEC;
+  }
+  return *this;
 }
 
 Duration Duration::operator-(const Duration &other) const {

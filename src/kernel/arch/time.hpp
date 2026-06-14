@@ -1,4 +1,5 @@
 #pragma once
+#include <bsp/exception/asynchronous.hpp>
 #include <stdint.h>
 #include <time/duration.hpp>
 
@@ -32,5 +33,8 @@ void init();
 Time::Duration resolution();
 Time::Duration uptime();
 void spinFor(const Time::Duration &duration);
+::BSP::Exception::Asynchronous::IRQNumber *timeoutIrq();
+void setTimeoutIrq(const Time::Duration &dueTime);
+void concludeTimeoutIrq();
 } // namespace Arch
 } // namespace Time
