@@ -211,9 +211,8 @@ void kernel_init_heap_allocator() {
 
 void *kernel_heap_allocate(size_t size, size_t alignment) {
   void *result = nullptr;
-  Exceptions::Asynchronous::execWithIrqMasked([&]() {
-    result = gKernelHeapAllocator.allocate(size, alignment);
-  });
+  Exceptions::Asynchronous::execWithIrqMasked(
+      [&]() { result = gKernelHeapAllocator.allocate(size, alignment); });
   return result;
 }
 

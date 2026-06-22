@@ -46,8 +46,8 @@ private:
     volatile unsigned int *GPIO_PUP_PDN_CNTRL_REG0;
 
     RegisterBlock(uintptr_t mmio_start_addr) {
-      GPFSEL0 = reinterpret_cast<volatile unsigned int *>(mmio_start_addr +
-                                                          0x00);
+      GPFSEL0 =
+          reinterpret_cast<volatile unsigned int *>(mmio_start_addr + 0x00);
       GPFSEL1 =
           reinterpret_cast<volatile unsigned int *>(mmio_start_addr + 0x04);
       GPFSEL2 =

@@ -22,6 +22,8 @@ struct TftPanelConfig {
   unsigned int xOffset;
   unsigned int yOffset;
   bool colorOrderBgr;
+  bool invertColors;
+  Driver::Display::Rotation defaultRotation;
   const TftPanelInitCommand *initSequence;
   size_t initSequenceLength;
 };
@@ -54,6 +56,8 @@ private:
   static constexpr uint8_t COMMAND_CASET = 0x2A;
   static constexpr uint8_t COMMAND_PASET = 0x2B;
   static constexpr uint8_t COMMAND_RAMWR = 0x2C;
+  static constexpr uint8_t COMMAND_INVOFF = 0x20;
+  static constexpr uint8_t COMMAND_INVON = 0x21;
   static constexpr uint8_t COMMAND_MADCTL = 0x36;
   static constexpr uint8_t COMMAND_COLMOD = 0x3A;
 

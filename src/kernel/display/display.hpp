@@ -21,8 +21,7 @@ public:
   virtual void fillRect(unsigned int x, unsigned int y, unsigned int width,
                         unsigned int height, uint16_t color) = 0;
   virtual void blitRgb565(unsigned int x, unsigned int y, unsigned int width,
-                          unsigned int height,
-                          const uint16_t *pixels) = 0;
+                          unsigned int height, const uint16_t *pixels) = 0;
 
 protected:
   PixelDisplay() = default;

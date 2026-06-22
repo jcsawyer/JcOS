@@ -6,7 +6,7 @@
 namespace Driver::BSP::BCM {
 class GPIO;
 class SPI;
-}
+} // namespace Driver::BSP::BCM
 
 namespace Driver::SPI {
 

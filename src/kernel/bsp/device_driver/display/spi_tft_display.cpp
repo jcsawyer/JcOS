@@ -30,14 +30,19 @@ SPITFTDisplay::SPITFTDisplay(Driver::BSP::BCM::SPI *spi,
                              const Driver::SPI::ControlPins &controlPins,
                              const TftPanelConfig &panelConfig)
     : spiDevice(spi, gpio, deviceConfig, controlPins), gpio(gpio),
-      panelConfig(panelConfig), rotation(Driver::Display::Rotation::Deg0),
+      panelConfig(panelConfig), rotation(panelConfig.defaultRotation),
       currentWidth(panelConfig.width), currentHeight(panelConfig.height) {}
 
 void SPITFTDisplay::init() {
   configureControlPins();
   spiDevice.hardwareReset(10, 120);
   runInitSequence();
-  setRotation(Driver::Display::Rotation::Deg0);
+  if (panelConfig.invertColors) {
+    sendCommand(COMMAND_INVON);
+  } else {
+    sendCommand(COMMAND_INVOFF);
+  }
+  setRotation(panelConfig.defaultRotation);
   fillScreen(0x0000);
 }
 
@@ -53,8 +58,7 @@ void SPITFTDisplay::setRotation(Driver::Display::Rotation value) {
   currentWidth = swapAxes ? nativeHeight() : nativeWidth();
   currentHeight = swapAxes ? nativeWidth() : nativeHeight();
 
-  const uint8_t madctl =
-      rotationMadctl(rotation, panelConfig.colorOrderBgr);
+  const uint8_t madctl = rotationMadctl(rotation, panelConfig.colorOrderBgr);
   sendCommand(COMMAND_MADCTL, &madctl, 1);
 }
 
@@ -82,8 +86,7 @@ void SPITFTDisplay::fillRect(unsigned int x, unsigned int y, unsigned int w,
 
 void SPITFTDisplay::blitRgb565(unsigned int x, unsigned int y, unsigned int w,
                                unsigned int h, const uint16_t *pixels) {
-  if (pixels == nullptr || x >= width() || y >= height() || w == 0 ||
-      h == 0) {
+  if (pixels == nullptr || x >= width() || y >= height() || w == 0 || h == 0) {
     return;
   }
 
@@ -130,9 +133,8 @@ void SPITFTDisplay::configureControlPins() const {
     gpio->write(pins.reset.pin, true);
   }
 
-  if (pins.chipSelect.present &&
-      spiDevice.deviceConfig().chipSelectPolicy ==
-          Driver::SPI::ChipSelectPolicy::Gpio) {
+  if (pins.chipSelect.present && spiDevice.deviceConfig().chipSelectPolicy ==
+                                     Driver::SPI::ChipSelectPolicy::Gpio) {
     gpio->setOutput(pins.chipSelect.pin);
     gpio->write(pins.chipSelect.pin, true);
   }
@@ -181,14 +183,12 @@ void SPITFTDisplay::setAddressWindow(unsigned int x, unsigned int y,
   const uint16_t yStart = static_cast<uint16_t>(y + panelConfig.yOffset);
   const uint16_t yEnd = static_cast<uint16_t>(y + h - 1 + panelConfig.yOffset);
 
-  const uint8_t columnData[] = {static_cast<uint8_t>(xStart >> 8),
-                                static_cast<uint8_t>(xStart & 0xFF),
-                                static_cast<uint8_t>(xEnd >> 8),
-                                static_cast<uint8_t>(xEnd & 0xFF)};
-  const uint8_t rowData[] = {static_cast<uint8_t>(yStart >> 8),
-                             static_cast<uint8_t>(yStart & 0xFF),
-                             static_cast<uint8_t>(yEnd >> 8),
-                             static_cast<uint8_t>(yEnd & 0xFF)};
+  const uint8_t columnData[] = {
+      static_cast<uint8_t>(xStart >> 8), static_cast<uint8_t>(xStart & 0xFF),
+      static_cast<uint8_t>(xEnd >> 8), static_cast<uint8_t>(xEnd & 0xFF)};
+  const uint8_t rowData[] = {
+      static_cast<uint8_t>(yStart >> 8), static_cast<uint8_t>(yStart & 0xFF),
+      static_cast<uint8_t>(yEnd >> 8), static_cast<uint8_t>(yEnd & 0xFF)};
 
   sendCommand(COMMAND_CASET, columnData, sizeof(columnData));
   sendCommand(COMMAND_PASET, rowData, sizeof(rowData));

@@ -10,6 +10,15 @@ namespace BSP {
 namespace RaspberryPi {
 
 namespace {
+constexpr unsigned int kTftWidth = 320;
+constexpr unsigned int kTftHeight = 480;
+constexpr unsigned int kTftXOffset = 0;
+constexpr unsigned int kTftYOffset = 0;
+constexpr bool kTftColorOrderBgr = true;
+constexpr bool kTftInvertColors = true;
+constexpr Driver::Display::Rotation kTftDefaultRotation =
+    Driver::Display::Rotation::Deg180;
+
 const BoardPins kBoardPins = {
     {16, 17, 18, 19, 20, 21},
     {24, 25},
@@ -121,14 +130,20 @@ Display::SPITFTDisplay *RaspberryPi::getTftDisplay() {
     static const uint8_t pixelFormatData[] = {0x55};
     static const uint8_t memoryAccessData[] = {0x48};
     static const Display::TftPanelInitCommand ili9341InitCommands[] = {
-        {0x01, nullptr, 0, 5},       {0x28, nullptr, 0, 0},
-        {0x3A, pixelFormatData, 1, 0},
-        {0x36, memoryAccessData, 1, 0},
-        {0x11, nullptr, 0, 120},     {0x29, nullptr, 0, 20},
+        {0x01, nullptr, 0, 5},         {0x28, nullptr, 0, 0},
+        {0x3A, pixelFormatData, 1, 0}, {0x36, memoryAccessData, 1, 0},
+        {0x11, nullptr, 0, 120},       {0x29, nullptr, 0, 20},
     };
 
     static const Display::TftPanelConfig ili9341PanelConfig = {
-        240, 320, 0, 0, true, ili9341InitCommands,
+        kTftWidth,
+        kTftHeight,
+        kTftXOffset,
+        kTftYOffset,
+        kTftColorOrderBgr,
+        kTftInvertColors,
+        kTftDefaultRotation,
+        ili9341InitCommands,
         sizeof(ili9341InitCommands) / sizeof(ili9341InitCommands[0])};
     static const ::Driver::SPI::DeviceConfig ili9341SpiConfig = {
         ::Driver::SPI::Mode::Mode0, 32, ::Driver::SPI::ChipSelect::CS0,
