@@ -11,6 +11,7 @@ public:
   void configureOutput(unsigned char pin);
   void write(unsigned char pin, bool high);
   void mapUartPins() const;
+  void mapSpiPins() const;
 
 private:
   volatile uint32_t *gpfsel0_;
@@ -23,6 +24,7 @@ private:
 
   void disablePud1415Bcm2837() const;
   void disablePud1415Bcm2711() const;
+  void setFunction(unsigned char pin, unsigned int function) const;
 };
 
 } // namespace Chainloader

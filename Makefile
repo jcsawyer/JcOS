@@ -25,7 +25,9 @@ CHAINLOADER_SRC	:=	src/chainloader/boot.cpp \
 				src/chainloader/gpio.cpp \
 				src/chainloader/lcd.cpp \
 				src/chainloader/main.cpp \
+				src/chainloader/spi.cpp \
 				src/chainloader/timer.cpp \
+				src/chainloader/tft_display.cpp \
 				src/chainloader/uart.cpp \
 				src/libc/memory.cpp \
 				src/libc/minimal_runtime.cpp \

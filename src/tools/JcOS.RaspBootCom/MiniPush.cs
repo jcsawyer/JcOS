@@ -14,7 +14,7 @@ public class MiniPush : MiniTerm
     private byte[] _payloadData = [];
     private int _payloadSize;
     private int _transferAttempt;
-    private const int HostWriteChunkSize = 4096;
+    private const int HostWriteChunkSize = 8192;
     private const int HandshakeTimeoutSeconds = 10;
     private const int MinimumTransferTimeoutSeconds = 30;
     private const int TransferTimeoutPaddingSeconds = 15;
@@ -145,7 +145,11 @@ public class MiniPush : MiniTerm
         return buffer;
     }
 
-    private byte ReadControlByte(CancellationToken token, ReadOnlySpan<byte> echoedBytes, params byte[] allowedValues)
+    private byte ReadControlByte(
+        CancellationToken token,
+        ReadOnlySpan<byte> echoedBytes,
+        bool tolerateTrailingEchoBytes = false,
+        params byte[] allowedValues)
     {
         var echoIndex = 0;
 
@@ -169,6 +173,12 @@ public class MiniPush : MiniTerm
             if (allowedValues.Contains(response))
                 return response;
 
+            // Once we've transitioned from payload to control bytes, some
+            // adapters still leak a few stray echoed payload bytes. Skip them
+            // rather than treating them as a hard protocol fault.
+            if (tolerateTrailingEchoBytes && echoIndex < echoedBytes.Length)
+                continue;
+
             throw new ProtocolError($"Unexpected control byte 0x{response:X2}");
         }
     }
@@ -185,8 +195,8 @@ public class MiniPush : MiniTerm
 
         _targetSerial.Write(sizeBytes, 0, 4);
 
-        var first = ReadControlByte(token, sizeBytes, (byte)'O', (byte)'S');
-        var second = ReadControlByte(token, [], (byte)'K', (byte)'E');
+        var first = ReadControlByte(token, sizeBytes, false, (byte)'O', (byte)'S');
+        var second = ReadControlByte(token, [], false, (byte)'K', (byte)'E');
         if (first == 'O' && second == 'K')
             return true;
 
@@ -206,17 +216,28 @@ public class MiniPush : MiniTerm
         pb.Start();
         var written = 0;
 
+        var initialReady = ReadControlByte(token, [], false, (byte)'C');
+        if (initialReady != (byte)'C')
+            throw new ProtocolError($"Unexpected initial payload ready 0x{initialReady:X2}");
+
         while (written < _payloadSize)
         {
             token.ThrowIfCancellationRequested();
 
             var chunkSize = Math.Min(HostWriteChunkSize, _payloadSize - written);
             _targetSerial.Write(_payloadData, written, chunkSize);
+            pb.Report(written + chunkSize);
+            var ack = ReadControlByte(
+                token,
+                _payloadData.AsSpan(written, chunkSize),
+                true,
+                (byte)'C');
+            if (ack != (byte)'C')
+                throw new ProtocolError($"Unexpected payload ack 0x{ack:X2}");
+
             written += chunkSize;
-            pb.Report(written);
         }
 
-        _targetSerial.BaseStream.Flush();
         pb.Finish();
     }
 

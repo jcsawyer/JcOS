@@ -3,7 +3,8 @@
 #include "board_config.hpp"
 #include "boot_display.hpp"
 #include "gpio.hpp"
-#include "lcd.hpp"
+#include "spi.hpp"
+#include "tft_display.hpp"
 #include "uart.hpp"
 
 #include <arch/cpu.hpp>
@@ -11,6 +12,8 @@
 #include <stdio/printf.h>
 
 namespace {
+
+constexpr uint32_t kTransferChunkSize = 8192u;
 
 extern "C" uint8_t chainloader_relocator_start;
 extern "C" uint8_t chainloader_relocator_end;
@@ -49,6 +52,30 @@ uint32_t readPayloadSize(Chainloader::Uart &uart) {
   return size;
 }
 
+void receivePayload(Chainloader::BootDisplay &display, Chainloader::Uart &uart,
+                    uint8_t *payload, uint32_t payloadSize) {
+  uint32_t receivedBytes = 0;
+
+  uart.writeByte('C');
+
+  while (receivedBytes < payloadSize) {
+    const uint32_t chunkSize =
+        payloadSize - receivedBytes < kTransferChunkSize
+            ? payloadSize - receivedBytes
+            : kTransferChunkSize;
+
+    for (uint32_t i = 0; i < chunkSize; ++i) {
+      payload[receivedBytes + i] = static_cast<uint8_t>(readByte(uart));
+    }
+
+    receivedBytes += chunkSize;
+    display.updateTransferProgress(receivedBytes, payloadSize);
+    if (receivedBytes < payloadSize) {
+      uart.writeByte('C');
+    }
+  }
+}
+
 [[noreturn]] void relocateAndJump(Chainloader::BootDisplay &display,
                                   uint8_t *payload, uint32_t payloadSize) {
   char jumpLine[17];
@@ -79,23 +106,26 @@ extern "C" void putchar_(char) {}
 
 extern "C" void chainloader_init() {
   Chainloader::GPIO gpio(Chainloader::Board::GPIO_BASE);
-  Chainloader::LCD lcd(gpio);
-  Chainloader::BootDisplay display(lcd);
+  gpio.mapSpiPins();
 
-  lcd.init();
-  display.showStage("RASPBOOTIN", "LCD READY");
+  Chainloader::SPI spi(Chainloader::Board::SPI0_BASE);
+  Chainloader::TFTDisplay tft(spi, gpio);
+  Chainloader::BootDisplay display(tft);
+
+  display.init();
+  display.showStage("JcOS Chainload", "Display ready");
 
   gpio.mapUartPins();
 
   Chainloader::Uart uart(Chainloader::Board::UART_BASE);
 
-  display.showStage("UART", "INIT");
+  display.showStage("JcOS Chainload", "UART init");
   uart.init();
 
   uint8_t *payload =
       reinterpret_cast<uint8_t *>(Chainloader::Board::PAYLOAD_SCRATCH_ADDRESS);
   while (true) {
-    display.showStage("WAIT", "REQUEST");
+    display.showStage("Awaiting host", "Requesting...");
     uart.writeByte(0x03);
     uart.writeByte(0x03);
     uart.writeByte(0x03);
@@ -112,12 +142,10 @@ extern "C" void chainloader_init() {
     uart.writeByte('O');
     uart.writeByte('K');
 
-    display.showStage("RX", "PAYLOAD");
-    for (uint32_t i = 0; i < payloadSize; ++i) {
-      payload[i] = static_cast<uint8_t>(readByte(uart));
-    }
+    display.showTransferStart(payloadSize);
+    receivePayload(display, uart, payload, payloadSize);
 
-    display.showStage("BOOT", "PAYLOAD");
+    display.showStage("Transfer done", "Booting kernel");
     uart.waitForTxIdle();
     relocateAndJump(display, payload, payloadSize);
   }
