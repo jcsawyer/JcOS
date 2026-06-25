@@ -10,6 +10,7 @@ public class ConnectionError : Exception
 public class MiniTerm
 {
     protected const int BaudRate = 921_600;
+    protected const int PostPayloadBaudRate = 115_200;
     protected string _nameShort = "MT";
     protected string _targetSerialName;
     protected SerialPort? _targetSerial;
@@ -123,6 +124,15 @@ public class MiniTerm
 
         if (receiveError is not null)
             throw new ConnectionError(receiveError.Message);
+    }
+
+    protected void SwitchToPostPayloadBaudRate()
+    {
+        if (_targetSerial == null)
+            throw new InvalidOperationException("Serial port not initialized");
+
+        _targetSerial.BaseStream.Flush();
+        _targetSerial.BaudRate = PostPayloadBaudRate;
     }
 
     protected void ConnectionReset()

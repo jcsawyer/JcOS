@@ -86,8 +86,6 @@ void timeoutOnce5s() { info("Once 5"); }
 }
 
 void task1() {
-  Driver::BSP::LCD::HD44780U *lcd =
-      Driver::BSP::RaspberryPi::RaspberryPi::getLCD();
   while (1) {
     info("Task 1 running...");
     Syscall::write("Hello from syscall::write!!\n");
@@ -99,37 +97,99 @@ void task1() {
     // Syscall::exit(0);
     Time::TimeManager *timeManager = Time::TimeManager::GetInstance();
 
-    char buffer[10];
-    for (int i = 0; i < 10; i++) {
-      lcd->setCursor(0, 0);
-      lcd->writeString("Task 1 (");
-      utoa(i, buffer);
-      lcd->writeString(buffer);
-      lcd->writeString(")");
-      taskManager.schedule(); // Yield to the scheduler
-      timeManager->spinFor(Time::Duration::from_millis(100));
-    }
+    taskManager.schedule(); // Yield to the scheduler
+    timeManager->spinFor(Time::Duration::from_millis(100));
   }
 }
 
 void task2() {
-  Driver::BSP::LCD::HD44780U *lcd =
-      Driver::BSP::RaspberryPi::RaspberryPi::getLCD();
   while (1) {
     info("Running Task 2");
     Time::TimeManager *timeManager = Time::TimeManager::GetInstance();
-    char buffer[10];
-    for (int i = 0; i < 10; i++) {
-      lcd->setCursor(1, 0);
-      lcd->writeString("Task 2 (");
-      utoa(i, buffer);
-      lcd->writeString(buffer);
-      lcd->writeString(")");
-      taskManager.schedule(); // Yield to the scheduler
-      timeManager->spinFor(Time::Duration::from_millis(100));
-    }
+    taskManager.schedule(); // Yield to the scheduler
+    timeManager->spinFor(Time::Duration::from_millis(100));
   }
 }
+
+namespace {
+constexpr uint16_t logoForeground = 0xFFFF;
+constexpr uint16_t logoBackground = 0x0000;
+
+void renderAsciiLogo(Driver::Display::Display *display, const char *asciiLogo) {
+  if (display == nullptr || !display->isReady() || asciiLogo == nullptr) {
+    return;
+  }
+
+  const char *lineStarts[8] = {};
+  unsigned int lineLengths[8] = {};
+  unsigned int lineCount = 0;
+  unsigned int maxColumns = 0;
+
+  const char *cursor = asciiLogo;
+  while (*cursor != '\0' && lineCount < 8) {
+    while (*cursor == '\n') {
+      ++cursor;
+    }
+
+    if (*cursor == '\0') {
+      break;
+    }
+
+    const char *lineStart = cursor;
+    unsigned int lineLength = 0;
+    while (*cursor != '\0' && *cursor != '\n') {
+      ++cursor;
+      ++lineLength;
+    }
+
+    if (lineLength == 0) {
+      break;
+    }
+
+    lineStarts[lineCount] = lineStart;
+    lineLengths[lineCount] = lineLength;
+    if (lineLength > maxColumns) {
+      maxColumns = lineLength;
+    }
+    ++lineCount;
+
+    if (*cursor == '\n') {
+      ++cursor;
+    }
+
+    if (lineCount == 5) {
+      break;
+    }
+  }
+
+  const unsigned int scale = display->width() >= 400 ? 2 : 1;
+  const unsigned int glyphWidth = 6 * scale;
+  const unsigned int glyphHeight = 8 * scale;
+  const unsigned int artWidth = maxColumns * glyphWidth;
+  const unsigned int artHeight = lineCount * glyphHeight;
+  const unsigned int originX =
+      display->width() > artWidth ? (display->width() - artWidth) / 2 : 0;
+  const unsigned int originY = 32;
+
+  for (unsigned int row = 0; row < lineCount; row++) {
+    char lineBuffer[64];
+    unsigned int length =
+        lineLengths[row] < (sizeof(lineBuffer) - 1)
+            ? lineLengths[row]
+            : static_cast<unsigned int>(sizeof(lineBuffer) - 1);
+    for (unsigned int col = 0; col < length; col++) {
+      lineBuffer[col] = lineStarts[row][col];
+    }
+    lineBuffer[length] = '\0';
+
+    display->drawString(originX, originY + row * glyphHeight, lineBuffer,
+                        logoForeground, logoBackground, scale);
+  }
+
+  display->drawString(originX, originY + artHeight + 20, "Version 0.1.0",
+                      logoForeground, logoBackground, scale);
+}
+} // namespace
 
 [[noreturn]] void kernel_main() {
   Console::Console *console = Console::Console::GetInstance();
@@ -171,13 +231,14 @@ void task2() {
   // stack. This intentionally triggers a synchronous abort.
   // verifyBacktraceFromKernelMain();
 
-  Driver::BSP::LCD::HD44780U *lcd =
-      Driver::BSP::RaspberryPi::RaspberryPi::getLCD();
-  lcd->clear();
-  lcd->setCursor(0, 0);
-  // lcd->writeString("JcOS v0.1.0");
-  // lcd->setCursor(1, 0);
-  // lcd->writeString(">");
+  Driver::Display::Display *display =
+      Driver::BSP::RaspberryPi::RaspberryPi::getDisplay();
+  if (display->isReady()) {
+    display->clear(logoBackground);
+    renderAsciiLogo(display, logo);
+  } else {
+    warn("Display unavailable; skipping TFT logo render");
+  }
 
   timeManager->setTimeoutOnce(Time::Duration::from_secs(5), timeoutOnce5s);
   timeManager->setTimeoutOnce(Time::Duration::from_secs(3), timeoutOnce3s);

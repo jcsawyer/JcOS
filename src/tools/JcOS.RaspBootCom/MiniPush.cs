@@ -255,6 +255,7 @@ public class MiniPush : MiniTerm
             }
 
             SendPayload(attemptCts.Token);
+            SwitchToPostPayloadBaudRate();
             Console.WriteLine();
             Console.WriteLine($"[{_nameShort}] ✅ Payload transferred");
             return true;

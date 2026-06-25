@@ -15,19 +15,34 @@ public:
   void init() override;
   void registerAndEnableIrqHandler(
       ::BSP::Exception::Asynchronous::IRQNumber *irqNumber) override;
+  void configureOutput(unsigned int pin) const;
+  void write(unsigned int pin, bool high) const;
   void mapPl011Uart() const;
+  void mapSpi0() const;
 
 private:
   class RegisterBlock {
   public:
+    volatile unsigned int *GPFSEL0;
     volatile unsigned int *GPFSEL1;
+    volatile unsigned int *GPSET0;
+    volatile unsigned int *GPCLR0;
+    volatile unsigned int *GPLEV0;
     volatile unsigned int *GPPUD;
     volatile unsigned int *GPPUDCLK0;
     volatile unsigned int *GPIO_PUP_PDN_CNTRL_REG0;
 
     RegisterBlock(uintptr_t mmio_start_addr) {
+      GPFSEL0 =
+          reinterpret_cast<volatile unsigned int *>(mmio_start_addr + 0x00);
       GPFSEL1 =
           reinterpret_cast<volatile unsigned int *>(mmio_start_addr + 0x04);
+      GPSET0 =
+          reinterpret_cast<volatile unsigned int *>(mmio_start_addr + 0x1C);
+      GPCLR0 =
+          reinterpret_cast<volatile unsigned int *>(mmio_start_addr + 0x28);
+      GPLEV0 =
+          reinterpret_cast<volatile unsigned int *>(mmio_start_addr + 0x34);
       GPPUD = reinterpret_cast<volatile unsigned int *>(mmio_start_addr + 0x94);
       GPPUDCLK0 =
           reinterpret_cast<volatile unsigned int *>(mmio_start_addr + 0x98);
@@ -38,6 +53,7 @@ private:
   RegisterBlock registerBlock;
   void disablePud1415Bcm2837() const;
   void disablePud1415Bcm2711() const;
+  void setAltFunction(unsigned int pin, unsigned int altFunction) const;
 };
 } // namespace BCM
 } // namespace BSP

@@ -4,38 +4,46 @@
 #include <stdio/printf.h>
 
 namespace Driver::BSP::BCM {
+namespace {
+extern "C" void uartConsolePutChar(char c, void *extraArg) {
+  auto *console = reinterpret_cast<UART::UartConsole *>(extraArg);
+  console->printChar(c);
+}
+} // namespace
+
 /// Set up baud rate and characteristics.
 ///
-/// This results in 8N1 and 921_600 baud.
+/// This results in 8N1 and 115_200 baud.
 ///
 /// The calculation for the BRD is (we set the clock to 48 MHz in config.txt):
-/// `(48_000_000 / 16) / 921_600 = 3.2552083`.
+/// `(48_000_000 / 16) / 115_200 = 26.0416667`.
 ///
-/// This means the integer part is `3` and goes into the `IBRD`.
-/// The fractional part is `0.2552083`.
+/// This means the integer part is `26` and goes into the `IBRD`.
+/// The fractional part is `0.0416667`.
 ///
 /// `FBRD` calculation according to the PL011 Technical Reference Manual:
-/// `INTEGER((0.2552083 * 64) + 0.5) = 16`.
+/// `INTEGER((0.0416667 * 64) + 0.5) = 3`.
 ///
-/// Therefore, the generated baud rate divider is: `3 + 16/64 = 3.25`. Which
-/// results in a genrated baud rate of `48_000_000 / (16 * 3.25) = 923_077`.
+/// Therefore, the generated baud rate divider is: `26 + 3/64 = 26.046875`.
+/// Which results in a generated baud rate of
+/// `48_000_000 / (16 * 26.046875) = 115_177`.
 ///
-/// Error = `((923_077 - 921_600) / 921_600) * 100 = 0.16%`.
+/// Error = `((115_177 - 115_200) / 115_200) * 100 = -0.02%`.
 void UART::init() {
   flush();
 
   // // Disable UART0
   *registerBlock.CR = 0;
 
-  *registerBlock.ICR = 0b00000000000;
+  *registerBlock.ICR = 0x7FF;
 
-  *registerBlock.IBRD = 3;
-  *registerBlock.FBRD = 16;
+  *registerBlock.IBRD = 26;
+  *registerBlock.FBRD = 3;
 
   *registerBlock.LCRH = 1 << 4 | 0b11 << 5;
 
-  *registerBlock.IFLS = 0b000; // Set TX and RX FIFO levels (one eighth)
-  *registerBlock.IMSC = 1 << 4 | 1 << 6; // Enable RX and TX interrupts
+  *registerBlock.IFLS = 0b000; // Set FIFO levels (one eighth)
+  *registerBlock.IMSC = 0;     // Polling-only for now; IRQ echo path is noisy.
 
   *registerBlock.CR = 1 << 0 | 1 << 8 | 1 << 9;
 }
@@ -93,7 +101,7 @@ void UART::UartConsole::print(const char *format, ...) {
   va_list args;
   va_start(args, format);
 
-  vprintf_(format, args);
+  vfctprintf(uartConsolePutChar, this, format, args);
 
   va_end(args);
 }
@@ -106,9 +114,8 @@ void UART::UartConsole::printLine(const char *format, ...) {
   va_list args;
   va_start(args, format);
 
-  vprintf_(format, args);
-
-  uart->putc('\n');
+  vfctprintf(uartConsolePutChar, this, format, args);
+  printChar('\n');
   va_end(args);
 }
 
@@ -117,25 +124,24 @@ Optional<char> UART::UartConsole::readChar(Console::BlockingMode blockingMode) {
 }
 
 bool UART::handle() {
-
   lock().lock([](UART &inner) {
     auto pending = *inner.registerBlock.MIS;
 
-    // Clear all pending IRQs
-    *inner.registerBlock.ICR = (1 << 1);
-
-    // Check for any kind of RX interrupt
-    if (pending & (1 << 4 | 1 << 6)) {
-      // Echo any received characters.
+    // Check for any kind of RX interrupt and echo available input.
+    if (pending & ((1 << 4) | (1 << 6))) {
       while (true) {
         auto opt = inner.getc(Console::Console::BlockingMode::NonBlocking);
-        if (!opt.has_value())
-          continue; // No character available, break the loop
+        if (!opt.has_value()) {
+          break;
+        }
         inner.putc(opt.value());
       }
     }
 
-    return true;
+    // Acknowledge all pending UART interrupt causes we observed.
+    *inner.registerBlock.ICR = pending;
   });
+
+  return true;
 }
 } // namespace Driver::BSP::BCM
