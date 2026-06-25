@@ -9,10 +9,19 @@ namespace Driver::Display {
 
 class Display : public Driver::DeviceDriver {
 public:
+  enum class Rotation {
+    Portrait,
+    Landscape,
+    InvertedPortrait,
+    InvertedLandscape,
+  };
+
   virtual bool isReady() const = 0;
   virtual unsigned int width() const = 0;
   virtual unsigned int height() const = 0;
   virtual void clear(uint16_t color) = 0;
+  virtual void setRotation(Rotation rotation) = 0;
+  virtual Rotation rotation() const = 0;
   virtual void setAddressWindow(unsigned int x0, unsigned int y0,
                                 unsigned int x1, unsigned int y1) = 0;
   virtual void writePixels(const uint16_t *pixels, size_t count) = 0;

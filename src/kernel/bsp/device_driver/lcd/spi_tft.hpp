@@ -21,13 +21,16 @@ public:
   unsigned int width() const override { return panelWidth; }
   unsigned int height() const override { return panelHeight; }
   void clear(uint16_t color) override;
+  void setRotation(Driver::Display::Display::Rotation rotation) override;
+  Driver::Display::Display::Rotation rotation() const override {
+    return panelRotation;
+  }
   void setAddressWindow(unsigned int x0, unsigned int y0, unsigned int x1,
                         unsigned int y1) override;
   void writePixels(const uint16_t *pixels, size_t count) override;
 
 private:
   enum class PanelProfile {
-    Known240x320,
     Generic480x320,
   };
 
@@ -36,17 +39,20 @@ private:
   bool ready = false;
   unsigned int panelWidth = 240;
   unsigned int panelHeight = 320;
-  PanelProfile panelProfile = PanelProfile::Known240x320;
+  PanelProfile panelProfile = PanelProfile::Generic480x320;
+  Driver::Display::Display::Rotation panelRotation =
+      Driver::Display::Display::Rotation::Portrait;
 
   static constexpr unsigned int lcdCsPin = 8;
   static constexpr unsigned int lcdResetPin = 24;
   static constexpr unsigned int lcdDcPin = 25;
 
+  void applyRotation();
   void hardwareReset();
   bool probePanel();
   void initializePanel();
-  void initializeKnown240x320Panel();
   void initializeGeneric480x320Panel();
+  void updatePanelGeometry();
   void writeCommand(uint8_t command);
   void writeCommand(uint8_t command, const uint8_t *data, size_t length);
   void readCommand(uint8_t command, uint8_t *data, size_t length,

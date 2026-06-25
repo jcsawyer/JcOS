@@ -14,22 +14,22 @@ public:
 };
 
 struct IRQHandlerDescriptor {
-  BSP::Exception::Asynchronous::IRQKind kind;
-  BSP::Exception::Asynchronous::IRQNumber number;
+  ::BSP::Exception::Asynchronous::IRQKind kind;
+  ::BSP::Exception::Asynchronous::IRQNumber number;
   const char *name;
   IRQHandler *handler;
 
   IRQHandlerDescriptor()
-      : kind(BSP::Exception::Asynchronous::IRQKind::Peripheral),
-        number(BSP::Exception::Asynchronous::IRQNumber{
-            BSP::Exception::Asynchronous::IRQKind::Peripheral,
-            BSP::Exception::Asynchronous::LocalIRQ::newBounded(0).value(),
-            BSP::Exception::Asynchronous::PeripheralIRQ::newBounded(0)
+      : kind(::BSP::Exception::Asynchronous::IRQKind::Peripheral),
+        number(::BSP::Exception::Asynchronous::IRQNumber{
+            ::BSP::Exception::Asynchronous::IRQKind::Peripheral,
+            ::BSP::Exception::Asynchronous::LocalIRQ::newBounded(0).value(),
+            ::BSP::Exception::Asynchronous::PeripheralIRQ::newBounded(0)
                 .value()}),
         name(nullptr), handler(nullptr) {}
 
-  IRQHandlerDescriptor(BSP::Exception::Asynchronous::IRQKind k,
-                       BSP::Exception::Asynchronous::IRQNumber num,
+  IRQHandlerDescriptor(::BSP::Exception::Asynchronous::IRQKind k,
+                       ::BSP::Exception::Asynchronous::IRQNumber num,
                        const char *nm, IRQHandler *hnd)
       : kind(k), number(num), name(nm), handler(hnd) {}
 };
@@ -47,7 +47,7 @@ class IRQManager {
 public:
   virtual void registerHandler(
       const Exceptions::Asynchronous::IRQHandlerDescriptor &handler) = 0;
-  virtual void enable(BSP::Exception::Asynchronous::IRQNumber *number) = 0;
+  virtual void enable(::BSP::Exception::Asynchronous::IRQNumber *number) = 0;
   virtual void handlePendingIrqs(const IRQContext &ctx) = 0;
   virtual void printHandler() = 0;
 };

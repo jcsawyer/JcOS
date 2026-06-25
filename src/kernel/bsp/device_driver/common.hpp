@@ -2,7 +2,6 @@
 
 #include <memory.h>
 #include <optional.hpp>
-#include <panic.hpp>
 #include <stdint.h>
 
 namespace BSP::Common {
