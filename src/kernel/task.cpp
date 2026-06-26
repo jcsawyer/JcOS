@@ -57,6 +57,10 @@ void TaskManager::schedule() {
   Task *old = (oldTaskIndex >= 0) ? &tasks[oldTaskIndex] : nullptr;
   Task *nextTask = &tasks[currentTask];
 
+  if (old == nextTask) {
+    return;
+  }
+
   if (!nextTask->hasStarted) {
     nextTask->hasStarted = true;
 
@@ -68,3 +72,9 @@ void TaskManager::schedule() {
     }
   }
 }
+
+namespace Tasks {
+
+void yield() { taskManager.schedule(); }
+
+} // namespace Tasks

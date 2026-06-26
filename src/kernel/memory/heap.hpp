@@ -4,6 +4,11 @@
 
 namespace Memory {
 
+struct HeapUsage {
+  size_t usedBytes;
+  size_t totalBytes;
+};
+
 class HeapAllocator {
 public:
   void init(size_t start, size_t size);
@@ -11,6 +16,8 @@ public:
   void deallocate(void *ptr) noexcept;
   void printUsage() const;
   bool isInitialized() const { return initialized; }
+  size_t usedBytes() const { return usedBytes_; }
+  size_t totalBytes() const { return heapSize; }
 
 private:
   struct FreeBlock {
@@ -32,12 +39,13 @@ private:
   FreeBlock *freeList = nullptr;
   size_t heapStart = 0;
   size_t heapSize = 0;
-  size_t usedBytes = 0;
+  size_t usedBytes_ = 0;
   bool initialized = false;
 };
 
 HeapAllocator &kernel_heap_allocator();
 void kernel_init_heap_allocator();
+HeapUsage kernel_heap_usage();
 void *kernel_heap_allocate(size_t size, size_t alignment);
 void kernel_heap_deallocate(void *ptr) noexcept;
 

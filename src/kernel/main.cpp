@@ -8,6 +8,7 @@
 #include <main.hpp>
 #include <memory/heap.hpp>
 #include <memory/mmu.hpp>
+#include <memory_usage_footer.hpp>
 #include <task.hpp>
 #include <time/duration.hpp>
 
@@ -97,7 +98,7 @@ void task1() {
     // Syscall::exit(0);
     Time::TimeManager *timeManager = Time::TimeManager::GetInstance();
 
-    taskManager.schedule(); // Yield to the scheduler
+    Tasks::yield();
     timeManager->spinFor(Time::Duration::from_millis(100));
   }
 }
@@ -106,8 +107,54 @@ void task2() {
   while (1) {
     info("Running Task 2");
     Time::TimeManager *timeManager = Time::TimeManager::GetInstance();
-    taskManager.schedule(); // Yield to the scheduler
+    Tasks::yield();
     timeManager->spinFor(Time::Duration::from_millis(100));
+  }
+}
+
+void idleTask() {
+  Time::TimeManager *timeManager = Time::TimeManager::GetInstance();
+
+  while (1) {
+    timeManager->spinFor(Time::Duration::from_millis(1));
+    Tasks::yield();
+  }
+}
+
+void memoryUiDemoTask() {
+  Time::TimeManager *timeManager = Time::TimeManager::GetInstance();
+  constexpr size_t allocationSizes[] = {
+      1 * MiB,
+      3 * MiB,
+      6 * MiB,
+      2 * MiB,
+  };
+  constexpr size_t allocationCount =
+      sizeof(allocationSizes) / sizeof(allocationSizes[0]);
+  const Time::Duration holdAllocated = Time::Duration::from_millis(900);
+  const Time::Duration holdFreed = Time::Duration::from_millis(600);
+  size_t allocationIndex = 0;
+
+  while (1) {
+    const size_t allocationSize = allocationSizes[allocationIndex];
+    allocationIndex = (allocationIndex + 1) % allocationCount;
+
+    char *buffer = new char[allocationSize];
+    for (size_t i = 0; i < allocationSize; i++) {
+      buffer[i] = static_cast<char>(allocationIndex);
+    }
+
+    Time::Duration releaseAt = timeManager->uptime() + holdAllocated;
+    while (timeManager->uptime() < releaseAt) {
+      Tasks::yield();
+    }
+
+    delete[] buffer;
+
+    Time::Duration nextAllocationAt = timeManager->uptime() + holdFreed;
+    while (timeManager->uptime() < nextAllocationAt) {
+      Tasks::yield();
+    }
   }
 }
 
@@ -245,7 +292,13 @@ void renderAsciiLogo(Driver::Display::Display *display, const char *asciiLogo) {
   timeManager->setTimeoutPeriodic(Time::Duration::from_secs(1),
                                   timeoutPeriodic1s);
 
-  info("Echoing input now");
+  taskManager.init();
+  UI::MemoryUsageFooter::start();
+  taskManager.addTask("memory-ui-demo", memoryUiDemoTask);
+  taskManager.addTask("idle", idleTask);
+
+  info("Starting cooperative scheduler");
+  taskManager.schedule();
   CPU::waitForever();
 }
 

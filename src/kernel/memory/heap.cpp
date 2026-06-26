@@ -67,7 +67,7 @@ void HeapAllocator::init(size_t start, size_t size) {
 
   heapStart = start;
   heapSize = size;
-  usedBytes = 0;
+  usedBytes_ = 0;
   freeList = reinterpret_cast<FreeBlock *>(start);
   freeList->size = size;
   freeList->next = nullptr;
@@ -129,7 +129,7 @@ void *HeapAllocator::allocate(size_t size, size_t alignment) {
     header->blockSize = totalSize;
     header->requestedSize = size;
     header->blockStart = blockStart;
-    usedBytes += totalSize;
+    usedBytes_ += totalSize;
 
     void *result = reinterpret_cast<void *>(userStart);
     debugPrintAllocation("Allocation", result, size);
@@ -187,7 +187,7 @@ void HeapAllocator::deallocate(void *ptr) noexcept {
     panic("Kernel heap free outside heap bounds");
   }
 
-  usedBytes -= header->blockSize;
+  usedBytes_ -= header->blockSize;
 
   FreeBlock *block = reinterpret_cast<FreeBlock *>(header->blockStart);
   block->size = header->blockSize;
@@ -197,8 +197,8 @@ void HeapAllocator::deallocate(void *ptr) noexcept {
 }
 
 void HeapAllocator::printUsage() const {
-  printUsageLine("Used", usedBytes);
-  printUsageLine("Free", heapSize - usedBytes);
+  printUsageLine("Used", usedBytes_);
+  printUsageLine("Free", heapSize - usedBytes_);
 }
 
 HeapAllocator &kernel_heap_allocator() { return gKernelHeapAllocator; }
@@ -207,6 +207,15 @@ void kernel_init_heap_allocator() {
   const size_t start = Memory::heapStart();
   const size_t size = Memory::heapEndExclusive() - Memory::heapStart();
   gKernelHeapAllocator.init(start, size);
+}
+
+HeapUsage kernel_heap_usage() {
+  HeapUsage usage{};
+  Exceptions::Asynchronous::execWithIrqMasked([&]() {
+    usage.usedBytes = gKernelHeapAllocator.usedBytes();
+    usage.totalBytes = gKernelHeapAllocator.totalBytes();
+  });
+  return usage;
 }
 
 void *kernel_heap_allocate(size_t size, size_t alignment) {

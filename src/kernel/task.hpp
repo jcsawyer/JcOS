@@ -41,3 +41,7 @@ private:
 };
 
 extern TaskManager taskManager;
+
+namespace Tasks {
+void yield();
+}
