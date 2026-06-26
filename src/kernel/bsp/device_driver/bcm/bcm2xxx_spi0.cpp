@@ -2,7 +2,7 @@
 
 namespace Driver::BSP::BCM {
 
-void SPI0::init() { configure(64); }
+void SPI0::init() { configure(16); }
 
 void SPI0::registerAndEnableIrqHandler(
     ::BSP::Exception::Asynchronous::IRQNumber *irqNumber) {

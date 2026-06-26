@@ -49,7 +49,8 @@ public:
       rectHeight = height() - y;
     }
 
-    constexpr size_t chunkSize = 64;
+    // Larger chunks reduce per-transaction overhead on SPI-driven panels.
+    constexpr size_t chunkSize = 256;
     uint16_t pixelChunk[chunkSize];
     for (size_t i = 0; i < chunkSize; i++) {
       pixelChunk[i] = color;

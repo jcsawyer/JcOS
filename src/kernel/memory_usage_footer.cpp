@@ -1,17 +1,11 @@
 #include "memory_usage_footer.hpp"
 
-#include <bsp/raspberrypi/raspberrypi.hpp>
 #include <common.hpp>
-#include <display/display.hpp>
 #include <memory/heap.hpp>
-#include <task.hpp>
-#include <time.hpp>
-#include <time/duration.hpp>
 
 #include <stdio/printf.h>
 
 namespace UI {
-namespace MemoryUsageFooter {
 namespace {
 
 constexpr uint16_t footerBackgroundColor = 0x0000;
@@ -25,34 +19,32 @@ constexpr unsigned int footerTextHeight = 7 * footerTextScale;
 constexpr unsigned int footerTextAdvance = 6 * footerTextScale;
 constexpr unsigned int footerBarHeight = 6;
 constexpr unsigned int footerGap = 4;
-constexpr unsigned int footerRefreshMillis = 250;
-constexpr size_t footerTextCapacity = 32;
-
-struct FooterLayout {
-  unsigned int footerTop;
-  unsigned int footerHeight;
-  unsigned int textY;
-  unsigned int barX;
-  unsigned int barY;
-  unsigned int barWidth;
-};
-
-struct FooterRenderState {
-  bool initialized = false;
-  unsigned int displayWidth = 0;
-  unsigned int displayHeight = 0;
-  unsigned int lastBarFillWidth = 0;
-  unsigned int lastTextX = 0;
-  unsigned int lastTextWidth = 0;
-  char lastText[footerTextCapacity] = {};
-};
-
-FooterRenderState gFooterState;
 
 size_t stringLength(const char *text) {
   size_t length = 0;
   while (text != nullptr && text[length] != '\0') {
     ++length;
+  }
+  return length;
+}
+
+size_t findCharacter(const char *text, char value) {
+  size_t index = 0;
+  while (text != nullptr && text[index] != '\0') {
+    if (text[index] == value) {
+      return index;
+    }
+    ++index;
+  }
+  return index;
+}
+
+size_t findLastCharacter(const char *text, char value) {
+  const size_t length = stringLength(text);
+  for (size_t index = length; index > 0; --index) {
+    if (text[index - 1] == value) {
+      return index - 1;
+    }
   }
   return length;
 }
@@ -80,27 +72,45 @@ void copyString(char *destination, const char *source, size_t capacity) {
   destination[index] = '\0';
 }
 
-FooterLayout computeLayout(Driver::Display::Display *display) {
-  const unsigned int width = display->width();
-  const unsigned int height = display->height();
-  const unsigned int footerHeight =
-      footerPaddingY * 2 + footerTextHeight + footerGap + footerBarHeight;
-  const unsigned int footerTop =
-      height > footerHeight ? height - footerHeight : 0;
+} // namespace
 
-  FooterLayout layout{};
-  layout.footerTop = footerTop;
-  layout.footerHeight = footerHeight;
-  layout.textY = footerTop + footerPaddingY;
-  layout.barX = footerPaddingX;
-  layout.barY = footerTop + footerHeight - footerPaddingY - footerBarHeight;
-  layout.barWidth =
-      width > (footerPaddingX * 2) ? width - (footerPaddingX * 2) : 0;
-  return layout;
+unsigned int StatusFooter::preferredHeight() const {
+  return footerPaddingY * 2 + footerTextHeight + footerGap + footerBarHeight;
 }
 
-void formatUsageText(const Memory::HeapUsage &usage, char *buffer,
-                     size_t bufferCapacity) {
+void StatusFooter::layout(const Size &displaySize) {
+  const unsigned int footerHeight = preferredHeight();
+  const unsigned int footerTop =
+      displaySize.height > footerHeight ? displaySize.height - footerHeight : 0;
+
+  footerBounds =
+      Rect{0, static_cast<int>(footerTop), displaySize.width, footerHeight};
+  textY = footerTop + footerPaddingY;
+  barX = footerPaddingX;
+  barY = footerTop + footerHeight - footerPaddingY - footerBarHeight;
+  barWidth = displaySize.width > (footerPaddingX * 2)
+                 ? displaySize.width - (footerPaddingX * 2)
+                 : 0;
+  pendingInvalidationCount = 0;
+  queueInvalidation(footerBounds);
+  initialized = false;
+}
+
+void StatusFooter::queueInvalidation(const Rect &region) {
+  if (region.empty()) {
+    return;
+  }
+
+  if (pendingInvalidationCount < maxPendingInvalidations) {
+    pendingInvalidations[pendingInvalidationCount++] = region;
+    return;
+  }
+
+  pendingInvalidations[maxPendingInvalidations - 1] = footerBounds;
+}
+
+void StatusFooter::formatUsageText(const Memory::HeapUsage &usage, char *buffer,
+                                   size_t bufferCapacity) const {
   const unsigned long usedKiB =
       static_cast<unsigned long>(div_ceil(usage.usedBytes, KiB));
   const unsigned long totalKiB =
@@ -108,25 +118,25 @@ void formatUsageText(const Memory::HeapUsage &usage, char *buffer,
   snprintf_(buffer, bufferCapacity, "Mem %05lu/%05lu KiB", usedKiB, totalKiB);
 }
 
-unsigned int computeFillWidth(const Memory::HeapUsage &usage,
-                              const FooterLayout &layout) {
-  if (usage.totalBytes == 0 || layout.barWidth == 0) {
+unsigned int
+StatusFooter::computeFillWidth(const Memory::HeapUsage &usage) const {
+  if (usage.totalBytes == 0 || barWidth == 0) {
     return 0;
   }
 
-  size_t fillWidth = (usage.usedBytes * layout.barWidth) / usage.totalBytes;
-  if (fillWidth > layout.barWidth) {
-    fillWidth = layout.barWidth;
+  size_t fillWidth = (usage.usedBytes * barWidth) / usage.totalBytes;
+  if (fillWidth > barWidth) {
+    fillWidth = barWidth;
   }
 
   return static_cast<unsigned int>(fillWidth);
 }
 
-void measureText(Driver::Display::Display *display, const char *text,
-                 unsigned int *textXOut, unsigned int *textWidthOut) {
+void StatusFooter::measureText(const char *text, unsigned int *textXOut,
+                               unsigned int *textWidthOut) const {
   const unsigned int textWidth =
       static_cast<unsigned int>(stringLength(text)) * footerTextAdvance;
-  const unsigned int availableWidth = display->width();
+  const unsigned int availableWidth = footerBounds.width;
   const unsigned int textX = availableWidth <= footerPaddingX ||
                                      textWidth + footerPaddingX > availableWidth
                                  ? 0
@@ -136,142 +146,129 @@ void measureText(Driver::Display::Display *display, const char *text,
   *textWidthOut = textWidth;
 }
 
-void drawText(Driver::Display::Display *display, const FooterLayout &layout,
-              const char *text, unsigned int textX) {
-  display->drawString(textX, layout.textY, text, footerTextColor,
-                      footerBackgroundColor, footerTextScale);
-}
-
-void redrawChangedCharacters(Driver::Display::Display *display,
-                             const FooterLayout &layout,
-                             const char *previousText, const char *currentText,
-                             unsigned int textX) {
-  const size_t previousLength = stringLength(previousText);
-  const size_t currentLength = stringLength(currentText);
-  const size_t commonLength =
-      previousLength < currentLength ? previousLength : currentLength;
-
-  for (size_t i = 0; i < commonLength; i++) {
-    if (previousText[i] == currentText[i]) {
-      continue;
-    }
-
-    const unsigned int glyphX =
-        textX + static_cast<unsigned int>(i) * footerTextAdvance;
-    display->drawMonoGlyph(glyphX, layout.textY, currentText[i],
-                           footerTextColor, footerBackgroundColor,
-                           footerTextScale);
-  }
-}
-
-void redrawFooter(Driver::Display::Display *display,
-                  const Memory::HeapUsage &usage) {
-  FooterLayout layout = computeLayout(display);
-  if (layout.barWidth == 0) {
-    return;
-  }
+bool StatusFooter::tick(const Time::Duration &now) {
+  (void)now;
 
   char currentText[footerTextCapacity];
+  const Memory::HeapUsage usage = Memory::kernel_heap_usage();
   formatUsageText(usage, currentText, sizeof(currentText));
-  const unsigned int currentFillWidth = computeFillWidth(usage, layout);
+  const unsigned int currentFillWidth = computeFillWidth(usage);
 
-  if (!gFooterState.initialized ||
-      gFooterState.displayWidth != display->width() ||
-      gFooterState.displayHeight != display->height()) {
-    display->fillRect(0, layout.footerTop, display->width(),
-                      layout.footerHeight, footerBackgroundColor);
-    display->fillRect(layout.barX, layout.barY, layout.barWidth,
-                      footerBarHeight, footerTrackColor);
+  if (!initialized) {
+    queueInvalidation(footerBounds);
+    return true;
+  }
 
-    if (currentFillWidth > 0) {
-      display->fillRect(layout.barX, layout.barY, currentFillWidth,
-                        footerBarHeight, footerFillColor);
+  if (currentFillWidth != lastBarFillWidth) {
+    const unsigned int startX = currentFillWidth < lastBarFillWidth
+                                    ? currentFillWidth
+                                    : lastBarFillWidth;
+    const unsigned int width = currentFillWidth > lastBarFillWidth
+                                   ? currentFillWidth - lastBarFillWidth
+                                   : lastBarFillWidth - currentFillWidth;
+    queueInvalidation(Rect{static_cast<int>(barX + startX),
+                           static_cast<int>(barY), width, footerBarHeight});
+  }
+
+  if (!stringsEqual(lastText, currentText)) {
+    unsigned int currentTextX = 0;
+    unsigned int currentTextWidth = 0;
+    measureText(currentText, &currentTextX, &currentTextWidth);
+
+    const size_t lastSlashIndex = findCharacter(lastText, '/');
+    const size_t currentSlashIndex = findCharacter(currentText, '/');
+    const size_t sharedSlashIndex =
+        lastSlashIndex < currentSlashIndex ? lastSlashIndex : currentSlashIndex;
+
+    size_t usedFirstChangedIndex = 0;
+    while (usedFirstChangedIndex < sharedSlashIndex &&
+           lastText[usedFirstChangedIndex] == currentText[usedFirstChangedIndex]) {
+      ++usedFirstChangedIndex;
     }
 
-    measureText(display, currentText, &gFooterState.lastTextX,
-                &gFooterState.lastTextWidth);
-    drawText(display, layout, currentText, gFooterState.lastTextX);
-    copyString(gFooterState.lastText, currentText,
-               sizeof(gFooterState.lastText));
-    gFooterState.lastBarFillWidth = currentFillWidth;
-    gFooterState.displayWidth = display->width();
-    gFooterState.displayHeight = display->height();
-    gFooterState.initialized = true;
+    const size_t usedFieldEndExclusive =
+        (lastSlashIndex > currentSlashIndex ? lastSlashIndex : currentSlashIndex);
+    if (usedFirstChangedIndex < usedFieldEndExclusive) {
+      const unsigned int dirtyX =
+          currentTextX +
+          static_cast<unsigned int>(usedFirstChangedIndex) * footerTextAdvance;
+      const unsigned int dirtyWidth =
+          static_cast<unsigned int>(usedFieldEndExclusive - usedFirstChangedIndex) *
+          footerTextAdvance;
+      queueInvalidation(Rect{static_cast<int>(dirtyX), static_cast<int>(textY),
+                             dirtyWidth, footerTextHeight});
+    }
+
+    const size_t lastSuffixIndex = findLastCharacter(lastText, ' ');
+    const size_t currentSuffixIndex = findLastCharacter(currentText, ' ');
+    const size_t totalFieldStart =
+        sharedSlashIndex < stringLength(currentText) ? sharedSlashIndex + 1 : sharedSlashIndex;
+    const size_t totalFieldEndExclusive =
+        (lastSuffixIndex > currentSuffixIndex ? lastSuffixIndex : currentSuffixIndex);
+    size_t totalFirstChangedIndex = totalFieldStart;
+    while (totalFirstChangedIndex < lastSuffixIndex &&
+           totalFirstChangedIndex < currentSuffixIndex &&
+           lastText[totalFirstChangedIndex] == currentText[totalFirstChangedIndex]) {
+      ++totalFirstChangedIndex;
+    }
+
+    if (totalFirstChangedIndex < totalFieldEndExclusive) {
+      const unsigned int dirtyX =
+          currentTextX +
+          static_cast<unsigned int>(totalFirstChangedIndex) * footerTextAdvance;
+      const unsigned int dirtyWidth =
+          static_cast<unsigned int>(totalFieldEndExclusive - totalFirstChangedIndex) *
+          footerTextAdvance;
+      queueInvalidation(Rect{static_cast<int>(dirtyX), static_cast<int>(textY),
+                             dirtyWidth, footerTextHeight});
+    }
+  }
+
+  return pendingInvalidationCount > 0;
+}
+
+void StatusFooter::render(Surface &surface) {
+  if (barWidth == 0 || footerBounds.empty()) {
     return;
   }
 
-  if (!stringsEqual(gFooterState.lastText, currentText)) {
-    unsigned int currentTextX = 0;
-    unsigned int currentTextWidth = 0;
-    measureText(display, currentText, &currentTextX, &currentTextWidth);
+  const Memory::HeapUsage usage = Memory::kernel_heap_usage();
+  char currentText[footerTextCapacity];
+  formatUsageText(usage, currentText, sizeof(currentText));
+  const unsigned int currentFillWidth = computeFillWidth(usage);
 
-    if (gFooterState.lastTextX == currentTextX &&
-        gFooterState.lastTextWidth == currentTextWidth) {
-      redrawChangedCharacters(display, layout, gFooterState.lastText,
-                              currentText, currentTextX);
-    } else {
-      unsigned int clearX = gFooterState.lastTextX < currentTextX
-                                ? gFooterState.lastTextX
-                                : currentTextX;
-      unsigned int clearEnd =
-          (gFooterState.lastTextX + gFooterState.lastTextWidth) >
-                  (currentTextX + currentTextWidth)
-              ? (gFooterState.lastTextX + gFooterState.lastTextWidth)
-              : (currentTextX + currentTextWidth);
+  surface.fillRect(footerBounds, footerBackgroundColor);
+  surface.fillRect(Rect{static_cast<int>(barX), static_cast<int>(barY),
+                        barWidth, footerBarHeight},
+                   footerTrackColor);
 
-      if (clearEnd > clearX) {
-        display->fillRect(clearX, layout.textY, clearEnd - clearX,
-                          footerTextHeight, footerBackgroundColor);
-        drawText(display, layout, currentText, currentTextX);
-      }
-    }
-
-    gFooterState.lastTextX = currentTextX;
-    gFooterState.lastTextWidth = currentTextWidth;
-    copyString(gFooterState.lastText, currentText,
-               sizeof(gFooterState.lastText));
+  if (currentFillWidth > 0) {
+    surface.fillRect(Rect{static_cast<int>(barX), static_cast<int>(barY),
+                          currentFillWidth, footerBarHeight},
+                     footerFillColor);
   }
 
-  if (currentFillWidth > gFooterState.lastBarFillWidth) {
-    display->fillRect(layout.barX + gFooterState.lastBarFillWidth, layout.barY,
-                      currentFillWidth - gFooterState.lastBarFillWidth,
-                      footerBarHeight, footerFillColor);
-  } else if (currentFillWidth < gFooterState.lastBarFillWidth) {
-    display->fillRect(layout.barX + currentFillWidth, layout.barY,
-                      gFooterState.lastBarFillWidth - currentFillWidth,
-                      footerBarHeight, footerTrackColor);
-  }
+  measureText(currentText, &lastTextX, &lastTextWidth);
+  surface.drawString(
+      Point{static_cast<int>(lastTextX), static_cast<int>(textY)}, currentText,
+      footerTextColor, footerBackgroundColor, footerTextScale);
 
-  gFooterState.lastBarFillWidth = currentFillWidth;
+  copyString(lastText, currentText, sizeof(lastText));
+  lastBarFillWidth = currentFillWidth;
+  initialized = true;
 }
 
-void taskEntry() {
-  Time::TimeManager *timeManager = Time::TimeManager::GetInstance();
-  Time::Duration nextUpdate = Time::Duration::zero();
-
-  while (true) {
-    Tasks::yield();
-
-    if (timeManager->uptime() < nextUpdate) {
-      continue;
-    }
-
-    nextUpdate = timeManager->uptime() +
-                 Time::Duration::from_millis(footerRefreshMillis);
-
-    Driver::Display::Display *display =
-        Driver::BSP::RaspberryPi::RaspberryPi::getDisplay();
-    if (display == nullptr || !display->isReady()) {
-      continue;
-    }
-
-    redrawFooter(display, Memory::kernel_heap_usage());
+Optional<Rect> StatusFooter::takeInvalidation() {
+  if (pendingInvalidationCount == 0) {
+    return Optional<Rect>();
   }
+
+  Rect region = pendingInvalidations[0];
+  for (size_t i = 1; i < pendingInvalidationCount; ++i) {
+    pendingInvalidations[i - 1] = pendingInvalidations[i];
+  }
+  --pendingInvalidationCount;
+  return Optional<Rect>(region);
 }
 
-} // namespace
-
-void start() { taskManager.addTask("memory-footer", taskEntry); }
-
-} // namespace MemoryUsageFooter
 } // namespace UI

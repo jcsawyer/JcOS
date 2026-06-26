@@ -9,6 +9,8 @@ namespace Driver::BSP::LCD {
 
 namespace {
 constexpr uint16_t colorBlack = 0x0000;
+constexpr uint16_t spiClockDivider = 16;
+constexpr size_t pixelChunkSize = 256;
 constexpr uint8_t commandSoftwareReset = 0x01;
 constexpr uint8_t commandSleepOut = 0x11;
 constexpr uint8_t commandDisplayInversionOn = 0x21;
@@ -34,7 +36,7 @@ void SpiTft::init() {
   gpio->write(lcdResetPin, true);
   gpio->write(lcdDcPin, true);
 
-  spi->configure(64);
+  spi->configure(spiClockDivider);
 
   hardwareReset();
 
@@ -58,16 +60,15 @@ void SpiTft::clear(uint16_t color) {
   }
 
   setAddressWindow(0, 0, panelWidth - 1, panelHeight - 1);
-  constexpr size_t chunkPixels = 64;
-  uint16_t chunk[chunkPixels];
-  for (size_t i = 0; i < chunkPixels; i++) {
+  uint16_t chunk[pixelChunkSize];
+  for (size_t i = 0; i < pixelChunkSize; i++) {
     chunk[i] = color;
   }
 
   size_t remaining = static_cast<size_t>(panelWidth) * panelHeight;
   while (remaining > 0) {
     const size_t currentChunk =
-        remaining > chunkPixels ? chunkPixels : remaining;
+        remaining > pixelChunkSize ? pixelChunkSize : remaining;
     writePixels(chunk, currentChunk);
     remaining -= currentChunk;
   }
