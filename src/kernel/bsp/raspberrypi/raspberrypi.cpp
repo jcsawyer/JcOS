@@ -11,12 +11,14 @@ namespace RaspberryPi {
 Driver::BSP::BCM::InterruptController *RaspberryPi::interruptController =
     nullptr;
 BCM::GPIO *RaspberryPi::gpio = nullptr;
+BCM::I2C *RaspberryPi::i2c = nullptr;
 BCM::SPI0 *RaspberryPi::spi0 = nullptr;
 BCM::UART *RaspberryPi::uart = nullptr;
 BCM::RNG *RaspberryPi::rng = nullptr;
 BCM::UART::UartConsole *RaspberryPi::uartConsole = nullptr;
 BCM::Timer *RaspberryPi::timer = nullptr;
 Driver::Display::Display *RaspberryPi::display = nullptr;
+Driver::BSP::Touch::TouchPanel *RaspberryPi::touchPanel = nullptr;
 
 Driver::BSP::BCM::InterruptController *RaspberryPi::getInterruptController() {
 #if BOARD == bsp_rpi3
@@ -64,6 +66,18 @@ BCM::SPI0 *RaspberryPi::getSPI0() {
   return spi0;
 }
 
+BCM::I2C *RaspberryPi::getI2C() {
+  if (i2c == nullptr) {
+    const size_t mappedI2C = Memory::kernelMapMMIO(
+        "BCM I2C1", Memory::MMIODescriptor(Memory::Map::getMMIO().START +
+                                               Memory::Map::I2C1_OFFSET,
+                                           Memory::Map::I2C1_SIZE));
+    static BCM::I2C i2cInstance(mappedI2C);
+    i2c = &i2cInstance;
+  }
+  return i2c;
+}
+
 BCM::UART *RaspberryPi::getUART() {
   if (uart == nullptr) {
     const size_t mappedUART = Memory::kernelMapMMIO(
@@ -103,6 +117,15 @@ Driver::Display::Display *RaspberryPi::getDisplay() {
   return display;
 }
 
+Driver::BSP::Touch::TouchPanel *RaspberryPi::getTouchPanel() {
+  if (touchPanel == nullptr) {
+    static Driver::BSP::Touch::TouchPanel touchPanelInstance(getGPIO(),
+                                                             getI2C());
+    touchPanel = &touchPanelInstance;
+  }
+  return touchPanel;
+}
+
 BCM::Timer *RaspberryPi::getTimer() {
   const size_t mappedTimer = Memory::kernelMapMMIO(
       "BCM Timer", Memory::MMIODescriptor(Memory::Map::getMMIO().TIMER_START,
@@ -120,9 +143,12 @@ void RaspberryPi::init() {
 
   driverManager().addDriver(DeviceDriverDescriptor(getGPIO(), &postInitGpio));
   driverManager().addDriver(DeviceDriverDescriptor(getUART(), &postInitUart));
+  driverManager().addDriver(DeviceDriverDescriptor(getI2C(), &postInitI2C));
   driverManager().addDriver(DeviceDriverDescriptor(getSPI0(), &postInitSPI0));
   driverManager().addDriver(
       DeviceDriverDescriptor(getDisplay(), &postInitDisplay));
+  driverManager().addDriver(
+      DeviceDriverDescriptor(getTouchPanel(), &postInitTouchPanel));
   driverManager().addDriver(DeviceDriverDescriptor(getRNG(), &postInitRng));
   // driverManager().addDriver(DeviceDriverDescriptor(getTimer(),
   // &postInitTimer));
@@ -136,11 +162,17 @@ void RaspberryPi::postInitUart() {
 
 void RaspberryPi::postInitGpio() { getGPIO()->mapPl011Uart(); }
 
+void RaspberryPi::postInitI2C() { getGPIO()->mapI2c1(); }
+
 void RaspberryPi::postInitSPI0() {}
 
 void RaspberryPi::postInitRng() {}
 
 void RaspberryPi::postInitDisplay() {}
+
+void RaspberryPi::postInitTouchPanel() {
+  getTouchPanel()->setRotation(getDisplay()->rotation());
+}
 
 void RaspberryPi::postInitTimer() { getTimer()->timerInit(); }
 

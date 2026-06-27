@@ -5,7 +5,7 @@ TaskManager taskManager;
 
 extern "C" void switch_context(unsigned long *oldStackPtr,
                                unsigned long *newStackPtr);
-extern "C" void enter_task(void (*entry)(void));
+extern "C" void enter_task(void (*entry)(void), unsigned long *stackTop);
 
 void TaskManager::init() {
   taskCount = 0;
@@ -30,8 +30,9 @@ void TaskManager::addTask(const char *name, void (*entry)()) {
   t.context.x30 = reinterpret_cast<unsigned long>(entry); // LR = entry point
 
   // Stack pointer: top of stack, aligned 16 bytes
-  unsigned long *stack_top = &t.stack[STACK_SIZE];
-  t.context.sp = reinterpret_cast<unsigned long>(stack_top);
+  size_t stackTopAddress = reinterpret_cast<size_t>(&t.stack[STACK_SIZE]);
+  stackTopAddress &= ~static_cast<size_t>(0xFul);
+  t.context.sp = static_cast<unsigned long>(stackTopAddress);
 
   // Point stackPtr to context for switch_context
   t.stackPtr = reinterpret_cast<unsigned long *>(&t.context);
@@ -64,7 +65,8 @@ void TaskManager::schedule() {
   if (!nextTask->hasStarted) {
     nextTask->hasStarted = true;
 
-    enter_task(nextTask->entry);
+    enter_task(nextTask->entry,
+               reinterpret_cast<unsigned long *>(nextTask->context.sp));
   } else {
     if (old && nextTask) {
       // switch_context never returns, switches context to next task

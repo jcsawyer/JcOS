@@ -13,7 +13,7 @@ struct Context {
 struct Task {
   Context context;
   unsigned long *stackPtr = nullptr;
-  unsigned long stack[STACK_SIZE];
+  alignas(16) unsigned long stack[STACK_SIZE];
   void (*entry)() = nullptr;
   bool hasStarted = false;
   const char *name = nullptr;

@@ -16,6 +16,11 @@ constexpr uint16_t accentColor = 0x07FF;
 constexpr uint16_t mutedColor = 0x7BEF;
 const Time::Duration uiTickInterval = Time::Duration::from_millis(16);
 const Time::Duration minRenderInterval = Time::Duration::from_millis(16);
+const Time::Duration tapMaxDuration = Time::Duration::from_millis(250);
+const Time::Duration touchActivePollInterval = Time::Duration::from_millis(16);
+const Time::Duration touchReleaseTimeout = Time::Duration::from_millis(250);
+constexpr unsigned int pointerMoveThreshold = 3;
+constexpr unsigned int tapMoveThreshold = 12;
 
 const char *eventTypeName(InputEventType type) {
   switch (type) {
@@ -285,6 +290,139 @@ private:
 
 Surface::Surface(Driver::Display::Display *display)
     : display(display), clipRect(bounds()) {}
+
+TouchInputSource::TouchInputSource(Driver::BSP::Touch::TouchPanel *touchPanel,
+                                   Driver::Display::Display *display)
+    : touchPanel(touchPanel), display(display) {}
+
+Optional<InputEvent> TouchInputSource::pollEvent() {
+  const Time::Duration now = Time::TimeManager::GetInstance()->uptime();
+
+  if (selectPending) {
+    selectPending = false;
+    InputEvent selectEvent{};
+    selectEvent.type = InputEventType::Select;
+    selectEvent.position = releasePoint;
+    selectEvent.timestamp = now;
+    return Optional<InputEvent>(selectEvent);
+  }
+
+  if (touchPanel == nullptr || display == nullptr || !touchPanel->isReady()) {
+    return Optional<InputEvent>();
+  }
+
+  const bool shouldPollActiveTouch =
+      pointerActive && (now - lastTouchPollAt) >= touchActivePollInterval;
+
+  if (!touchPanel->hasPendingSample() && !shouldPollActiveTouch) {
+    if (pointerActive && (now - lastTouchSampleAt) >= touchReleaseTimeout) {
+      pointerActive = false;
+      releasePoint = lastPoint;
+
+      InputEvent releaseEvent{};
+      releaseEvent.type = InputEventType::PointerUp;
+      releaseEvent.position = releasePoint;
+      releaseEvent.timestamp = now;
+
+      if (tapEligible && (now - pressStartedAt) <= tapMaxDuration) {
+        selectPending = true;
+      }
+      tapEligible = false;
+
+      return Optional<InputEvent>(releaseEvent);
+    }
+
+    return Optional<InputEvent>();
+  }
+
+  Optional<Driver::BSP::Touch::Sample> sample = touchPanel->readSample();
+  if (!sample.has_value()) {
+    return Optional<InputEvent>();
+  }
+
+  lastTouchPollAt = now;
+  const Point mappedPoint = mapToDisplay(sample.value());
+  InputEvent event{};
+  event.position = mappedPoint;
+  event.timestamp = now;
+  lastTouchSampleAt = now;
+
+  if (sample.value().active) {
+    if (!pointerActive) {
+      pointerActive = true;
+      tapEligible = true;
+      pressPoint = mappedPoint;
+      lastPoint = mappedPoint;
+      pressStartedAt = now;
+      event.type = InputEventType::PointerDown;
+      return Optional<InputEvent>(event);
+    }
+
+    if (movedFarEnough(lastPoint, mappedPoint, pointerMoveThreshold)) {
+      if (movedFarEnough(pressPoint, mappedPoint, tapMoveThreshold)) {
+        tapEligible = false;
+      }
+      lastPoint = mappedPoint;
+      event.type = InputEventType::PointerMove;
+      return Optional<InputEvent>(event);
+    }
+
+    if (movedFarEnough(pressPoint, mappedPoint, tapMoveThreshold)) {
+      tapEligible = false;
+    }
+
+    return Optional<InputEvent>();
+  }
+
+  if (!pointerActive) {
+    return Optional<InputEvent>();
+  }
+
+  pointerActive = false;
+  releasePoint = lastPoint;
+  event.type = InputEventType::PointerUp;
+  event.position = releasePoint;
+
+  if (tapEligible && (now - pressStartedAt) <= tapMaxDuration) {
+    selectPending = true;
+  }
+  tapEligible = false;
+
+  return Optional<InputEvent>(event);
+}
+
+Point TouchInputSource::mapToDisplay(
+    const Driver::BSP::Touch::Sample &sample) const {
+  const unsigned int rawWidth = touchPanel->rawWidth();
+  const unsigned int rawHeight = touchPanel->rawHeight();
+
+  unsigned int boundedX = sample.x < rawWidth ? sample.x : rawWidth - 1;
+  unsigned int boundedY = sample.y < rawHeight ? sample.y : rawHeight - 1;
+
+  switch (display->rotation()) {
+  case Driver::Display::Display::Rotation::Portrait:
+    return Point{static_cast<int>(boundedY),
+                 static_cast<int>(rawWidth - 1 - boundedX)};
+  case Driver::Display::Display::Rotation::Landscape:
+    return Point{static_cast<int>(boundedX), static_cast<int>(boundedY)};
+  case Driver::Display::Display::Rotation::InvertedPortrait:
+    return Point{static_cast<int>(rawHeight - 1 - boundedY),
+                 static_cast<int>(boundedX)};
+  case Driver::Display::Display::Rotation::InvertedLandscape:
+    return Point{static_cast<int>(rawWidth - 1 - boundedX),
+                 static_cast<int>(rawHeight - 1 - boundedY)};
+  }
+
+  return Point{};
+}
+
+bool TouchInputSource::movedFarEnough(const Point &lhs, const Point &rhs,
+                                      unsigned int threshold) {
+  const int deltaX = lhs.x > rhs.x ? lhs.x - rhs.x : rhs.x - lhs.x;
+  const int deltaY = lhs.y > rhs.y ? lhs.y - rhs.y : rhs.y - lhs.y;
+  return static_cast<unsigned int>(deltaX) >= threshold ||
+         static_cast<unsigned int>(deltaY) >= threshold;
+}
 
 Size Surface::size() const {
   if (display == nullptr) {

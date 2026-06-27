@@ -7,7 +7,7 @@
 #include <stddef.h>
 
 namespace Driver {
-const int NUM_DRIVERS = 8;
+const int NUM_DRIVERS = 12;
 
 typedef void (*DeviceDriverPostInitCallback)();
 

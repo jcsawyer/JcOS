@@ -56,6 +56,7 @@ extern "C" void current_elx_synchronous(ExceptionContext *context) {
 }
 
 extern "C" void current_elx_irq(ExceptionContext *context) {
+  (void)context;
   auto token = Exceptions::Asynchronous::IRQContext::create();
   Exceptions::Asynchronous::irq_manager()->handlePendingIrqs(token);
 }

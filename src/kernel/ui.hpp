@@ -1,6 +1,7 @@
 #pragma once
 
 #include <display/display.hpp>
+#include <bsp/device_driver/lcd/touch_controller.hpp>
 #include <optional.hpp>
 #include <stddef.h>
 #include <stdint.h>
@@ -52,6 +53,31 @@ class InputSource {
 public:
   virtual ~InputSource() = default;
   virtual Optional<InputEvent> pollEvent() = 0;
+};
+
+class TouchInputSource : public InputSource {
+public:
+  TouchInputSource(Driver::BSP::Touch::TouchPanel *touchPanel,
+                   Driver::Display::Display *display);
+
+  Optional<InputEvent> pollEvent() override;
+
+private:
+  Driver::BSP::Touch::TouchPanel *touchPanel;
+  Driver::Display::Display *display;
+  bool pointerActive = false;
+  bool tapEligible = false;
+  bool selectPending = false;
+  Point pressPoint{};
+  Point lastPoint{};
+  Point releasePoint{};
+  Time::Duration pressStartedAt = Time::Duration::zero();
+  Time::Duration lastTouchSampleAt = Time::Duration::zero();
+  Time::Duration lastTouchPollAt = Time::Duration::zero();
+
+  Point mapToDisplay(const Driver::BSP::Touch::Sample &sample) const;
+  static bool movedFarEnough(const Point &lhs, const Point &rhs,
+                             unsigned int threshold);
 };
 
 class Surface {

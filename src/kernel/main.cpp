@@ -13,6 +13,7 @@
 #include <ui.hpp>
 
 #include <bsp/device_driver/bcm/bcm2xxx_interrupt_controller/peripheral_ic.hpp>
+#include <bsp/device_driver/lcd/touch_controller.hpp>
 
 #include <state.hpp>
 #include <synchronization.hpp>
@@ -118,15 +119,15 @@ void idleTask() {
 void memoryUiDemoTask() {
   Time::TimeManager *timeManager = Time::TimeManager::GetInstance();
   constexpr size_t allocationSizes[] = {
-      1 * MiB,
-      3 * MiB,
-      6 * MiB,
-      2 * MiB,
+      64 * KiB,
+      192 * KiB,
+      384 * KiB,
+      128 * KiB,
   };
   constexpr size_t allocationCount =
       sizeof(allocationSizes) / sizeof(allocationSizes[0]);
-  const Time::Duration holdAllocated = Time::Duration::from_millis(900);
-  const Time::Duration holdFreed = Time::Duration::from_millis(600);
+  const Time::Duration holdAllocated = Time::Duration::from_millis(700);
+  const Time::Duration holdFreed = Time::Duration::from_millis(400);
   size_t allocationIndex = 0;
 
   while (1) {
@@ -134,8 +135,9 @@ void memoryUiDemoTask() {
     allocationIndex = (allocationIndex + 1) % allocationCount;
 
     char *buffer = new char[allocationSize];
-    for (size_t i = 0; i < allocationSize; i++) {
-      buffer[i] = static_cast<char>(allocationIndex);
+    if (allocationSize > 0) {
+      buffer[0] = static_cast<char>(allocationIndex);
+      buffer[allocationSize - 1] = static_cast<char>(allocationIndex);
     }
 
     Time::Duration releaseAt = timeManager->uptime() + holdAllocated;
@@ -194,7 +196,12 @@ void memoryUiDemoTask() {
 
   taskManager.init();
   UI::Runtime *uiRuntime = UI::Runtime::GetInstance();
-  uiRuntime->init(Driver::BSP::RaspberryPi::RaspberryPi::getDisplay());
+  Driver::Display::Display *display =
+      Driver::BSP::RaspberryPi::RaspberryPi::getDisplay();
+  uiRuntime->init(display);
+  static UI::TouchInputSource touchInputSource(
+      Driver::BSP::RaspberryPi::RaspberryPi::getTouchPanel(), display);
+  uiRuntime->registerInputSource(&touchInputSource);
   uiRuntime->start();
   taskManager.addTask("memory-ui-demo", memoryUiDemoTask);
   taskManager.addTask("idle", idleTask);

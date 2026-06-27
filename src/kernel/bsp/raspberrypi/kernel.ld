@@ -56,7 +56,7 @@ SECTIONS
     {
         __kernel_symbols_start = .;
         BYTE(0);
-        . += (96 * 1024) - 1;
+        . += (128 * 1024) - 1;
         __kernel_symbols_end_exclusive = .;
     } :segment_code
 

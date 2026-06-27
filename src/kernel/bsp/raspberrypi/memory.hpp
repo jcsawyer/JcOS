@@ -76,6 +76,8 @@ struct Map {
   static const size_t GPIO_SIZE = 0xE8;
   static const size_t SPI0_OFFSET = 0x00204000;
   static const size_t SPI0_SIZE = 0x18;
+  static const size_t I2C1_OFFSET = 0x00804000;
+  static const size_t I2C1_SIZE = 0x20;
   static const size_t UART_OFFSET = 0x00201000;
   static const size_t UART_SIZE = 0x48;
   static const size_t TIMER_OFFSET = 0x00003000;
