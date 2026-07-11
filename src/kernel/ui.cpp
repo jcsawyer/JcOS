@@ -175,12 +175,12 @@ public:
   void syncTransition(const PointerPresentation &previous,
                       const PointerPresentation &current,
                       bool indicatorEnabled) {
-    const Rect previousBounds =
-        indicatorEnabled && previous.visible ? indicatorBounds(previous.position)
-                                            : Rect{};
-    const Rect currentBounds =
-        indicatorEnabled && current.visible ? indicatorBounds(current.position)
-                                            : Rect{};
+    const Rect previousBounds = indicatorEnabled && previous.visible
+                                    ? indicatorBounds(previous.position)
+                                    : Rect{};
+    const Rect currentBounds = indicatorEnabled && current.visible
+                                   ? indicatorBounds(current.position)
+                                   : Rect{};
     queueInvalidation(unionRect(previousBounds, currentBounds));
   }
 
@@ -445,7 +445,8 @@ Optional<InputEvent> TouchInputSource::pollEvent() {
       !pointerActive && (now - lastTouchPollAt) >= touchIdlePollInterval;
   const bool hasPendingTouchSample = touchPanel->hasPendingSample();
 
-  if (!hasPendingTouchSample && !shouldPollActiveTouch && !shouldPollIdleTouch) {
+  if (!hasPendingTouchSample && !shouldPollActiveTouch &&
+      !shouldPollIdleTouch) {
     if (pointerActive && (now - lastTouchSampleAt) >= touchReleaseTimeout) {
       pointerActive = false;
       releasePoint = lastPoint;
@@ -884,7 +885,7 @@ void Runtime::start() {
   }
 
   started = true;
-  taskManager.addTask("ui-runtime", &Runtime::taskEntry);
+  taskManager.addTask("ui-runtime", &Runtime::taskEntry, 3);
 }
 
 void Runtime::invalidate(const Rect &rect) {

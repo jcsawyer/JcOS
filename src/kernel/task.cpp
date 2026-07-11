@@ -13,15 +13,48 @@ void TaskManager::init() {
   idCounter = 1000;
 }
 
-void TaskManager::addTask(const char *name, void (*entry)()) {
+bool TaskManager::isRunnableState(TaskState state) {
+  return state == TaskState::Runnable || state == TaskState::Running;
+}
 
-  if (taskCount >= MAX_TASKS)
-    return;
+const char *TaskManager::stateName(TaskState state) {
+  switch (state) {
+  case TaskState::New:
+    return "new";
+  case TaskState::Running:
+    return "running";
+  case TaskState::Runnable:
+    return "runnable";
+  case TaskState::Blocked:
+    return "blocked";
+  case TaskState::Dying:
+    return "dying";
+  case TaskState::Idle:
+    return "idle";
+  default:
+    return "unknown";
+  }
+}
+
+bool TaskManager::addTask(const char *name, void (*entry)(), int priority,
+                          TaskState initialState, TaskKind kind) {
+
+  if (taskCount >= MAX_TASKS) {
+    warn("Task creation failed for %s: task table full", name);
+    return false;
+  }
 
   Task &t = tasks[taskCount];
-
+  t.stackPtr = nullptr;
+  t.entry = nullptr;
+  t.hasStarted = false;
   t.name = name;
   t.id = ++idCounter;
+  t.state = initialState;
+  t.kind = kind;
+  t.priority = priority > 0 ? priority : 1;
+  t.counter = t.priority;
+  t.cpuAffinity = 0;
 
   // Initialize context
   for (int i = 0; i < 12; ++i)
@@ -39,7 +72,9 @@ void TaskManager::addTask(const char *name, void (*entry)()) {
   t.entry = entry;
   taskCount++;
 
-  info("Task %p (TID %d) created: %s", entry, t.id, name);
+  info("Task %p (TID %d) created: %s state=%s priority=%d", entry, t.id, name,
+       stateName(t.state), t.priority);
+  return true;
 }
 
 Task *TaskManager::current() {
@@ -48,15 +83,95 @@ Task *TaskManager::current() {
   return nullptr;
 }
 
+const Task *TaskManager::current() const {
+  if (currentTask >= 0)
+    return &tasks[currentTask];
+  return nullptr;
+}
+
+size_t TaskManager::taskCountActive() const {
+  return static_cast<size_t>(taskCount);
+}
+
+size_t TaskManager::runnableCount() const {
+  size_t count = 0;
+  for (int i = 0; i < taskCount; ++i) {
+    if (isRunnableState(tasks[i].state)) {
+      ++count;
+    }
+  }
+  return count;
+}
+
+Task *TaskManager::idleTask() {
+  for (int i = 0; i < taskCount; ++i) {
+    if (tasks[i].state == TaskState::Idle) {
+      return &tasks[i];
+    }
+  }
+  return nullptr;
+}
+
+Task *TaskManager::pickNextTask() {
+  Task *selected = nullptr;
+  int bestCounter = -1;
+
+  while (selected == nullptr) {
+    for (int i = 0; i < taskCount; ++i) {
+      Task &task = tasks[i];
+      if (!isRunnableState(task.state) || task.counter <= 0) {
+        continue;
+      }
+
+      if (selected == nullptr || task.counter > bestCounter) {
+        selected = &task;
+        bestCounter = task.counter;
+      }
+    }
+
+    if (selected != nullptr) {
+      return selected;
+    }
+
+    bool recalculated = false;
+    for (int i = 0; i < taskCount; ++i) {
+      Task &task = tasks[i];
+      if (!isRunnableState(task.state)) {
+        continue;
+      }
+      task.counter = (task.counter >> 1) + task.priority;
+      recalculated = true;
+    }
+
+    if (!recalculated) {
+      return idleTask();
+    }
+  }
+
+  return selected;
+}
+
 void TaskManager::schedule() {
-  if (taskCount == 0)
-    return; // no tasks
+  if (taskCount == 0) {
+    return;
+  }
 
-  int oldTaskIndex = currentTask;
-  currentTask = (currentTask + 1) % taskCount;
+  Task *old = current();
+  if (old != nullptr && old->state == TaskState::Running) {
+    old->state = TaskState::Runnable;
+  }
 
-  Task *old = (oldTaskIndex >= 0) ? &tasks[oldTaskIndex] : nullptr;
-  Task *nextTask = &tasks[currentTask];
+  Task *nextTask = pickNextTask();
+  if (nextTask == nullptr) {
+    return;
+  }
+
+  currentTask = static_cast<int>(nextTask - tasks);
+  nextTask->state =
+      nextTask->state == TaskState::Idle ? TaskState::Idle : TaskState::Running;
+  if (nextTask->state == TaskState::Running && nextTask->counter > 0) {
+    --nextTask->counter;
+  }
 
   if (old == nextTask) {
     return;
@@ -68,15 +183,23 @@ void TaskManager::schedule() {
     enter_task(nextTask->entry,
                reinterpret_cast<unsigned long *>(nextTask->context.sp));
   } else {
-    if (old && nextTask) {
+    if (old != nullptr) {
       // switch_context never returns, switches context to next task
       switch_context(old->stackPtr, nextTask->stackPtr);
     }
   }
 }
 
+void TaskManager::yieldCurrent() {
+  Task *task = current();
+  if (task != nullptr && task->state != TaskState::Idle) {
+    task->counter = 0;
+  }
+  schedule();
+}
+
 namespace Tasks {
 
-void yield() { taskManager.schedule(); }
+void yield() { taskManager.yieldCurrent(); }
 
 } // namespace Tasks

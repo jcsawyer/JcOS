@@ -2,8 +2,22 @@
 #include <stddef.h>
 #include <stdint.h>
 
-#define MAX_TASKS 3
+#define MAX_TASKS 8
 #define STACK_SIZE 1024
+
+enum class TaskState : uint8_t {
+  New = 0,
+  Running = 1,
+  Runnable = 2,
+  Blocked = 3,
+  Dying = 4,
+  Idle = 5,
+};
+
+enum class TaskKind : uint8_t {
+  Kernel = 0,
+  User = 1,
+};
 
 struct Context {
   unsigned long x19, x20, x21, x22, x23, x24, x25, x26, x27, x28, x29, x30;
@@ -18,6 +32,11 @@ struct Task {
   bool hasStarted = false;
   const char *name = nullptr;
   int id = -1; // Unique identifier for the task
+  TaskState state = TaskState::New;
+  TaskKind kind = TaskKind::Kernel;
+  int priority = 1;
+  int counter = 0;
+  int cpuAffinity = 0;
 
   size_t stackStart() const { return reinterpret_cast<size_t>(&stack[0]); }
 
@@ -29,12 +48,23 @@ struct Task {
 class TaskManager {
 public:
   void init();
-  void addTask(const char *name, void (*entryPoint)());
+  bool addTask(const char *name, void (*entryPoint)(), int priority = 1,
+               TaskState initialState = TaskState::Runnable,
+               TaskKind kind = TaskKind::Kernel);
   void schedule();
+  void yieldCurrent();
   Task *current();
+  const Task *current() const;
+  size_t taskCountActive() const;
+  size_t runnableCount() const;
   int currentTask = -1;
 
 private:
+  Task *pickNextTask();
+  Task *idleTask();
+  static bool isRunnableState(TaskState state);
+  static const char *stateName(TaskState state);
+
   Task tasks[MAX_TASKS];
   int taskCount = 0;
   int idCounter;

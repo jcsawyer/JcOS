@@ -7,9 +7,7 @@ void GPIO::init() {}
 void GPIO::registerAndEnableIrqHandler(
     ::BSP::Exception::Asynchronous::IRQNumber *irqNumber) {}
 
-void GPIO::configureOutput(unsigned int pin) const {
-  setFunction(pin, 0b001u);
-}
+void GPIO::configureOutput(unsigned int pin) const { setFunction(pin, 0b001u); }
 
 void GPIO::write(unsigned int pin, bool high) const {
   if (high) {

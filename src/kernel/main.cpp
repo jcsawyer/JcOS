@@ -200,8 +200,8 @@ void memoryUiDemoTask() {
       Driver::BSP::RaspberryPi::RaspberryPi::getTouchPanel(), display);
   uiRuntime->registerInputSource(&touchInputSource);
   uiRuntime->start();
-  taskManager.addTask("memory-ui-demo", memoryUiDemoTask);
-  taskManager.addTask("idle", idleTask);
+  taskManager.addTask("memory-ui-demo", memoryUiDemoTask, 2);
+  taskManager.addTask("idle", idleTask, 1, TaskState::Idle);
 
   info("Starting cooperative scheduler");
   taskManager.schedule();

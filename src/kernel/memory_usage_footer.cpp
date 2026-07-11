@@ -182,18 +182,21 @@ bool StatusFooter::tick(const Time::Duration &now) {
 
     size_t usedFirstChangedIndex = 0;
     while (usedFirstChangedIndex < sharedSlashIndex &&
-           lastText[usedFirstChangedIndex] == currentText[usedFirstChangedIndex]) {
+           lastText[usedFirstChangedIndex] ==
+               currentText[usedFirstChangedIndex]) {
       ++usedFirstChangedIndex;
     }
 
     const size_t usedFieldEndExclusive =
-        (lastSlashIndex > currentSlashIndex ? lastSlashIndex : currentSlashIndex);
+        (lastSlashIndex > currentSlashIndex ? lastSlashIndex
+                                            : currentSlashIndex);
     if (usedFirstChangedIndex < usedFieldEndExclusive) {
       const unsigned int dirtyX =
           currentTextX +
           static_cast<unsigned int>(usedFirstChangedIndex) * footerTextAdvance;
       const unsigned int dirtyWidth =
-          static_cast<unsigned int>(usedFieldEndExclusive - usedFirstChangedIndex) *
+          static_cast<unsigned int>(usedFieldEndExclusive -
+                                    usedFirstChangedIndex) *
           footerTextAdvance;
       queueInvalidation(Rect{static_cast<int>(dirtyX), static_cast<int>(textY),
                              dirtyWidth, footerTextHeight});
@@ -201,14 +204,17 @@ bool StatusFooter::tick(const Time::Duration &now) {
 
     const size_t lastSuffixIndex = findLastCharacter(lastText, ' ');
     const size_t currentSuffixIndex = findLastCharacter(currentText, ' ');
-    const size_t totalFieldStart =
-        sharedSlashIndex < stringLength(currentText) ? sharedSlashIndex + 1 : sharedSlashIndex;
+    const size_t totalFieldStart = sharedSlashIndex < stringLength(currentText)
+                                       ? sharedSlashIndex + 1
+                                       : sharedSlashIndex;
     const size_t totalFieldEndExclusive =
-        (lastSuffixIndex > currentSuffixIndex ? lastSuffixIndex : currentSuffixIndex);
+        (lastSuffixIndex > currentSuffixIndex ? lastSuffixIndex
+                                              : currentSuffixIndex);
     size_t totalFirstChangedIndex = totalFieldStart;
     while (totalFirstChangedIndex < lastSuffixIndex &&
            totalFirstChangedIndex < currentSuffixIndex &&
-           lastText[totalFirstChangedIndex] == currentText[totalFirstChangedIndex]) {
+           lastText[totalFirstChangedIndex] ==
+               currentText[totalFirstChangedIndex]) {
       ++totalFirstChangedIndex;
     }
 
@@ -217,7 +223,8 @@ bool StatusFooter::tick(const Time::Duration &now) {
           currentTextX +
           static_cast<unsigned int>(totalFirstChangedIndex) * footerTextAdvance;
       const unsigned int dirtyWidth =
-          static_cast<unsigned int>(totalFieldEndExclusive - totalFirstChangedIndex) *
+          static_cast<unsigned int>(totalFieldEndExclusive -
+                                    totalFirstChangedIndex) *
           footerTextAdvance;
       queueInvalidation(Rect{static_cast<int>(dirtyX), static_cast<int>(textY),
                              dirtyWidth, footerTextHeight});

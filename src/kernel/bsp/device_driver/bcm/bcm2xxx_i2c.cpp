@@ -27,8 +27,7 @@ bool I2C::write(uint8_t address, const uint8_t *data, size_t length) {
   *registerBlock.DLEN = static_cast<uint32_t>(length);
   clearStatus();
   clearFifo();
-  *registerBlock.C =
-      controlI2cEnable | controlClearFifo | controlStartTransfer;
+  *registerBlock.C = controlI2cEnable | controlClearFifo | controlStartTransfer;
 
   size_t offset = 0;
   while (offset < length) {
@@ -62,8 +61,8 @@ bool I2C::read(uint8_t address, uint8_t *buffer, size_t length) {
   *registerBlock.DLEN = static_cast<uint32_t>(length);
   clearStatus();
   clearFifo();
-  *registerBlock.C = controlI2cEnable | controlClearFifo | controlRead |
-                     controlStartTransfer;
+  *registerBlock.C =
+      controlI2cEnable | controlClearFifo | controlRead | controlStartTransfer;
 
   size_t offset = 0;
   while (offset < length) {
@@ -101,8 +100,7 @@ bool I2C::readRegisters(uint8_t address, uint8_t reg, uint8_t *buffer,
 }
 
 void I2C::clearStatus() const {
-  *registerBlock.S =
-      statusClockTimeout | statusAcknowledgeError | statusDone;
+  *registerBlock.S = statusClockTimeout | statusAcknowledgeError | statusDone;
 }
 
 void I2C::clearFifo() const { *registerBlock.C |= controlClearFifo; }
