@@ -49,8 +49,8 @@ private:
   static constexpr unsigned int resetPin = 22;
   static constexpr unsigned int interruptPin = 23;
   static constexpr uint8_t primaryAddress = 0x38;
-  static constexpr unsigned int sensorWidth = 480;
-  static constexpr unsigned int sensorHeight = 320;
+  static constexpr unsigned int sensorWidth = 320;
+  static constexpr unsigned int sensorHeight = 480;
 
   Driver::BSP::BCM::GPIO *gpio;
   Driver::BSP::BCM::I2C *i2c;

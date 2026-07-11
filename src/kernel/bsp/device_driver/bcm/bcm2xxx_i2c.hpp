@@ -59,7 +59,7 @@ private:
   static constexpr uint32_t statusTransmitData = 1u << 4;
   static constexpr uint32_t statusDone = 1u << 1;
 
-  static constexpr uint32_t coreClockDivider = 2500;
+  static constexpr uint32_t coreClockDivider = 626;
   static constexpr uint32_t transferTimeoutCycles = 2000000;
 
   void clearStatus() const;

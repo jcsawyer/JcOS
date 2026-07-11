@@ -108,10 +108,7 @@ void task2() {
 }
 
 void idleTask() {
-  Time::TimeManager *timeManager = Time::TimeManager::GetInstance();
-
   while (1) {
-    timeManager->spinFor(Time::Duration::from_millis(1));
     Tasks::yield();
   }
 }

@@ -26,8 +26,8 @@ public:
   }
 
   bool configure() override {
-    return bus->writeRegister(address, 0x88, 0x07) &&
-           bus->writeRegister(address, 0xA4, 0x00);
+    return bus->writeRegister(address, 0x88, 0x01) &&
+           bus->writeRegister(address, 0xA4, 0x01);
   }
 
   Optional<Sample> readSample() override {

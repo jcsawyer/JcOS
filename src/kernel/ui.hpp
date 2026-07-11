@@ -1,7 +1,7 @@
 #pragma once
 
-#include <display/display.hpp>
 #include <bsp/device_driver/lcd/touch_controller.hpp>
+#include <display/display.hpp>
 #include <optional.hpp>
 #include <stddef.h>
 #include <stdint.h>
@@ -47,6 +47,15 @@ struct InputEvent {
   InputEventType type = InputEventType::Tick;
   Point position{};
   Time::Duration timestamp = Time::Duration::zero();
+};
+
+struct UiSettings {
+  bool showTouchIndicator = true;
+};
+
+struct PointerPresentation {
+  bool visible = false;
+  Point position{};
 };
 
 class InputSource {
@@ -163,6 +172,10 @@ public:
   void start();
 
   bool isReady() const { return ready; }
+  const UiSettings &settings() const { return uiSettings; }
+  const PointerPresentation &pointerState() const {
+    return pointerPresentation;
+  }
   void invalidate(const Rect &rect);
   void invalidateAll();
   bool postInputEvent(const InputEvent &event);
@@ -193,14 +206,18 @@ private:
   bool advanceUiState(const Time::Duration &now);
   bool drainViewInvalidations();
   void renderFrame();
+  void updatePointerPresentation(const InputEvent &event);
 
   Driver::Display::Display *display = nullptr;
   Surface *surface = nullptr;
   View *homeScreen = nullptr;
   StatusFooter *footer = nullptr;
+  Overlay *touchIndicatorOverlay = nullptr;
   ScreenManager screenManager;
   Renderer renderer;
   EventQueue eventQueue;
+  UiSettings uiSettings{};
+  PointerPresentation pointerPresentation{};
   Rect dirtyRects[maxDirtyRects] = {};
   size_t dirtyRectCount = 0;
   InputSource *inputSources[maxInputSources] = {};

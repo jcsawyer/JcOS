@@ -14,13 +14,20 @@ constexpr uint16_t backgroundColor = 0x0000;
 constexpr uint16_t textColor = 0xFFFF;
 constexpr uint16_t accentColor = 0x07FF;
 constexpr uint16_t mutedColor = 0x7BEF;
+constexpr uint16_t touchIndicatorColor = 0xFBE0;
 const Time::Duration uiTickInterval = Time::Duration::from_millis(16);
-const Time::Duration minRenderInterval = Time::Duration::from_millis(16);
+const Time::Duration minRenderInterval = Time::Duration::from_millis(4);
 const Time::Duration tapMaxDuration = Time::Duration::from_millis(250);
-const Time::Duration touchActivePollInterval = Time::Duration::from_millis(16);
-const Time::Duration touchReleaseTimeout = Time::Duration::from_millis(250);
-constexpr unsigned int pointerMoveThreshold = 3;
+const Time::Duration touchIdlePollInterval = Time::Duration::from_millis(8);
+const Time::Duration touchActivePollInterval = Time::Duration::zero();
+const Time::Duration touchReleaseTimeout = Time::Duration::from_millis(24);
+constexpr unsigned int pointerMoveThreshold = 1;
 constexpr unsigned int tapMoveThreshold = 12;
+constexpr int touchIndicatorRadius = 8;
+constexpr unsigned int touchIndicatorThickness = 2;
+constexpr unsigned int touchIndicatorSnapStep = 6;
+constexpr size_t maxOverlayInvalidations = 4;
+constexpr size_t maxInputEventsPerSourcePerPump = 8;
 
 const char *eventTypeName(InputEventType type) {
   switch (type) {
@@ -83,6 +90,145 @@ size_t stringLength(const char *text) {
   return length;
 }
 
+Rect unionRect(const Rect &lhs, const Rect &rhs) {
+  if (lhs.empty()) {
+    return rhs;
+  }
+  if (rhs.empty()) {
+    return lhs;
+  }
+
+  const int x0 = lhs.x < rhs.x ? lhs.x : rhs.x;
+  const int y0 = lhs.y < rhs.y ? lhs.y : rhs.y;
+  const int x1 = lhs.right() > rhs.right() ? lhs.right() : rhs.right();
+  const int y1 = lhs.bottom() > rhs.bottom() ? lhs.bottom() : rhs.bottom();
+  return Rect{x0, y0, static_cast<unsigned int>(x1 - x0),
+              static_cast<unsigned int>(y1 - y0)};
+}
+
+Point snapPointToIndicatorGrid(const Point &point) {
+  const int step = static_cast<int>(touchIndicatorSnapStep);
+  return Point{(point.x / step) * step, (point.y / step) * step};
+}
+
+class TouchIndicatorOverlay : public Overlay {
+public:
+  explicit TouchIndicatorOverlay(Runtime *runtime) : runtime(runtime) {}
+
+  void layout(const Rect &bounds) override {
+    frame = bounds;
+    pendingInvalidationCount = 0;
+    lastRenderedVisible = false;
+    lastRenderedBounds = Rect{};
+  }
+
+  void render(Surface &surface) override {
+    if (runtime == nullptr) {
+      return;
+    }
+
+    const UiSettings &settings = runtime->settings();
+    const PointerPresentation &pointer = runtime->pointerState();
+    if (!settings.showTouchIndicator || !pointer.visible) {
+      lastRenderedVisible = false;
+      lastRenderedBounds = Rect{};
+      return;
+    }
+
+    const Rect markerBounds = indicatorBounds(pointer.position);
+    if (markerBounds.empty()) {
+      lastRenderedVisible = false;
+      lastRenderedBounds = Rect{};
+      return;
+    }
+
+    const int outerDiameter = touchIndicatorRadius * 2 + 1;
+
+    surface.fillRect(
+        Rect{pointer.position.x - touchIndicatorRadius,
+             pointer.position.y - static_cast<int>(touchIndicatorThickness / 2),
+             outerDiameter, touchIndicatorThickness},
+        touchIndicatorColor);
+    surface.fillRect(
+        Rect{pointer.position.x - static_cast<int>(touchIndicatorThickness / 2),
+             pointer.position.y - touchIndicatorRadius, touchIndicatorThickness,
+             outerDiameter},
+        touchIndicatorColor);
+
+    lastRenderedVisible = true;
+    lastRenderedBounds = markerBounds;
+  }
+
+  Optional<Rect> takeInvalidation() override {
+    if (pendingInvalidationCount == 0) {
+      return Optional<Rect>();
+    }
+
+    Rect region = pendingInvalidations[0];
+    for (size_t i = 1; i < pendingInvalidationCount; ++i) {
+      pendingInvalidations[i - 1] = pendingInvalidations[i];
+    }
+    --pendingInvalidationCount;
+    return Optional<Rect>(region);
+  }
+
+  void syncTransition(const PointerPresentation &previous,
+                      const PointerPresentation &current,
+                      bool indicatorEnabled) {
+    const Rect previousBounds =
+        indicatorEnabled && previous.visible ? indicatorBounds(previous.position)
+                                            : Rect{};
+    const Rect currentBounds =
+        indicatorEnabled && current.visible ? indicatorBounds(current.position)
+                                            : Rect{};
+    queueInvalidation(unionRect(previousBounds, currentBounds));
+  }
+
+private:
+  Rect indicatorBounds(const Point &center) const {
+    const int diameter = touchIndicatorRadius * 2 + 1;
+    return clippedToFrame(Rect{center.x - touchIndicatorRadius,
+                               center.y - touchIndicatorRadius, diameter,
+                               diameter});
+  }
+
+  Rect clippedToFrame(const Rect &rect) const {
+    const int x0 = rect.x > frame.x ? rect.x : frame.x;
+    const int y0 = rect.y > frame.y ? rect.y : frame.y;
+    const int x1 = rect.right() < frame.right() ? rect.right() : frame.right();
+    const int y1 =
+        rect.bottom() < frame.bottom() ? rect.bottom() : frame.bottom();
+
+    if (x1 <= x0 || y1 <= y0) {
+      return Rect{};
+    }
+
+    return Rect{x0, y0, static_cast<unsigned int>(x1 - x0),
+                static_cast<unsigned int>(y1 - y0)};
+  }
+
+  void queueInvalidation(const Rect &region) {
+    if (region.empty()) {
+      return;
+    }
+
+    if (pendingInvalidationCount < maxOverlayInvalidations) {
+      pendingInvalidations[pendingInvalidationCount++] = region;
+      return;
+    }
+
+    pendingInvalidations[maxOverlayInvalidations - 1] =
+        unionRect(pendingInvalidations[maxOverlayInvalidations - 1], region);
+  }
+
+  Runtime *runtime;
+  Rect frame{};
+  Rect pendingInvalidations[maxOverlayInvalidations] = {};
+  size_t pendingInvalidationCount = 0;
+  bool lastRenderedVisible = false;
+  Rect lastRenderedBounds{};
+};
+
 class HomeScreen : public View {
 public:
   void layout(const Rect &bounds) override {
@@ -104,6 +250,10 @@ public:
   }
 
   bool handleInput(const InputEvent &event) override {
+    if (event.type == InputEventType::PointerMove) {
+      return false;
+    }
+
     lastEvent = event.type;
     ++eventCount;
     markStatsDirty();
@@ -142,22 +292,6 @@ public:
   }
 
 private:
-  static Rect unionRect(const Rect &lhs, const Rect &rhs) {
-    if (lhs.empty()) {
-      return rhs;
-    }
-    if (rhs.empty()) {
-      return lhs;
-    }
-
-    const int x0 = lhs.x < rhs.x ? lhs.x : rhs.x;
-    const int y0 = lhs.y < rhs.y ? lhs.y : rhs.y;
-    const int x1 = lhs.right() > rhs.right() ? lhs.right() : rhs.right();
-    const int y1 = lhs.bottom() > rhs.bottom() ? lhs.bottom() : rhs.bottom();
-    return Rect{x0, y0, static_cast<unsigned int>(x1 - x0),
-                static_cast<unsigned int>(y1 - y0)};
-  }
-
   void mergeInvalidation(const Rect &region) {
     if (region.empty()) {
       return;
@@ -268,12 +402,6 @@ private:
                        backgroundColor, 1);
     surface.drawString(Point{right, statsY + 72}, eventCountBuffer, textColor,
                        backgroundColor, 1);
-
-    surface.drawString(Point{left, statsY + 108}, "Touch/buttons ready via",
-                       accentColor, backgroundColor, 1);
-    surface.drawString(Point{left, statsY + 124},
-                       "InputSource + UI event queue", accentColor,
-                       backgroundColor, 1);
   }
 
   Rect frame{};
@@ -313,8 +441,11 @@ Optional<InputEvent> TouchInputSource::pollEvent() {
 
   const bool shouldPollActiveTouch =
       pointerActive && (now - lastTouchPollAt) >= touchActivePollInterval;
+  const bool shouldPollIdleTouch =
+      !pointerActive && (now - lastTouchPollAt) >= touchIdlePollInterval;
+  const bool hasPendingTouchSample = touchPanel->hasPendingSample();
 
-  if (!touchPanel->hasPendingSample() && !shouldPollActiveTouch) {
+  if (!hasPendingTouchSample && !shouldPollActiveTouch && !shouldPollIdleTouch) {
     if (pointerActive && (now - lastTouchSampleAt) >= touchReleaseTimeout) {
       pointerActive = false;
       releasePoint = lastPoint;
@@ -336,14 +467,15 @@ Optional<InputEvent> TouchInputSource::pollEvent() {
   }
 
   Optional<Driver::BSP::Touch::Sample> sample = touchPanel->readSample();
+  lastTouchPollAt = now;
   if (!sample.has_value()) {
     return Optional<InputEvent>();
   }
 
-  lastTouchPollAt = now;
   const Point mappedPoint = mapToDisplay(sample.value());
+  const Point snappedPoint = snapPointToIndicatorGrid(mappedPoint);
   InputEvent event{};
-  event.position = mappedPoint;
+  event.position = snappedPoint;
   event.timestamp = now;
   lastTouchSampleAt = now;
 
@@ -351,18 +483,18 @@ Optional<InputEvent> TouchInputSource::pollEvent() {
     if (!pointerActive) {
       pointerActive = true;
       tapEligible = true;
-      pressPoint = mappedPoint;
-      lastPoint = mappedPoint;
+      pressPoint = snappedPoint;
+      lastPoint = snappedPoint;
       pressStartedAt = now;
       event.type = InputEventType::PointerDown;
       return Optional<InputEvent>(event);
     }
 
-    if (movedFarEnough(lastPoint, mappedPoint, pointerMoveThreshold)) {
+    if (movedFarEnough(lastPoint, snappedPoint, pointerMoveThreshold)) {
       if (movedFarEnough(pressPoint, mappedPoint, tapMoveThreshold)) {
         tapEligible = false;
       }
-      lastPoint = mappedPoint;
+      lastPoint = snappedPoint;
       event.type = InputEventType::PointerMove;
       return Optional<InputEvent>(event);
     }
@@ -401,16 +533,16 @@ Point TouchInputSource::mapToDisplay(
 
   switch (display->rotation()) {
   case Driver::Display::Display::Rotation::Portrait:
+    return Point{static_cast<int>(boundedX), static_cast<int>(boundedY)};
+  case Driver::Display::Display::Rotation::Landscape:
     return Point{static_cast<int>(boundedY),
                  static_cast<int>(rawWidth - 1 - boundedX)};
-  case Driver::Display::Display::Rotation::Landscape:
-    return Point{static_cast<int>(boundedX), static_cast<int>(boundedY)};
   case Driver::Display::Display::Rotation::InvertedPortrait:
-    return Point{static_cast<int>(rawHeight - 1 - boundedY),
-                 static_cast<int>(boundedX)};
-  case Driver::Display::Display::Rotation::InvertedLandscape:
     return Point{static_cast<int>(rawWidth - 1 - boundedX),
                  static_cast<int>(rawHeight - 1 - boundedY)};
+  case Driver::Display::Display::Rotation::InvertedLandscape:
+    return Point{static_cast<int>(rawHeight - 1 - boundedY),
+                 static_cast<int>(boundedX)};
   }
 
   return Point{};
@@ -669,6 +801,7 @@ void renderDirtyRegion(Surface &surface, ScreenManager &screenManager,
   }
 
   surface.setClipRect(region);
+  surface.fillRect(region, backgroundColor);
 
   View *activeScreen = screenManager.activeScreen();
   if (activeScreen != nullptr) {
@@ -725,8 +858,10 @@ void Runtime::init(Driver::Display::Display *newDisplay) {
   surface = new Surface(display);
   homeScreen = new HomeScreen();
   footer = new StatusFooter();
+  touchIndicatorOverlay = new TouchIndicatorOverlay(this);
 
   screenManager.setRootScreen(homeScreen);
+  screenManager.pushOverlay(touchIndicatorOverlay);
   footer->layout(surface->size());
 
   Rect overlayBounds = surface->bounds();
@@ -834,9 +969,18 @@ bool Runtime::pollInputSources() {
       continue;
     }
 
-    Optional<InputEvent> event = inputSources[i]->pollEvent();
-    if (event.has_value()) {
-      queuedInput = postInputEvent(event.value()) || queuedInput;
+    for (size_t eventIndex = 0; eventIndex < maxInputEventsPerSourcePerPump;
+         ++eventIndex) {
+      Optional<InputEvent> event = inputSources[i]->pollEvent();
+      if (!event.has_value()) {
+        break;
+      }
+
+      if (!postInputEvent(event.value())) {
+        return queuedInput;
+      }
+
+      queuedInput = true;
     }
   }
 
@@ -852,6 +996,7 @@ bool Runtime::dispatchEvents() {
       break;
     }
 
+    updatePointerPresentation(event.value());
     changed = screenManager.handleInput(event.value()) || changed;
   }
 
@@ -888,13 +1033,46 @@ bool Runtime::drainViewInvalidations() {
   Overlay *overlay = screenManager.activeOverlay();
   if (overlay != nullptr) {
     Optional<Rect> region = overlay->takeInvalidation();
-    if (region.has_value()) {
+    while (region.has_value()) {
       invalidate(region.value());
       invalidated = true;
+      region = overlay->takeInvalidation();
     }
   }
 
   return invalidated;
+}
+
+void Runtime::updatePointerPresentation(const InputEvent &event) {
+  if (event.type != InputEventType::PointerDown &&
+      event.type != InputEventType::PointerMove &&
+      event.type != InputEventType::PointerUp) {
+    return;
+  }
+
+  const PointerPresentation previousPointer = pointerPresentation;
+  Overlay *overlay = touchIndicatorOverlay;
+  TouchIndicatorOverlay *touchOverlay =
+      static_cast<TouchIndicatorOverlay *>(overlay);
+
+  switch (event.type) {
+  case InputEventType::PointerDown:
+  case InputEventType::PointerMove:
+    pointerPresentation.position = event.position;
+    pointerPresentation.visible = true;
+    break;
+  case InputEventType::PointerUp:
+    pointerPresentation.position = event.position;
+    pointerPresentation.visible = false;
+    break;
+  default:
+    break;
+  }
+
+  if (touchOverlay != nullptr) {
+    touchOverlay->syncTransition(previousPointer, pointerPresentation,
+                                 uiSettings.showTouchIndicator);
+  }
 }
 
 void Runtime::renderFrame() {
