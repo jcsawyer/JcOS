@@ -36,6 +36,27 @@ const char *TaskManager::stateName(TaskState state) {
   }
 }
 
+const char *TaskManager::waitReasonName(WaitReason waitReason) {
+  switch (waitReason) {
+  case WaitReason::None:
+    return "none";
+  case WaitReason::Interrupt:
+    return "interrupt";
+  case WaitReason::Timer:
+    return "timer";
+  case WaitReason::EventQueue:
+    return "event-queue";
+  case WaitReason::Sleep:
+    return "sleep";
+  case WaitReason::Join:
+    return "join";
+  case WaitReason::IO:
+    return "io";
+  default:
+    return "unknown";
+  }
+}
+
 bool TaskManager::addTask(const char *name, void (*entry)(), int priority,
                           TaskState initialState, TaskKind kind) {
 
@@ -55,6 +76,7 @@ bool TaskManager::addTask(const char *name, void (*entry)(), int priority,
   t.priority = priority > 0 ? priority : 1;
   t.counter = t.priority;
   t.cpuAffinity = 0;
+  t.waitReason = WaitReason::None;
 
   // Initialize context
   for (int i = 0; i < 12; ++i)
@@ -72,8 +94,8 @@ bool TaskManager::addTask(const char *name, void (*entry)(), int priority,
   t.entry = entry;
   taskCount++;
 
-  info("Task %p (TID %d) created: %s state=%s priority=%d", entry, t.id, name,
-       stateName(t.state), t.priority);
+  info("Task %p (TID %d) created: %s state=%s priority=%d wait=%s", entry, t.id,
+       name, stateName(t.state), t.priority, waitReasonName(t.waitReason));
   return true;
 }
 
@@ -89,6 +111,24 @@ const Task *TaskManager::current() const {
   return nullptr;
 }
 
+Task *TaskManager::findById(int taskId) {
+  for (int i = 0; i < taskCount; ++i) {
+    if (tasks[i].id == taskId) {
+      return &tasks[i];
+    }
+  }
+  return nullptr;
+}
+
+const Task *TaskManager::findById(int taskId) const {
+  for (int i = 0; i < taskCount; ++i) {
+    if (tasks[i].id == taskId) {
+      return &tasks[i];
+    }
+  }
+  return nullptr;
+}
+
 size_t TaskManager::taskCountActive() const {
   return static_cast<size_t>(taskCount);
 }
@@ -97,6 +137,16 @@ size_t TaskManager::runnableCount() const {
   size_t count = 0;
   for (int i = 0; i < taskCount; ++i) {
     if (isRunnableState(tasks[i].state)) {
+      ++count;
+    }
+  }
+  return count;
+}
+
+size_t TaskManager::blockedCount() const {
+  size_t count = 0;
+  for (int i = 0; i < taskCount; ++i) {
+    if (tasks[i].state == TaskState::Blocked) {
       ++count;
     }
   }
@@ -198,8 +248,41 @@ void TaskManager::yieldCurrent() {
   schedule();
 }
 
+void TaskManager::blockCurrent(WaitReason waitReason) {
+  Task *task = current();
+  if (task == nullptr || task->state == TaskState::Idle) {
+    return;
+  }
+
+  task->state = TaskState::Blocked;
+  task->waitReason = waitReason;
+  task->counter = 0;
+  info("Task %s (TID %d) blocked: reason=%s", task->name, task->id,
+       waitReasonName(waitReason));
+  schedule();
+}
+
+bool TaskManager::wakeTask(int taskId) {
+  Task *task = findById(taskId);
+  if (task == nullptr || task->state != TaskState::Blocked) {
+    return false;
+  }
+
+  task->state = TaskState::Runnable;
+  task->waitReason = WaitReason::None;
+  if (task->counter <= 0) {
+    task->counter = task->priority;
+  }
+
+  info("Task %s (TID %d) woke: priority=%d counter=%d", task->name, task->id,
+       task->priority, task->counter);
+  return true;
+}
+
 namespace Tasks {
 
 void yield() { taskManager.yieldCurrent(); }
+
+void block(WaitReason waitReason) { taskManager.blockCurrent(waitReason); }
 
 } // namespace Tasks
