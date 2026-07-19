@@ -38,11 +38,11 @@ _start:
 	mov	x19, x0
 
 	// Only proceed on the boot core. Park it otherwise.
-	mrs	x1, MPIDR_EL1
-	and	x1, x1, 0b11
+	mrs	x20, MPIDR_EL1
+	and	x20, x20, 0b11
 	ldr	x2, BOOT_CORE_ID
-	cmp	x1, x2
-	b.ne	.L_parking_loop
+	cmp	x20, x2
+	b.ne	.L_secondary_parking_loop
 
 	// If execution reaches here, it is the boot core.
 	// set up EL1
@@ -96,6 +96,36 @@ _start:
 
 	// Jump to cpp code. x0, x1, x2 and x3 hold the function arguments for _start_cpp().
 	b	_start_cpp
+
+	// Park secondary cores until their release flag is set.
+.L_secondary_parking_loop:
+	cmp	x20, #16
+	b.hs	.L_parking_loop
+	wfe
+	ADR_REL	x3, BOOT_CORE_RELEASE_FLAGS
+	ldrb	w4, [x3, x20]
+	cbz	w4, .L_secondary_parking_loop
+
+	// Load the base address of the kernel's translation tables.
+	ldr	x0, PHYS_KERNEL_TABLES_BASE_ADDR // patched post-link
+
+	// Compute the per-core stack end for the released core.
+	mov	x5, x20
+	add	x5, x5, #1
+	lsl	x5, x5, #16
+
+	// Load the linked virtual stack and entry addresses for EL1.
+	ADR_ABS	x1, RELEASED_CORE_BOOT_STACKS
+	add	x1, x1, x5
+	ADR_ABS	x2, _released_core_main
+	mov	x3, x20
+
+	// Keep using the PC-relative physical stack while still running with the MMU off.
+	ADR_REL	x4, RELEASED_CORE_BOOT_STACKS
+	add	x4, x4, x5
+	mov	sp, x4
+
+	b	_start_released_core
 
 	// Infinitely wait for events (aka "park the core").
 .L_parking_loop:
