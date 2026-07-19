@@ -10,6 +10,7 @@
 .section .text._start
 
 _start:
+	mov	x19, x0
 	mrs	x1, MPIDR_EL1
 	and	x1, x1, 0b11
 	ldr	x2, BOOT_CORE_ID
@@ -42,12 +43,16 @@ _start:
 .L_prepare_cpp:
 	ADR_REL	x0, __boot_core_stack_end_exclusive
 	mov	sp, x0
+	mov	x1, x19
 
 	ADR_REL	x1, ARCH_TIMER_COUNTER_FREQUENCY
 	mrs	x2, CNTFRQ_EL0
 	cmp	x2, xzr
 	b.eq	.L_parking_loop
 	str	w2, [x1]
+
+	ADR_REL	x0, __boot_core_stack_end_exclusive
+	mov	x1, x19
 
 	b	_start_cpp
 

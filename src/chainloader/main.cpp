@@ -16,7 +16,8 @@ extern "C" uint8_t chainloader_relocator_start;
 extern "C" uint8_t chainloader_relocator_end;
 
 using RelocatorFn = void (*)(void *destination, const void *source, size_t size,
-                             uintptr_t entryAddress);
+                             uintptr_t entryAddress,
+                             uintptr_t deviceTreePhysAddr);
 
 void copyBytes(void *destination, const void *source, size_t size) {
   auto *dst = static_cast<uint8_t *>(destination);
@@ -50,7 +51,8 @@ uint32_t readPayloadSize(Chainloader::Uart &uart) {
 }
 
 [[noreturn]] void relocateAndJump(Chainloader::BootDisplay &display,
-                                  uint8_t *payload, uint32_t payloadSize) {
+                                  uint8_t *payload, uint32_t payloadSize,
+                                  uintptr_t deviceTreePhysAddr) {
   char jumpLine[17];
   snprintf_(
       jumpLine, sizeof(jumpLine), "0x%08X",
@@ -68,7 +70,8 @@ uint32_t readPayloadSize(Chainloader::Uart &uart) {
   auto relocator = reinterpret_cast<RelocatorFn>(trampoline);
 
   relocator(reinterpret_cast<void *>(Chainloader::Board::PAYLOAD_ENTRY_ADDRESS),
-            payload, payloadSize, Chainloader::Board::PAYLOAD_ENTRY_ADDRESS);
+            payload, payloadSize, Chainloader::Board::PAYLOAD_ENTRY_ADDRESS,
+            deviceTreePhysAddr);
 
   fatal(display, "JUMP", "RETURN");
 }
@@ -77,7 +80,7 @@ uint32_t readPayloadSize(Chainloader::Uart &uart) {
 
 extern "C" void putchar_(char) {}
 
-extern "C" void chainloader_init() {
+extern "C" void chainloader_init(uintptr_t deviceTreePhysAddr) {
   Chainloader::GPIO gpio(Chainloader::Board::GPIO_BASE);
   Chainloader::LCD lcd(gpio);
   Chainloader::BootDisplay display(lcd);
@@ -119,6 +122,6 @@ extern "C" void chainloader_init() {
 
     display.showStage("BOOT", "PAYLOAD");
     uart.waitForTxIdle();
-    relocateAndJump(display, payload, payloadSize);
+    relocateAndJump(display, payload, payloadSize, deviceTreePhysAddr);
   }
 }

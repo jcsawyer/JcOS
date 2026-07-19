@@ -1,3 +1,5 @@
 #pragma once
 
-extern "C" void chainloader_init();
+#include <stdint.h>
+
+extern "C" void chainloader_init(uintptr_t deviceTreePhysAddr);

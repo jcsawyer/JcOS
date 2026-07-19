@@ -2,7 +2,8 @@
 
 #include <stdint.h>
 
-extern "C" void _start_cpp(uint64_t physBootCoreStackEndExclusiveAddress) {
+extern "C" void _start_cpp(uint64_t physBootCoreStackEndExclusiveAddress,
+                           uintptr_t deviceTreePhysAddr) {
   (void)physBootCoreStackEndExclusiveAddress;
-  chainloader_init();
+  chainloader_init(deviceTreePhysAddr);
 }
