@@ -13,18 +13,6 @@ public:
 
   const char *name() const override { return "FT6x06-compatible"; }
 
-  bool probe() override {
-    uint8_t vendorId = 0;
-    uint8_t chipId = 0;
-    const bool vendorOk = bus->readRegisters(address, 0xA8, &vendorId, 1);
-    const bool chipOk = bus->readRegisters(address, 0xA3, &chipId, 1);
-    if (!vendorOk || !chipOk) {
-      return false;
-    }
-
-    return vendorId == 0x11 && chipId != 0x00 && chipId != 0xFF;
-  }
-
   bool configure() override {
     return bus->writeRegister(address, 0x88, 0x01) &&
            bus->writeRegister(address, 0xA4, 0x01);
@@ -69,14 +57,6 @@ void TouchPanel::init() {
   resetController();
 
   static Ft6x06Controller ft6x06(i2c);
-  if (ft6x06.probe() && ft6x06.configure()) {
-    controller = &ft6x06;
-    ready = true;
-    info("Touch controller online: %s", controller->name());
-    return;
-  }
-
-  warn("Touch controller probe failed on I2C address 0x%X", primaryAddress);
 }
 
 void TouchPanel::registerAndEnableIrqHandler(

@@ -1,3 +1,4 @@
+#include "arch/aarch64/cpu/dtb.hpp"
 #include "bsp/raspberrypi/raspberrypi.hpp"
 #include <bsp/bsp.hpp>
 #include <bsp/raspberrypi/memory/mmu.hpp>
@@ -211,6 +212,12 @@ void memoryUiDemoTask() {
 extern "C" void kernel_init() {
   Exception::handlingInit();
   Time::TimeManager::GetInstance()->earlyInit();
+  if (CPU::Boot::DTB::cpuCoreCount() > 0) {
+    info("Device tree reports %u CPU core(s)",
+         static_cast<unsigned int>(CPU::Boot::DTB::cpuCoreCount()));
+  } else {
+    info("Device tree CPU core count unavailable");
+  }
   Memory::kernel_init_heap_allocator();
   info("Kernel heap online");
   Time::registerTimerDriver();

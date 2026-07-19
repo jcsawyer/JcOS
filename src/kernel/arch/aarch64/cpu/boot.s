@@ -35,6 +35,8 @@
 // fn _start()
 //------------------------------------------------------------------------------
 _start:
+	mov	x19, x0
+
 	// Only proceed on the boot core. Park it otherwise.
 	mrs	x1, MPIDR_EL1
 	and	x1, x1, 0b11
@@ -78,10 +80,11 @@ _start:
 	// Load the linked virtual addresses for EL1.
 	ADR_ABS	x1, __boot_core_stack_end_exclusive
 	ADR_ABS	x2, kernel_init
+	mov	x3, x19
 
 	// Keep using the PC-relative physical stack while still running with the MMU off.
-	ADR_REL	x3, __boot_core_stack_end_exclusive
-	mov	sp, x3
+	ADR_REL	x4, __boot_core_stack_end_exclusive
+	mov	sp, x4
 
 	// Read the CPU's timer counter frequency and store it in ARCH_TIMER_COUNTER_FREQUENCY.
 	// Abort if the frequency read back as 0.
@@ -91,7 +94,7 @@ _start:
 	b.eq	.L_parking_loop
 	str	w5, [x4]
 
-	// Jump to cpp code. x0, x1 and x2 hold the function arguments for _start_cpp().
+	// Jump to cpp code. x0, x1, x2 and x3 hold the function arguments for _start_cpp().
 	b	_start_cpp
 
 	// Infinitely wait for events (aka "park the core").

@@ -20,7 +20,6 @@ class Controller {
 public:
   virtual ~Controller() = default;
   virtual const char *name() const = 0;
-  virtual bool probe() = 0;
   virtual bool configure() = 0;
   virtual Optional<Sample> readSample() = 0;
 };

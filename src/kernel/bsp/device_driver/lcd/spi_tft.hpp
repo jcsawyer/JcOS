@@ -49,7 +49,6 @@ private:
 
   void applyRotation();
   void hardwareReset();
-  bool probePanel();
   void initializePanel();
   void initializeGeneric480x320Panel();
   void updatePanelGeometry();

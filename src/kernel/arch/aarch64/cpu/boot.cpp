@@ -1,6 +1,21 @@
+#include "boot.hpp"
+#include "dtb.hpp"
+
 #include <main.hpp>
 #include <memory/mmu.hpp>
 #include <stdint.h>
+
+namespace CPU {
+namespace Boot {
+
+bool processDeviceTree(uintptr_t deviceTreePhysAddr) {
+  return DTB::processDeviceTree(deviceTreePhysAddr);
+}
+
+} // namespace Boot
+} // namespace CPU
+
+namespace {
 
 void prepare_el2_to_el1_transition(
     uint64_t virt_boot_core_stack_end_exclusive_addr,
@@ -37,21 +52,33 @@ void prepare_el2_to_el1_transition(
                : [value] "r"(virt_boot_core_stack_end_exclusive_addr));
 }
 
+} // namespace
+
 extern "C" void _start_cpp(uint64_t phys_kernel_tables_base_addr,
                            uint64_t virt_boot_core_stack_end_exclusive_addr,
-                           uint64_t virt_kernel_init_addr) {
+                           uint64_t virt_kernel_init_addr,
+                           uintptr_t device_tree_phys_addr) {
   uint64_t current_el = 0;
   asm volatile("mrs %0, CurrentEL" : "=r"(current_el));
   current_el &= 0b1100;
 
   if (current_el == 0b1000) {
+    // Preserve the firmware handoff data before switching exception levels.
+    CPU::Boot::processDeviceTree(device_tree_phys_addr);
+
     prepare_el2_to_el1_transition(virt_boot_core_stack_end_exclusive_addr,
                                   virt_kernel_init_addr);
+
     Memory::MMU()->enableMMUAndCaching(phys_kernel_tables_base_addr);
+
+    // Clear the frame pointer chain before entering the higher-half kernel.
     asm volatile("mov x29, xzr");
     asm volatile("mov x30, xzr");
+
+    // Return from the simulated EL2 exception into EL1h at kernel_init().
     asm volatile("eret");
   }
+
   while (true) {
     asm volatile("wfe");
   }
